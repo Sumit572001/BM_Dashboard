@@ -44,7 +44,7 @@ class ErrorBoundary extends Component {
                 <p className="text-xs text-slate-400">The dashboard encountered a runtime rendering exception.</p>
               </div>
             </div>
-            
+
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-left">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Error Message</span>
               <pre className="text-xs font-mono text-nyati-danger whitespace-pre-wrap break-all bg-red-50/50 p-3 rounded-xl border border-red-100/50">
@@ -52,7 +52,7 @@ class ErrorBoundary extends Component {
                 {this.state.error?.stack && `\n\nStack:\n${this.state.error.stack}`}
               </pre>
             </div>
-            
+
             <div className="flex gap-4">
               <button
                 onClick={() => window.location.reload()}
