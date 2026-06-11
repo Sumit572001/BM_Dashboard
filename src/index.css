@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --color-nyati-navy: #004080;
+  --color-nyati-orange: #E76F2E;
+  --color-nyati-bg: #F0F4F8;
+  --color-nyati-text: #1A202C;
+  --color-nyati-card: #FFFFFF;
+  --color-nyati-success: #38A169;
+  --color-nyati-warning: #D69E2E;
+  --color-nyati-danger: #E53E3E;
+  
+  --font-sans: 'Inter', sans-serif;
+  
+  --shadow-premium: 0 10px 30px -15px rgba(0, 64, 128, 0.15);
+  --shadow-premium-hover: 0 20px 40px -20px rgba(231, 111, 46, 0.25);
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+@layer base {
+  body {
+    @apply bg-nyati-bg text-nyati-text font-sans antialiased m-0 p-0 min-h-screen;
+  }
+}
+
+/* Custom scrollbars for a premium look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 64, 128, 0.15);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(231, 111, 46, 0.35);
+}
+
+/* Heatmap color definitions (utility helper) */
+.heat-0-30 { background-color: rgba(56, 161, 105, 0.15); color: #2f855a; }
+.heat-31-60 { background-color: rgba(214, 158, 46, 0.15); color: #b7791f; }
+.heat-61-90 { background-color: rgba(221, 107, 32, 0.15); color: #dd6b20; }
+.heat-91-120 { background-color: rgba(229, 62, 62, 0.15); color: #c53030; }
+.heat-gt120 { background-color: rgba(229, 62, 62, 0.25); color: #9b2c2c; font-weight: 600; }
