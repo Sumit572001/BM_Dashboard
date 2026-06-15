@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 export default function ProjectTable() {
   const { filteredProjects, setActiveProjectName } = useData();
   const navigate = useNavigate();
-  
+
   // Sort states
   const [sortField, setSortField] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
@@ -72,7 +72,7 @@ export default function ProjectTable() {
 
   return (
     <div className="bg-white rounded-3xl shadow-premium border border-slate-100 overflow-hidden">
-      
+
       {/* Table Header Section */}
       <div className="px-6 py-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -85,10 +85,10 @@ export default function ProjectTable() {
       </div>
 
       {/* Responsive Table Wrapper */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto overflow-y-auto max-h-[520px]">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="bg-slate-50/70 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100 select-none">
+            <tr className="bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100 select-none sticky top-0 z-10 shadow-sm">
               <th onClick={() => requestSort('name')} className="px-6 py-4 cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[200px]">
                 <div className="flex items-center gap-1.5">
                   Project Name
@@ -139,7 +139,7 @@ export default function ProjectTable() {
               </th>
             </tr>
           </thead>
-          
+
           <tbody className="divide-y divide-slate-50 text-slate-600 font-medium">
             {sortedProjects.length === 0 ? (
               <tr>
@@ -154,7 +154,7 @@ export default function ProjectTable() {
               sortedProjects.map((p, index) => {
                 const variance = p.soldToDate - p.budgetUnits; // actual - budget
                 const hasWarning = p.salesEff < 80;
-                
+
                 return (
                   <motion.tr
                     key={p.name}
@@ -227,7 +227,7 @@ export default function ProjectTable() {
 
         </table>
       </div>
-      
+
     </div>
   );
 }

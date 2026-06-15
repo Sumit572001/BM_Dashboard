@@ -31,7 +31,7 @@ export default function KPICard({
   // Status Badge Logic
   let statusColor = 'bg-nyati-danger/10 text-nyati-danger';
   let statusText = 'Critical';
-  
+
   if (eff >= 100) {
     statusColor = 'bg-nyati-success/10 text-nyati-success';
     statusText = 'On Target';
@@ -42,25 +42,25 @@ export default function KPICard({
 
   return (
     <motion.div
-      whileHover={{ y: -5, scale: 1.02 }}
-      transition={{ duration: 0.3 }}
-      className={`bg-white rounded-2xl p-6 shadow-premium hover:shadow-premium-hover flex flex-col justify-between transition-all duration-300 relative overflow-hidden ${borderStyle}`}
+      whileHover={{ y: -6 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+      className={`bg-white rounded-2xl p-4 shadow-premium hover:shadow-premium-hover flex flex-col justify-between relative overflow-hidden ${borderStyle}`}
     >
       {/* Top Header */}
-      <div className="flex justify-between items-start mb-4">
+      <div className="flex justify-between items-start mb-2">
         <div>
-          <span className="text-sm font-semibold uppercase tracking-wider text-slate-400">{title}</span>
-          <h2 className="text-3xl font-extrabold text-nyati-navy mt-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{title}</span>
+          <h2 className="text-xl font-extrabold text-nyati-navy mt-0.5">
             <AnimatedNumber value={actual} prefix={prefix} suffix={suffix} decimals={decimals} />
           </h2>
         </div>
-        <div className="p-3 bg-nyati-navy/5 text-nyati-navy rounded-xl">
-          {Icon && <Icon className="w-6 h-6 text-nyati-navy" />}
+        <div className="p-2 bg-nyati-navy/5 text-nyati-navy rounded-lg">
+          {Icon && <Icon className="w-4 h-4 text-nyati-navy" />}
         </div>
       </div>
 
       {/* Target Comparison */}
-      <div className="grid grid-cols-2 gap-4 mb-4 border-t border-b border-slate-50 py-3 text-sm">
+      <div className="grid grid-cols-2 gap-2 mb-2 border-t border-b border-slate-50 py-1.5 text-sm">
         <div>
           <span className="text-slate-400 block text-xs">Budget Target</span>
           <span className="font-semibold text-slate-700">
@@ -90,21 +90,20 @@ export default function KPICard({
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${Math.min(100, eff)}%` }}
             transition={{ duration: 1.2, ease: 'easeOut' }}
-            className={`h-full rounded-full ${
-              eff >= 100 ? 'bg-nyati-success' : eff >= 80 ? 'bg-nyati-warning' : 'bg-nyati-danger'
-            }`}
+            className={`h-full rounded-full ${eff >= 100 ? 'bg-nyati-success' : eff >= 80 ? 'bg-nyati-warning' : 'bg-nyati-danger'
+              }`}
           />
         </div>
       </div>
 
       {/* Extra details (e.g. ERP, area specifications) */}
       {extraInfo && (
-        <div className="mt-4 pt-3 border-t border-dashed border-slate-100 grid grid-cols-2 gap-2 text-[11px] text-slate-400">
+        <div className="mt-2 pt-2 border-t border-dashed border-slate-100 grid grid-cols-2 gap-1 text-[10px] text-slate-400">
           {extraInfo}
         </div>
       )}

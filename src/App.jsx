@@ -1,6 +1,7 @@
 import React, { useState, Component } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { DataProvider, useData } from './context/DataContext';
+import { motion } from 'framer-motion';
 
 // Components
 import Sidebar from './components/Sidebar';
@@ -12,6 +13,7 @@ import UploadZone from './components/UploadZone';
 import Dashboard1 from './pages/Dashboard1';
 import Dashboard2 from './pages/Dashboard2';
 import Dashboard3 from './pages/Dashboard3';
+import Overview from './pages/Overview';
 
 // Error Boundary Class Component for catching React runtime rendering errors
 class ErrorBoundary extends Component {
@@ -82,6 +84,11 @@ class ErrorBoundary extends Component {
 function AppContent() {
   const { rawData } = useData();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const location = useLocation();
+
+  // Pages where FilterBar should be hidden
+  const hideFilterBar = ['/portfolio', '/overview'].includes(location.pathname);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -97,31 +104,39 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen bg-nyati-bg flex">
+    <div className="h-screen bg-nyati-bg flex overflow-hidden">
       {/* Navigation Sidebar */}
-      <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
+      <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} onHoverChange={setSidebarExpanded} />
 
-      {/* Main Layout Area */}
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-[260px]">
+      {/* Main Layout Area — shifts right when sidebar expands */}
+      <motion.div
+        animate={{ paddingLeft: sidebarExpanded ? 220 : 64 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className="flex-1 flex flex-col min-w-0 hidden lg:flex"
+      >
         {/* Sticky Topbar */}
         <TopBar toggleSidebar={toggleSidebar} />
 
-        {/* Sticky Filters Header */}
-        <FilterBar />
+        {/* Sticky Filters Header — hidden on Portfolio & Overview */}
+        {!hideFilterBar && <FilterBar />}
 
         {/* Dynamic Page Views wrapped in ErrorBoundary */}
-        <main className="flex-1 p-6 overflow-y-auto max-w-[1600px] w-full mx-auto">
+        <main className={`flex-1 overflow-y-auto w-full ${location.pathname === '/portfolio' ? '' :
+          location.pathname === '/outstanding' ? 'px-6 pb-6 pt-0' :
+            'p-6'
+          }`}>
           <ErrorBoundary>
             <Routes>
+              <Route path="/overview" element={<Overview />} />
               <Route path="/" element={<Dashboard1 />} />
               <Route path="/outstanding" element={<Dashboard2 />} />
               <Route path="/portfolio" element={<Dashboard3 />} />
-              {/* Fallback to index */}
-              <Route path="*" element={<Navigate to="/" replace />} />
+              {/* Fallback to overview */}
+              <Route path="*" element={<Navigate to="/overview" replace />} />
             </Routes>
           </ErrorBoundary>
         </main>
-      </div>
+      </motion.div>
     </div>
   );
 }

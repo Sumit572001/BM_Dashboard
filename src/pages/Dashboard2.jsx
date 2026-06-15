@@ -1,18 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { calculateGrandTotals } from '../utils/dataHelpers';
 import AnimatedNumber from '../components/AnimatedNumber';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { ChevronDown, Calendar, Percent, Landmark, HelpCircle, X, CheckCircle } from 'lucide-react';
+import { ChevronDown, Calendar, Percent, Landmark, HelpCircle, X, CheckCircle, Layers, AlertTriangle, Hammer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Dashboard2() {
   const { filteredProjects } = useData();
   const [activeMonth, setActiveMonth] = useState('APR 26');
   const [activeMetric, setActiveMetric] = useState('value'); // 'unit' | 'value' | 'collection' | 'registration'
-  
+
   // Modal state for ageing drilldown
   const [drilldownData, setDrilldownData] = useState(null);
+
+  const sectionBRef = useRef(null); // Consolidated Outstanding
+  const sectionCRef = useRef(null); // Ageing Matrix
+  const sectionDRef = useRef(null); // Construction Cost
 
   // Derive grand totals
   const totals = calculateGrandTotals(filteredProjects);
@@ -98,18 +102,18 @@ export default function Dashboard2() {
   // Open drilldown details
   const handleAgeCellClick = (projectName, bucket, val) => {
     if (val <= 0) return;
-    
+
     // Generate mock flat breakdowns
     const names = ['Sharma Developers', 'Rajesh K. Mehta', 'Goldman Realties', 'Sumit V. Verma', 'Patel Enterprises'];
     const bldgs = ['A1', 'B2', 'C1', 'A3', 'TOWER 2'];
-    
+
     const count = 3;
     const flats = Array.from({ length: count }).map((_, i) => {
       const flatNum = 100 + Math.round(Math.random() * 1400);
       const owner = names[(projectName.charCodeAt(i) + i) % names.length];
       const bldg = bldgs[(projectName.charCodeAt(0) + i) % bldgs.length];
       const rawAmt = (val / count) * (0.85 + (i * 0.15));
-      
+
       let ageDays = 15;
       if (bucket === '31-60') ageDays = 45;
       else if (bucket === '61-90') ageDays = 75;
@@ -133,8 +137,10 @@ export default function Dashboard2() {
   };
 
   return (
-    <div className="space-y-8 pb-12">
-      
+    <div className="space-y-8 pb-12 pt-6">
+
+
+
       {/* SECTION A: Project Summary Bar Chart */}
       <div className="bg-white rounded-3xl p-6 shadow-premium border border-slate-100 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -156,9 +162,8 @@ export default function Dashboard2() {
                 <button
                   key={m.value}
                   onClick={() => setActiveMetric(m.value)}
-                  className={`px-3 py-1.5 rounded-lg transition-all ${
-                    activeMetric === m.value ? 'bg-white text-nyati-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg transition-all ${activeMetric === m.value ? 'bg-white text-nyati-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                    }`}
                 >
                   {m.label}
                 </button>
@@ -171,9 +176,8 @@ export default function Dashboard2() {
                 <button
                   key={m}
                   onClick={() => setActiveMonth(m)}
-                  className={`px-3 py-2 border-r border-slate-100 last:border-r-0 font-semibold transition-all ${
-                    activeMonth === m ? 'bg-nyati-orange text-white' : 'text-slate-500 hover:bg-slate-50'
-                  }`}
+                  className={`px-3 py-2 border-r border-slate-100 last:border-r-0 font-semibold transition-all ${activeMonth === m ? 'bg-nyati-orange text-white' : 'text-slate-500 hover:bg-slate-50'
+                    }`}
                 >
                   {m}
                 </button>
@@ -206,15 +210,15 @@ export default function Dashboard2() {
       </div>
 
       {/* SECTION B: CONSOLIDATED PROJECT OUTSTANDING Table */}
-      <div className="bg-white rounded-3xl shadow-premium border border-slate-100 overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-100">
+      <div ref={sectionBRef} className="bg-white rounded-3xl shadow-premium border border-slate-100">
+        <div className="sticky top-0 z-10 bg-white rounded-t-3xl border-b border-slate-100 px-6 py-5 shadow-sm">
           <h3 className="font-bold text-nyati-navy text-lg">Consolidated Project Outstanding</h3>
           <p className="text-slate-400 text-xs mt-0.5">Summary of dues and collections by project. Alerts trigger on total outstanding milestones.</p>
         </div>
-        <div className="overflow-x-auto">
+        <div className="lg:overflow-x-visible overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="bg-slate-50/70 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100">
+              <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100 shadow-sm">
                 <th className="px-6 py-4">Project</th>
                 <th className="px-4 py-4 text-right">Sold Value (₹ Cr)</th>
                 <th className="px-4 py-4 text-right">Due as per Milestone (₹ Cr)</th>
@@ -260,15 +264,15 @@ export default function Dashboard2() {
       </div>
 
       {/* SECTION C: AGEING OUTSTANDING Table */}
-      <div className="bg-white rounded-3xl shadow-premium border border-slate-100 overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-100">
+      <div ref={sectionCRef} className="bg-white rounded-3xl shadow-premium border border-slate-100">
+        <div className="sticky top-0 z-10 bg-white rounded-t-3xl border-b border-slate-100 px-6 py-5 shadow-sm">
           <h3 className="font-bold text-nyati-navy text-lg">Ageing Outstanding Matrix</h3>
           <p className="text-slate-400 text-xs mt-0.5">Click cells to drill down to flat details. Visualized heatmap displays critical delays (&gt;90 days).</p>
         </div>
-        <div className="overflow-x-auto">
+        <div className="lg:overflow-x-visible overflow-x-auto">
           <table className="w-full text-center text-xs">
             <thead>
-              <tr className="bg-slate-50/70 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100 text-left">
+              <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100 text-left shadow-sm">
                 <th className="px-6 py-4 text-left">Project</th>
                 <th className="px-4 py-4 text-center">0–30 Days (₹ Cr)</th>
                 <th className="px-4 py-4 text-center">31–60 Days (₹ Cr)</th>
@@ -317,15 +321,15 @@ export default function Dashboard2() {
       </div>
 
       {/* SECTION D: CONSTRUCTION BUDGET Table */}
-      <div className="bg-white rounded-3xl shadow-premium border border-slate-100 overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-100">
+      <div ref={sectionDRef} className="bg-white rounded-3xl shadow-premium border border-slate-100">
+        <div className="sticky top-0 z-10 bg-white rounded-t-3xl border-b border-slate-100 px-6 py-5 shadow-sm">
           <h3 className="font-bold text-nyati-navy text-lg">Construction Cost Budget Summary</h3>
           <p className="text-slate-400 text-xs mt-0.5">Budget targets vs construction expenses achieved, with inline efficiency tracking indicators.</p>
         </div>
-        <div className="overflow-x-auto">
+        <div className="lg:overflow-x-visible overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="bg-slate-50/70 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100">
+              <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100 shadow-sm">
                 <th className="px-6 py-4">Project</th>
                 <th className="px-4 py-4 text-right">Target / Planned (₹ Cr)</th>
                 <th className="px-4 py-4 text-right">Achieved (₹ Cr)</th>
@@ -339,7 +343,7 @@ export default function Dashboard2() {
                 const achieved = p.construction.achieved;
                 const variance = target - achieved;
                 const eff = p.construction.eff;
-                
+
                 return (
                   <tr key={p.name} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-3.5 font-bold text-slate-700">{p.name}</td>
