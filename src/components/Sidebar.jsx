@@ -13,6 +13,7 @@ export default function Sidebar({ isOpen, toggleSidebar, onHoverChange }) {
     { name: 'Sales & Collection', path: '/', icon: LayoutDashboard },
     { name: 'Outstanding & Cost', path: '/outstanding', icon: BarChart3 },
     { name: 'Project Portfolio', path: '/portfolio', icon: Layers },
+    { name: 'Analysis', path: '/analysis', icon: FileSpreadsheet },
   ];
 
   const expanded = hovered;

@@ -14,6 +14,7 @@ import Dashboard1 from './pages/Dashboard1';
 import Dashboard2 from './pages/Dashboard2';
 import Dashboard3 from './pages/Dashboard3';
 import Overview from './pages/Overview';
+import Analysis from './pages/Analysis';
 
 // Error Boundary Class Component for catching React runtime rendering errors
 class ErrorBoundary extends Component {
@@ -131,6 +132,7 @@ function AppContent() {
               <Route path="/" element={<Dashboard1 />} />
               <Route path="/outstanding" element={<Dashboard2 />} />
               <Route path="/portfolio" element={<Dashboard3 />} />
+              <Route path="/analysis" element={<Analysis />} />
               {/* Fallback to overview */}
               <Route path="*" element={<Navigate to="/overview" replace />} />
             </Routes>
