@@ -685,7 +685,7 @@ export default function Dashboard3() {
           <div className="bg-white rounded-3xl p-6 shadow-premium border border-slate-100 flex flex-col justify-start self-start h-fit w-full">
             <div>
               <div className="border-b border-slate-100 pb-4 mb-5">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">AI GENERATED RECOMMENDATIONS</span>
+
                 <h3 className="font-black text-nyati-navy text-lg mt-0.5">Strategic Action Board</h3>
               </div>
 
