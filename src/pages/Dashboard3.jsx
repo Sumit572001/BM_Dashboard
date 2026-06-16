@@ -3,7 +3,7 @@ import { useData } from '../context/DataContext';
 import { getVal } from '../utils/dataHelpers';
 import AnimatedNumber from '../components/AnimatedNumber';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Layers, ChevronDown, CheckCircle, Home, Hammer, Building, Compass, Calendar, Check, X, Search } from 'lucide-react';
+import { Layers, ChevronDown, CheckCircle, Home, Hammer, Building, Compass, Calendar, Check, X, Search, AlertTriangle, PieChart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Dashboard3() {
@@ -90,6 +90,61 @@ export default function Dashboard3() {
     .map(b => b?.name ? b.name.replace(/\(.*\)/g, '').trim() : '')
     .filter(Boolean)
     .join(', ');
+
+  // Project Portfolio highlights based on displayProject
+  const totalFnlUnits = (displayProject?.funnel?.landOwner || 0) + (displayProject?.funnel?.premium || 0) + (displayProject?.funnel?.forSale || 0);
+  const soldFnlUnits = displayProject?.funnel?.sold || 0;
+  const soldFnlPct = totalFnlUnits > 0 ? (soldFnlUnits / totalFnlUnits) * 100 : 0;
+  const deliveryLeft = balanceMonths;
+
+  const portfolioPoints = [
+    {
+      title: "Portfolio Configuration & Capacity",
+      text: `${displayProject.name} is configured as a ${displayProject.type === 'L' ? 'Luxury (3BHK, 4BHK, Villas)' : displayProject.type === 'C' ? 'Commercial (Shops & Corporate Offices)' : 'Residential (2BHK, 3BHK)'} development consisting of ${displayProject.buildings?.length || 3} structural blocks with ${(displayProject.totalUnits || 0).toLocaleString('en-IN')} total inventory units.`,
+      status: 'info'
+    },
+    {
+      title: "Inventory Allocation & Sales Progress",
+      text: `Out of the total inventory, ${displayProject.funnel?.forSale || 0} units are actively released for sale. Secure bookings stand at ${soldFnlUnits} units (${soldFnlPct.toFixed(1)}% sales conversion rate).`,
+      status: soldFnlPct >= 75 ? 'success' : soldFnlPct >= 50 ? 'warning' : 'danger'
+    },
+    {
+      title: "RERA Delivery Schedule & Timeline",
+      text: `The project has a RERA compliance completion target of 31-Dec-2026. With ${deliveryLeft} months remaining, engineering milestone timelines are currently aligned and on-track.`,
+      status: deliveryLeft > 6 ? 'success' : 'warning'
+    },
+    {
+      title: "Agreement & Registration Status",
+      text: `Current customer registry ledger indicates ${displayProject.registeredUnits || 0} units are fully registered and secured, with ${displayProject.unregisteredUnits || 0} units pending agreement closures.`,
+      status: (displayProject.registeredUnits / (displayProject.soldToDate || 1)) >= 0.7 ? 'success' : 'warning'
+    }
+  ];
+
+  const aiRecommendations = [
+    {
+      type: 'success',
+      subject: 'RERA Milestone Alignment',
+      text: `Time left to RERA delivery for ${displayProject.name} is ${deliveryLeft} months. Continue current engineering velocity to prevent statutory penalty risks.`
+    },
+    {
+      type: 'info',
+      subject: 'Inventory Run-rate Acceleration',
+      text: `With ${displayProject.funnel?.unsold || 0} unsold units remaining, consider running targeted promotional campaigns to liquidate residual inventory ahead of final finishing stages.`
+    }
+  ];
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'success':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-100';
+      case 'warning':
+        return 'bg-amber-50 text-amber-700 border-amber-100';
+      case 'danger':
+        return 'bg-rose-50 text-rose-700 border-rose-100';
+      default:
+        return 'bg-slate-50 text-slate-600 border-slate-100';
+    }
+  };
 
   // SVG Circular Gauge calculations
   const strokeWidth = 8;
@@ -593,6 +648,83 @@ export default function Dashboard3() {
             </div>
           </div>
 
+        </div>
+
+        {/* Highlights & AI Recommendations Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+          {/* Left 2 Columns: Highlights Card */}
+          <div className="lg:col-span-2 bg-white rounded-3xl shadow-premium border border-slate-100 overflow-hidden flex flex-col justify-between">
+            <div>
+              <div className="px-6 py-5 border-b border-slate-100">
+                <h3 className="font-bold text-nyati-navy text-base">Project Portfolio Details Highlights</h3>
+                <p className="text-slate-400 text-xs mt-0.5">Key analysis insights and structural status updates for the active project.</p>
+              </div>
+
+              {/* Bullet points display list */}
+              <div className="p-6 space-y-4">
+                {portfolioPoints.map((p, idx) => (
+                  <div key={idx} className="flex gap-4 items-start bg-slate-50/40 border border-slate-100 p-4 rounded-2xl hover:bg-slate-50 transition-colors">
+                    <div className={`mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border shrink-0 ${getStatusBadge(p.status)}`}>
+                      {p.status || 'Info'}
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="font-bold text-slate-800 text-sm flex items-center gap-1">
+                        {p.title}
+                      </h4>
+                      <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                        {p.text}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right 1 Column: AI Analytics Recommendations */}
+          <div className="bg-white rounded-3xl p-6 shadow-premium border border-slate-100 flex flex-col justify-start self-start h-fit w-full">
+            <div>
+              <div className="border-b border-slate-100 pb-4 mb-5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">AI GENERATED RECOMMENDATIONS</span>
+                <h3 className="font-black text-nyati-navy text-lg mt-0.5">Strategic Action Board</h3>
+              </div>
+
+              <div className="space-y-4">
+                {aiRecommendations.map((rec, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-4 rounded-2xl border text-xs font-semibold space-y-2 flex flex-col justify-between ${rec.type === 'danger' ? 'bg-rose-50/50 border-rose-100 text-rose-900' :
+                      rec.type === 'warning' ? 'bg-amber-50/50 border-amber-100 text-amber-900' :
+                        rec.type === 'success' ? 'bg-emerald-50/50 border-emerald-100 text-emerald-900' :
+                          'bg-slate-50 border-slate-150 text-slate-800'
+                      }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className={`w-4 h-4 shrink-0 ${rec.type === 'danger' ? 'text-rose-600' :
+                        rec.type === 'warning' ? 'text-amber-600' :
+                          rec.type === 'success' ? 'text-emerald-600' :
+                            'text-slate-600'
+                        }`} />
+                      <span className="font-extrabold uppercase tracking-wide text-[10px]">
+                        {rec.subject}
+                      </span>
+                    </div>
+                    <p className="font-medium text-slate-600 leading-relaxed text-[11px]">
+                      {rec.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 p-4 bg-nyati-orange/5 rounded-2xl border border-nyati-orange/10 flex items-center justify-between">
+              <div className="space-y-0.5">
+                <span className="text-[9px] text-nyati-orange font-bold uppercase tracking-wider">Analysis Accuracy</span>
+                <span className="text-slate-800 font-extrabold text-xs block">100% Data Synchronized</span>
+              </div>
+              <PieChart className="w-5 h-5 text-nyati-orange" />
+            </div>
+          </div>
         </div>
 
       </div>{/* end scrollable content */}

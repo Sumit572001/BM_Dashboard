@@ -13,7 +13,9 @@ export default function TopBar({ toggleSidebar }) {
       case '/':
         return 'Sales & Collection Dashboard';
       case '/outstanding':
-        return 'Outstanding & Construction Budget';
+        return 'Outstanding';
+      case '/construction-budget':
+        return 'Construction Budget Review';
       case '/portfolio':
         return 'Project Portfolio Details';
       default:
@@ -26,7 +28,9 @@ export default function TopBar({ toggleSidebar }) {
       case '/':
         return 'FY sales achievements, rate analysis, and actual vs budget collection rates';
       case '/outstanding':
-        return 'Milestone dues, project ageing matrices, and construction budget targets';
+        return 'Milestone dues, collection status, and project ageing matrices';
+      case '/construction-budget':
+        return 'Target planned vs achieved construction costs and variance tracking';
       case '/portfolio':
         return 'Granular view of buildings inventory funnel, RERA timings, and cost details';
       default:

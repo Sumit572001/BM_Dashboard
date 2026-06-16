@@ -14,7 +14,7 @@ import Dashboard1 from './pages/Dashboard1';
 import Dashboard2 from './pages/Dashboard2';
 import Dashboard3 from './pages/Dashboard3';
 import Overview from './pages/Overview';
-import Analysis from './pages/Analysis';
+import ConstructionBudget from './pages/ConstructionBudget';
 
 // Error Boundary Class Component for catching React runtime rendering errors
 class ErrorBoundary extends Component {
@@ -123,7 +123,7 @@ function AppContent() {
 
         {/* Dynamic Page Views wrapped in ErrorBoundary */}
         <main className={`flex-1 overflow-y-auto w-full ${location.pathname === '/portfolio' ? '' :
-          location.pathname === '/outstanding' ? 'px-6 pb-6 pt-0' :
+          ['/outstanding', '/construction-budget'].includes(location.pathname) ? 'px-6 pb-6 pt-0' :
             'p-6'
           }`}>
           <ErrorBoundary>
@@ -131,8 +131,8 @@ function AppContent() {
               <Route path="/overview" element={<Overview />} />
               <Route path="/" element={<Dashboard1 />} />
               <Route path="/outstanding" element={<Dashboard2 />} />
+              <Route path="/construction-budget" element={<ConstructionBudget />} />
               <Route path="/portfolio" element={<Dashboard3 />} />
-              <Route path="/analysis" element={<Analysis />} />
               {/* Fallback to overview */}
               <Route path="*" element={<Navigate to="/overview" replace />} />
             </Routes>

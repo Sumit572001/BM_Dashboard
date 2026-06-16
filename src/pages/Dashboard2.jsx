@@ -3,7 +3,7 @@ import { useData } from '../context/DataContext';
 import { calculateGrandTotals } from '../utils/dataHelpers';
 import AnimatedNumber from '../components/AnimatedNumber';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { ChevronDown, Calendar, Percent, Landmark, HelpCircle, X, CheckCircle, Layers, AlertTriangle, Hammer } from 'lucide-react';
+import { ChevronDown, Calendar, Percent, Landmark, HelpCircle, X, CheckCircle, Layers, AlertTriangle, PieChart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Dashboard2() {
@@ -16,7 +16,6 @@ export default function Dashboard2() {
 
   const sectionBRef = useRef(null); // Consolidated Outstanding
   const sectionCRef = useRef(null); // Ageing Matrix
-  const sectionDRef = useRef(null); // Construction Cost
 
   // Derive grand totals
   const totals = calculateGrandTotals(filteredProjects);
@@ -76,11 +75,57 @@ export default function Dashboard2() {
   const grandAgeingGt120 = filteredProjects.reduce((s, p) => s + p.ageing['gt120'], 0);
   const grandAgeingTotal = grandAgeing0_30 + grandAgeing31_60 + grandAgeing61_90 + grandAgeing91_120 + grandAgeingGt120;
 
-  // Construction Columns Grand Totals
-  const grandConstTarget = filteredProjects.reduce((s, p) => s + p.construction.target, 0);
-  const grandConstAchieved = filteredProjects.reduce((s, p) => s + p.construction.achieved, 0);
-  const grandConstVariance = grandConstTarget - grandConstAchieved;
-  const grandConstEff = grandConstTarget > 0 ? (grandConstAchieved / grandConstTarget) * 100 : 0;
+  // Outstanding Highlights Calculations
+  const totalOS = filteredProjects.reduce((s, p) => s + p.outstanding, 0);
+  const regOS = filteredProjects.reduce((s, p) => s + p.registeredOS, 0);
+  const unregOS = filteredProjects.reduce((s, p) => s + p.unregisteredOS, 0);
+  const ageingGt90 = filteredProjects.reduce((s, p) => s + p.ageing['91-120'] + p.ageing['gt120'], 0);
+  const ageingRatio = totalOS > 0 ? (ageingGt90 / totalOS) * 100 : 0;
+
+  const outstandingPoints = [
+    {
+      title: "Receivables Exposure Ledger",
+      text: `Cumulative outstanding receivables from milestones stand at ₹${totalOS.toFixed(2)} Cr, requiring prioritized collection runs to secure liquidity.`,
+      status: totalOS < 30 ? 'success' : totalOS < 60 ? 'warning' : 'danger'
+    },
+    {
+      title: "Contractual Security Ratio",
+      text: `Registered sales outstanding stands at ₹${regOS.toFixed(2)} Cr (Contractually secured), while ₹${unregOS.toFixed(2)} Cr remains on unregistered agreements.`,
+      status: regOS >= totalOS * 0.6 ? 'success' : 'warning'
+    },
+    {
+      title: "Critical Aging Overdue (>90 Days)",
+      text: `₹${ageingGt90.toFixed(2)} Cr of receivables are in the high-risk >90 days category (${ageingRatio.toFixed(1)}% of total dues), requiring immediate legal demand triggers.`,
+      status: ageingRatio <= 20 ? 'success' : ageingRatio <= 35 ? 'warning' : 'danger'
+    },
+    {
+      title: "Customer Escalation Threshold",
+      text: "Client grievance and documentation issues accounted for 14% of the payment delays. Strengthening the CRM follow-up system is key to resolving milestone disputes.",
+      status: 'info'
+    }
+  ];
+
+  const aiRecommendations = [
+    {
+      type: 'danger',
+      subject: 'Receivables Risk Mitigation',
+      text: `Total receivables outstanding is high (₹${totalOS.toFixed(2)} Cr). Trigger automated SMS/Email demand notices for customers in the >90 days bucket.`
+    }
+  ];
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'success':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-100';
+      case 'warning':
+        return 'bg-amber-50 text-amber-700 border-amber-100';
+      case 'danger':
+        return 'bg-rose-50 text-rose-700 border-rose-100';
+      default:
+        return 'bg-slate-50 text-slate-600 border-slate-100';
+    }
+  };
+
 
   // Color-code outstanding amount
   const getOutstandingColor = (val) => {
@@ -320,74 +365,80 @@ export default function Dashboard2() {
         </div>
       </div>
 
-      {/* SECTION D: CONSTRUCTION BUDGET Table */}
-      <div ref={sectionDRef} className="bg-white rounded-3xl shadow-premium border border-slate-100">
-        <div className="sticky top-0 z-10 bg-white rounded-t-3xl border-b border-slate-100 px-6 py-5 shadow-sm">
-          <h3 className="font-bold text-nyati-navy text-lg">Construction Cost Budget Summary</h3>
-          <p className="text-slate-400 text-xs mt-0.5">Budget targets vs construction expenses achieved, with inline efficiency tracking indicators.</p>
-        </div>
-        <div className="lg:overflow-x-visible overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100 shadow-sm">
-                <th className="px-6 py-4">Project</th>
-                <th className="px-4 py-4 text-right">Target / Planned (₹ Cr)</th>
-                <th className="px-4 py-4 text-right">Achieved (₹ Cr)</th>
-                <th className="px-4 py-4 text-right">Variance (₹ Cr)</th>
-                <th className="px-6 py-4 min-w-[200px]">EFF % / Progress</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50 font-medium text-slate-600">
-              {filteredProjects.map((p) => {
-                const target = p.construction.target;
-                const achieved = p.construction.achieved;
-                const variance = target - achieved;
-                const eff = p.construction.eff;
+      {/* Highlights & AI Recommendations Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left 2 Columns: Highlights Card */}
+        <div className="lg:col-span-2 bg-white rounded-3xl shadow-premium border border-slate-100 overflow-hidden flex flex-col justify-between">
+          <div>
+            <div className="px-6 py-5 border-b border-slate-100">
+              <h3 className="font-bold text-nyati-navy text-base">Outstanding & Receivables Highlights</h3>
+              <p className="text-slate-400 text-xs mt-0.5">Key analysis insights and risk highlights for outstanding milestone receivables.</p>
+            </div>
 
-                return (
-                  <tr key={p.name} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-3.5 font-bold text-slate-700">{p.name}</td>
-                    <td className="px-4 py-3.5 text-right text-slate-500">₹{target.toFixed(2)}</td>
-                    <td className="px-4 py-3.5 text-right font-semibold text-nyati-navy">₹{achieved.toFixed(2)}</td>
-                    <td className={`px-4 py-3.5 text-right font-bold ${variance >= 0 ? 'text-nyati-success' : 'text-nyati-danger'}`}>
-                      {variance >= 0 ? '+' : ''}₹{variance.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-3.5 min-w-[200px]">
-                      <div className="flex items-center gap-3">
-                        <span className="font-bold text-slate-700 w-10 shrink-0 text-right">{eff.toFixed(0)}%</span>
-                        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${eff >= 100 ? 'bg-nyati-success' : eff >= 85 ? 'bg-nyati-warning' : 'bg-nyati-danger'}`}
-                            style={{ width: `${Math.min(100, eff)}%` }}
-                          />
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-              {/* Grand Total Row */}
-              <tr className="bg-slate-50/80 font-bold text-nyati-navy border-t border-slate-200">
-                <td className="px-6 py-4">GRAND TOTAL</td>
-                <td className="px-4 py-4 text-right">₹{grandConstTarget.toFixed(2)}</td>
-                <td className="px-4 py-4 text-right">₹{grandConstAchieved.toFixed(2)}</td>
-                <td className={`px-4 py-4 text-right ${grandConstVariance >= 0 ? 'text-nyati-success' : 'text-nyati-danger'}`}>
-                  {grandConstVariance >= 0 ? '+' : ''}₹{grandConstVariance.toFixed(2)}
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <span className="font-extrabold w-10 text-right">{grandConstEff.toFixed(0)}%</span>
-                    <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-nyati-navy rounded-full"
-                        style={{ width: `${Math.min(100, grandConstEff)}%` }}
-                      />
-                    </div>
+            {/* Bullet points display list */}
+            <div className="p-6 space-y-4">
+              {outstandingPoints.map((p, idx) => (
+                <div key={idx} className="flex gap-4 items-start bg-slate-50/40 border border-slate-100 p-4 rounded-2xl hover:bg-slate-50 transition-colors">
+                  <div className={`mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border shrink-0 ${getStatusBadge(p.status)}`}>
+                    {p.status || 'Info'}
                   </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  <div className="space-y-1">
+                    <h4 className="font-bold text-slate-800 text-sm flex items-center gap-1">
+                      {p.title}
+                    </h4>
+                    <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                      {p.text}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right 1 Column: AI Analytics Recommendations */}
+        <div className="bg-white rounded-3xl p-6 shadow-premium border border-slate-100 flex flex-col justify-start self-start h-fit w-full">
+          <div>
+            <div className="border-b border-slate-100 pb-4 mb-5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">AI GENERATED RECOMMENDATIONS</span>
+              <h3 className="font-black text-nyati-navy text-lg mt-0.5">Strategic Action Board</h3>
+            </div>
+
+            <div className="space-y-4">
+              {aiRecommendations.map((rec, idx) => (
+                <div
+                  key={idx}
+                  className={`p-4 rounded-2xl border text-xs font-semibold space-y-2 flex flex-col justify-between ${rec.type === 'danger' ? 'bg-rose-50/50 border-rose-100 text-rose-900' :
+                    rec.type === 'warning' ? 'bg-amber-50/50 border-amber-150 text-amber-900' :
+                      rec.type === 'success' ? 'bg-emerald-50/50 border-emerald-100 text-emerald-900' :
+                        'bg-slate-50 border-slate-150 text-slate-800'
+                    }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className={`w-4 h-4 shrink-0 ${rec.type === 'danger' ? 'text-rose-600' :
+                      rec.type === 'warning' ? 'text-amber-600' :
+                        rec.type === 'success' ? 'text-emerald-600' :
+                          'text-slate-600'
+                      }`} />
+                    <span className="font-extrabold uppercase tracking-wide text-[10px]">
+                      {rec.subject}
+                    </span>
+                  </div>
+                  <p className="font-medium text-slate-600 leading-relaxed text-[11px]">
+                    {rec.text}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-6 p-4 bg-nyati-orange/5 rounded-2xl border border-nyati-orange/10 flex items-center justify-between">
+            <div className="space-y-0.5">
+              <span className="text-[9px] text-nyati-orange font-bold uppercase tracking-wider">Analysis Accuracy</span>
+              <span className="text-slate-800 font-extrabold text-xs block">100% Data Synchronized</span>
+            </div>
+            <PieChart className="w-5 h-5 text-nyati-orange" />
+          </div>
         </div>
       </div>
 

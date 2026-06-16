@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useData } from '../context/DataContext';
-import { LayoutDashboard, FileSpreadsheet, Layers, BarChart3, UploadCloud, X, Home } from 'lucide-react';
+import { LayoutDashboard, FileSpreadsheet, Layers, BarChart3, UploadCloud, X, Home, Hammer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Sidebar({ isOpen, toggleSidebar, onHoverChange }) {
@@ -11,9 +11,9 @@ export default function Sidebar({ isOpen, toggleSidebar, onHoverChange }) {
   const links = [
     { name: 'Overview', path: '/overview', icon: Home },
     { name: 'Sales & Collection', path: '/', icon: LayoutDashboard },
-    { name: 'Outstanding & Cost', path: '/outstanding', icon: BarChart3 },
+    { name: 'Outstanding', path: '/outstanding', icon: BarChart3 },
+    { name: 'Construction Budget Review', path: '/construction-budget', icon: Hammer },
     { name: 'Project Portfolio', path: '/portfolio', icon: Layers },
-    { name: 'Analysis', path: '/analysis', icon: FileSpreadsheet },
   ];
 
   const expanded = hovered;

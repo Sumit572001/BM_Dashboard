@@ -35,9 +35,9 @@ export default function KPICard({
   if (eff >= 100) {
     statusColor = 'bg-nyati-success/10 text-nyati-success';
     statusText = 'On Target';
-  } else if (eff >= 80) {
+  } else if (eff >= 50) {
     statusColor = 'bg-nyati-warning/10 text-nyati-warning';
-    statusText = 'Warning';
+    statusText = 'Progressing';
   }
 
   return (
@@ -95,7 +95,7 @@ export default function KPICard({
             initial={{ width: 0 }}
             animate={{ width: `${Math.min(100, eff)}%` }}
             transition={{ duration: 1.2, ease: 'easeOut' }}
-            className={`h-full rounded-full ${eff >= 100 ? 'bg-nyati-success' : eff >= 80 ? 'bg-nyati-warning' : 'bg-nyati-danger'
+            className={`h-full rounded-full ${eff >= 100 ? 'bg-nyati-success' : eff >= 50 ? 'bg-nyati-warning' : 'bg-nyati-danger'
               }`}
           />
         </div>

@@ -41,19 +41,19 @@ export default function Overview() {
 
   const getEffColor = (eff) => {
     if (eff >= 100) return 'text-emerald-600';
-    if (eff >= 80) return 'text-amber-500';
+    if (eff >= 50) return 'text-amber-500';
     return 'text-red-500';
   };
 
   const getEffBg = (eff) => {
     if (eff >= 100) return 'bg-emerald-500';
-    if (eff >= 80) return 'bg-amber-400';
+    if (eff >= 50) return 'bg-amber-400';
     return 'bg-red-500';
   };
 
   const getEffBadge = (eff) => {
     if (eff >= 100) return { text: 'On Target', cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' };
-    if (eff >= 80) return { text: 'Warning', cls: 'bg-amber-50 text-amber-700 border-amber-100' };
+    if (eff >= 50) return { text: 'Progressing', cls: 'bg-amber-50 text-amber-700 border-amber-100' };
     return { text: 'Critical', cls: 'bg-red-50 text-red-700 border-red-100' };
   };
 
@@ -155,7 +155,7 @@ export default function Overview() {
         </div>
       </motion.div>
 
-      {/* ── SECTION 2: OUTSTANDING & COST ────────────────────────── */}
+      {/* ── SECTION 2: OUTSTANDING ────────────────────────── */}
       <motion.div variants={item}
         className="bg-white rounded-3xl shadow-premium border border-slate-100 overflow-hidden"
       >
@@ -165,8 +165,8 @@ export default function Overview() {
               <BarChart3 className="w-4 h-4 text-sky-500" />
             </div>
             <div>
-              <h3 className="font-bold text-nyati-navy text-sm">Outstanding & Cost</h3>
-              <p className="text-slate-400 text-[10px]">Dues, ageing & construction budget health</p>
+              <h3 className="font-bold text-nyati-navy text-sm">Outstanding</h3>
+              <p className="text-slate-400 text-[10px]">Consolidated dues, collections, and ageing matrix</p>
             </div>
           </div>
           <button

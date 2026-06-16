@@ -153,7 +153,6 @@ export default function ProjectTable() {
             ) : (
               sortedProjects.map((p, index) => {
                 const variance = p.soldToDate - p.budgetUnits; // actual - budget
-                const hasWarning = p.salesEff < 80;
 
                 return (
                   <motion.tr
@@ -192,13 +191,13 @@ export default function ProjectTable() {
                     <td className="px-4 py-4 text-left min-w-[140px]">
                       <div className="space-y-1">
                         <div className="flex items-center justify-between text-[10px] font-bold">
-                          <span className={hasWarning ? 'text-nyati-warning' : 'text-nyati-navy'}>
+                          <span className={p.salesEff >= 100 ? 'text-nyati-success' : p.salesEff >= 50 ? 'text-nyati-warning' : 'text-nyati-danger'}>
                             {p.salesEff.toFixed(1)}%
                           </span>
                         </div>
                         <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full ${p.salesEff >= 100 ? 'bg-nyati-success' : p.salesEff >= 80 ? 'bg-nyati-warning' : 'bg-nyati-danger'}`}
+                            className={`h-full rounded-full ${p.salesEff >= 100 ? 'bg-nyati-success' : p.salesEff >= 50 ? 'bg-nyati-warning' : 'bg-nyati-danger'}`}
                             style={{ width: `${Math.min(100, p.salesEff)}%` }}
                           />
                         </div>
