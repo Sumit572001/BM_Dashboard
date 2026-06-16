@@ -52,9 +52,13 @@ export default function Sidebar({ isOpen, toggleSidebar, onHoverChange }) {
           {/* Logo Section */}
           <div className="p-3 border-b border-white/10 flex items-center justify-between min-h-[72px]">
             <div className="flex items-center gap-3 overflow-hidden">
-              {/* N Badge — always visible */}
-              <div className="w-10 h-10 bg-white text-nyati-navy font-black text-xl rounded-xl flex items-center justify-center border-b-4 border-nyati-orange shrink-0">
-                N
+              {/* Nyati Logo — always visible */}
+              <div className="w-9 h-9 bg-white rounded flex items-center justify-center shrink-0">
+                <img
+                  src="https://nyatigroup.com/_next/image?url=%2Fimages%2Flogo%2Flogo.png&w=640&q=80"
+                  alt="Nyati Group Logo"
+                  className="w-8 h-8 object-contain"
+                />
               </div>
 
               {/* Text — only visible when expanded */}
@@ -67,8 +71,7 @@ export default function Sidebar({ isOpen, toggleSidebar, onHoverChange }) {
                     transition={{ duration: 0.18 }}
                     className="leading-tight whitespace-nowrap overflow-hidden"
                   >
-                    <span className="font-extrabold text-sm tracking-wider block">NYATI GROUP</span>
-                    <span className="text-[10px] text-slate-300 font-semibold tracking-widest block uppercase">MIS Dashboard</span>
+                    <span className="font-extrabold text-sm tracking-wider block">DASHBOARD</span>
                   </motion.div>
                 )}
               </AnimatePresence>
