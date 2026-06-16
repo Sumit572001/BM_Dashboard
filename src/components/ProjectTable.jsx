@@ -74,7 +74,7 @@ export default function ProjectTable() {
     <div className="bg-white rounded-3xl shadow-premium border border-slate-100 overflow-hidden">
 
       {/* Table Header Section */}
-      <div className="px-6 py-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4">
+      <div className="px-6 py-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-10 bg-white rounded-t-3xl shadow-sm">
         <div>
           <h3 className="font-bold text-nyati-navy text-lg">Project-Wise Sales Summary</h3>
           <p className="text-slate-400 text-xs mt-0.5">Click headers to sort. Hover on rows and click to view portfolio breakdowns.</p>
@@ -85,10 +85,10 @@ export default function ProjectTable() {
       </div>
 
       {/* Responsive Table Wrapper */}
-      <div className="overflow-x-auto overflow-y-auto max-h-[520px]">
+      <div className="lg:overflow-x-visible overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100 select-none sticky top-0 z-10 shadow-sm">
+            <tr className="bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100 select-none sticky top-[85px] z-10 shadow-sm">
               <th onClick={() => requestSort('name')} className="px-6 py-4 cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[200px]">
                 <div className="flex items-center gap-1.5">
                   Project Name

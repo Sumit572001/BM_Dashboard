@@ -53,7 +53,7 @@ export default function Dashboard2() {
 
     // Apply month multiplier to actual data for visual interaction
     return {
-      name: p.name.length > 15 ? p.name.substring(0, 12) + '...' : p.name,
+      name: p.name,
       'Budget/Planned': parseFloat((budget * (activeMetric === 'unit' || activeMetric === 'registration' ? 1 : multiplier)).toFixed(1)),
       'Actual': parseFloat((actual * multiplier).toFixed(1))
     };
@@ -239,7 +239,7 @@ export default function Dashboard2() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                <XAxis dataKey="name" tickFormatter={(val) => val.length > 15 ? val.substring(0, 12) + '...' : val} stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
                 <Tooltip
                   cursor={{ fill: '#f8fafc' }}
