@@ -110,8 +110,7 @@ export default function ConstructionBudget() {
       </motion.div>
 
       {/* Construction Cost Budget Summary Table */}
-      <motion.div
-        variants={itemVariants}
+      <div
         className="bg-white rounded-3xl shadow-premium border border-slate-100"
       >
         <div className="sticky top-0 z-10 bg-white rounded-t-3xl border-b border-slate-100 px-6 py-5 shadow-sm">
@@ -193,7 +192,7 @@ export default function ConstructionBudget() {
             </tbody>
           </table>
         </div>
-      </motion.div>
+      </div>
 
       {/* Highlights & AI Recommendations Row */}
       <motion.div

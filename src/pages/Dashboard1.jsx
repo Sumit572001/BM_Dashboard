@@ -236,9 +236,9 @@ export default function Dashboard1() {
       </motion.div>
 
       {/* Project Table Section */}
-      <motion.div variants={itemVariants}>
+      <div>
         <ProjectTable />
-      </motion.div>
+      </div>
 
       {/* Highlights & AI Recommendations Row */}
       <motion.div

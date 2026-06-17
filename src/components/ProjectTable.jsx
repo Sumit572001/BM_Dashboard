@@ -71,67 +71,95 @@ export default function ProjectTable() {
   };
 
   return (
-    <div className="bg-white rounded-3xl shadow-premium border border-slate-100 overflow-hidden">
+    <div className="bg-white rounded-3xl shadow-premium border border-slate-100">
 
-      {/* Table Header Section */}
-      <div className="px-6 py-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-10 bg-white rounded-t-3xl shadow-sm">
-        <div>
-          <h3 className="font-bold text-nyati-navy text-lg">Project-Wise Sales Summary</h3>
-          <p className="text-slate-400 text-xs mt-0.5">Click headers to sort. Hover on rows and click to view portfolio breakdowns.</p>
-        </div>
-        <div className="text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-1.5">
-          Showing <span className="text-nyati-navy font-bold">{filteredProjects.length}</span> active projects
+      {/* Card Header (Sticky at top-0) */}
+      <div className="sticky top-0 z-10 bg-white rounded-t-3xl border-b border-slate-100 px-6 py-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h3 className="font-bold text-nyati-navy text-lg">Project-Wise Sales Summary</h3>
+            <p className="text-slate-400 text-xs mt-0.5">
+              Click headers to sort. Hover on rows and click to view portfolio breakdowns.
+            </p>
+          </div>
+          <div className="text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-1.5">
+            Showing <span className="text-nyati-navy font-bold">{filteredProjects.length}</span> active projects
+          </div>
         </div>
       </div>
 
-      {/* Responsive Table Wrapper */}
+      {/* Table Wrapper */}
       <div className="lg:overflow-x-visible overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100 select-none sticky top-[85px] z-10 shadow-sm">
-              <th onClick={() => requestSort('name')} className="px-6 py-4 cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[200px]">
+            <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100 select-none shadow-sm">
+              <th
+                onClick={() => requestSort('name')}
+                className="bg-slate-50 px-6 py-4 cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[200px]"
+              >
                 <div className="flex items-center gap-1.5">
                   Project Name
                   <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
                 </div>
               </th>
-              <th onClick={() => requestSort('budgetUnits')} className="px-4 py-4 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors">
+              <th
+                onClick={() => requestSort('budgetUnits')}
+                className="bg-slate-50 px-4 py-4 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors"
+              >
                 <div className="flex items-center justify-center gap-1.5">
                   Budget Units
                   <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
                 </div>
               </th>
-              <th onClick={() => requestSort('soldToDate')} className="px-4 py-4 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors">
+              <th
+                onClick={() => requestSort('soldToDate')}
+                className="bg-slate-50 px-4 py-4 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors"
+              >
                 <div className="flex items-center justify-center gap-1.5">
                   Actual Units
                   <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
                 </div>
               </th>
-              <th onClick={() => requestSort('varianceUnits')} className="px-4 py-4 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors">
+              <th
+                onClick={() => requestSort('varianceUnits')}
+                className="bg-slate-50 px-4 py-4 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors"
+              >
                 <div className="flex items-center justify-center gap-1.5">
                   Variance
                   <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
                 </div>
               </th>
-              <th onClick={() => requestSort('salesEff')} className="px-4 py-4 text-left cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[140px]">
+              <th
+                onClick={() => requestSort('salesEff')}
+                className="bg-slate-50 px-4 py-4 text-left cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[140px]"
+              >
                 <div className="flex items-center gap-1.5">
                   EFF %
                   <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
                 </div>
               </th>
-              <th onClick={() => requestSort('actualValCr')} className="px-4 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors">
+              <th
+                onClick={() => requestSort('actualValCr')}
+                className="bg-slate-50 px-4 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors"
+              >
                 <div className="flex items-center justify-end gap-1.5">
                   Agg Amount
                   <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
                 </div>
               </th>
-              <th onClick={() => requestSort('actualArea')} className="px-4 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors">
+              <th
+                onClick={() => requestSort('actualArea')}
+                className="bg-slate-50 px-4 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors"
+              >
                 <div className="flex items-center justify-end gap-1.5">
                   Agg Area (sq.ft)
                   <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
                 </div>
               </th>
-              <th onClick={() => requestSort('actualRate')} className="px-6 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors">
+              <th
+                onClick={() => requestSort('actualRate')}
+                className="bg-slate-50 px-6 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors"
+              >
                 <div className="flex items-center justify-end gap-1.5">
                   Cum Value
                   <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
