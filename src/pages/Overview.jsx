@@ -10,6 +10,384 @@ import {
   ArrowRight, Activity, Landmark, Hammer
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, Tooltip, XAxis, YAxis, ReferenceLine, LineChart, Line, CartesianGrid, AreaChart, Area } from 'recharts';
+
+// Reusable component for stacked vertical KPI strips
+const OverviewMetricRow = ({ label, actual, budget, prefix = '', suffix = '', decimals = 0, status, icon: Icon }) => {
+  const isAchieved = status === 'On Target';
+  const isProgressing = status === 'Progressing';
+  
+  return (
+    <div className="flex items-center justify-between py-1.5 px-4 bg-slate-50/50 hover:bg-slate-50/80 rounded-xl border border-slate-100/70 transition-all duration-200">
+      <div className="flex items-center gap-2.5">
+        {Icon && <Icon className="w-4 h-4 text-slate-400" />}
+        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 select-none">
+          {label}
+        </span>
+      </div>
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-black text-nyati-navy">
+          {prefix}<AnimatedNumber value={actual} decimals={decimals} />{suffix}
+        </span>
+        {budget !== undefined && (
+          <span className="text-[10px] text-slate-600 font-semibold select-none">
+            Tgt: {prefix}{budget.toLocaleString('en-IN', { maximumFractionDigits: decimals })}{suffix}
+          </span>
+        )}
+        {status && (
+          <span className={`px-2 py-0.5 text-[9.5px] font-black rounded-full border select-none ${
+            isAchieved 
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
+              : isProgressing
+                ? 'bg-amber-50 text-amber-700 border-amber-100' 
+                : 'bg-red-50 text-red-700 border-red-100'
+          }`}>
+            {status}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Reusable component for the donut charts in Outstanding section
+const OverviewDonutChart = ({ data, centerValue, centerLabel }) => {
+  return (
+    <div className="relative w-full h-20 flex items-center justify-center">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={18}
+            outerRadius={25}
+            paddingAngle={2}
+            dataKey="value"
+          >
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.color} />
+            ))}
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
+      {/* Center label */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        <span className="text-[10px] font-black text-slate-800 leading-none">
+          {centerValue}
+        </span>
+        <span className="text-[5.5px] font-extrabold text-slate-600 uppercase tracking-wider leading-none mt-0.5">
+          {centerLabel}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+// A wrapper around ResponsiveContainer that delays rendering until layout stabilizes,
+// preventing width-calculation bugs during browser mount and CSS animations.
+const MountedResponsiveContainer = ({ children, ...props }) => {
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => {
+    // Delay of 100ms ensures Framer Motion or block-level reflows are complete
+    const timer = setTimeout(() => setMounted(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!mounted) {
+    return <div className="w-full h-full min-h-[192px] bg-slate-50/30 rounded-2xl animate-pulse" />;
+  }
+
+  return (
+    <ResponsiveContainer {...props}>
+      {children}
+    </ResponsiveContainer>
+  );
+};
+
+// Sales & Collection normalized target achievement bar chart
+const SalesComboChart = ({ data }) => {
+  return (
+    <div className="w-full h-48 relative">
+      <MountedResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={data}
+          margin={{ top: 20, right: 10, left: 10, bottom: 5 }}
+          barSize={60}
+        >
+          <defs>
+            <linearGradient id="salesAchievedGrad" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0%" stopColor="#f97316" />
+              <stop offset="100%" stopColor="#10b981" />
+            </linearGradient>
+          </defs>
+          <XAxis 
+            dataKey="name" 
+            axisLine={false} 
+            tickLine={false} 
+            tick={{ fontSize: 9, fontWeight: 800, fill: '#475569' }} 
+          />
+          <YAxis 
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 9, fontWeight: 700, fill: '#475569' }}
+            domain={[0, 120]}
+            tickFormatter={(val) => `${val}%`}
+          />
+          <Tooltip 
+            content={({ active, payload }) => {
+              if (active && payload && payload.length) {
+                const actualVal = payload[0].payload.rawActual;
+                const targetVal = payload[0].payload.rawTarget;
+                const unit = payload[0].payload.unit || '';
+                const prefix = payload[0].payload.prefix || '';
+                const pct = payload[0].payload.value;
+                return (
+                  <div className="bg-slate-900/95 text-white px-3 py-2 rounded-xl text-[10px] shadow-xl border border-slate-800 space-y-1">
+                    <p className="font-extrabold text-slate-300 uppercase tracking-wider">{payload[0].payload.name}</p>
+                    <p className="font-bold flex items-center justify-between gap-4 text-slate-200">
+                      <span>Actual:</span>
+                      <span className="text-emerald-400 font-black">{prefix}{actualVal.toLocaleString('en-IN')}{unit}</span>
+                    </p>
+                    <p className="font-bold flex items-center justify-between gap-4 text-slate-200">
+                      <span>Target:</span>
+                      <span className="text-slate-400 font-black">{prefix}{targetVal.toLocaleString('en-IN')}{unit}</span>
+                    </p>
+                    <p className="font-black border-t border-slate-800 pt-1 flex items-center justify-between gap-4">
+                      <span className="text-slate-300">Achievement:</span>
+                      <span className="text-nyati-orange">{pct.toFixed(1)}%</span>
+                    </p>
+                  </div>
+                );
+              }
+              return null;
+            }}
+          />
+          <ReferenceLine 
+            y={100} 
+            stroke="#475569" 
+            strokeDasharray="3 3" 
+            strokeWidth={1.5} 
+            label={{ value: 'Target', position: 'top', fill: '#475569', fontSize: 8, fontWeight: 800 }} 
+          />
+          <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+            {data.map((entry, index) => (
+              <Cell 
+                key={`cell-${index}`} 
+                fill={entry.value >= 100 ? 'url(#salesAchievedGrad)' : '#f97316'} 
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      </MountedResponsiveContainer>
+    </div>
+  );
+};
+
+// Outstanding line graph representing all 4 KPIs (styled as Area Chart matching the user's Rework Analysis design)
+const OutstandingLineChart = ({ collection, outstanding, regOS, ageing120 }) => {
+  const data = [
+    { name: 'Collection', value: collection, display: `₹${collection.toFixed(2)} Cr` },
+    { name: 'Outstanding', value: outstanding, display: `₹${outstanding.toFixed(2)} Cr` },
+    { name: 'Registered O/S', value: regOS, display: `₹${regOS.toFixed(2)} Cr` },
+    { name: 'Ageing >120D', value: ageing120, display: `₹${ageing120.toFixed(2)} Cr` }
+  ];
+
+  return (
+    <div className="w-full h-48 relative">
+      <MountedResponsiveContainer width="100%" height="100%">
+        <AreaChart
+          data={data}
+          margin={{ top: 20, right: 20, left: 10, bottom: 5 }}
+        >
+          <defs>
+            <linearGradient id="outstandingAreaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.25}/>
+              <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+          <XAxis 
+            dataKey="name" 
+            axisLine={false} 
+            tickLine={false} 
+            tick={{ fontSize: 9, fontWeight: 800, fill: '#475569' }} 
+          />
+          <YAxis 
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 9, fontWeight: 700, fill: '#475569' }}
+            domain={[0, 'auto']}
+            tickFormatter={(val) => `₹${val.toFixed(0)}Cr`}
+          />
+          <Tooltip 
+            content={({ active, payload }) => {
+              if (active && payload && payload.length) {
+                const item = payload[0].payload;
+                return (
+                  <div className="bg-slate-900/95 text-white px-3 py-1.5 rounded-xl text-[10px] shadow-xl border border-slate-800">
+                    <span className="font-extrabold text-slate-300 uppercase tracking-wider block mb-0.5">{item.name}</span>
+                    <span className="font-black text-sm text-white">{item.display}</span>
+                  </div>
+                );
+              }
+              return null;
+            }}
+          />
+          <Area 
+            type="monotone" 
+            dataKey="value" 
+            stroke="#6366f1" 
+            strokeWidth={3} 
+            fillOpacity={1} 
+            fill="url(#outstandingAreaGrad)" 
+            dot={{ r: 5, strokeWidth: 2, stroke: '#ffffff', fill: '#6366f1' }}
+            activeDot={{ r: 7, strokeWidth: 2, fill: '#6366f1', stroke: '#ffffff' }}
+          />
+        </AreaChart>
+      </MountedResponsiveContainer>
+    </div>
+  );
+};
+
+// Construction Budget row graph (horizontal bar chart) representing all 4 KPIs
+const ConstructionRowChart = ({ target, achieved, variance, efficiency }) => {
+  // Normalize values to percentage of Target Planned for horizontal rendering scale
+  const targetPct = 100;
+  const achievedPct = target > 0 ? (achieved / target) * 100 : 0;
+  const variancePct = target > 0 ? (variance / target) * 100 : 0;
+  const efficiencyPct = efficiency;
+
+  const data = [
+    { name: 'Target Planned', pct: targetPct, display: `₹${target.toFixed(2)} Cr`, color: '#64748b' },
+    { name: 'Achieved Value', pct: achievedPct, display: `₹${achieved.toFixed(2)} Cr (${achievedPct.toFixed(1)}%)`, color: '#4f46e5' },
+    { name: 'Variance', pct: variancePct, display: `₹${variance.toFixed(2)} Cr (${variancePct.toFixed(1)}%)`, color: target >= achieved ? '#14b8a6' : '#f43f5e' },
+    { name: 'Efficiency', pct: efficiencyPct, display: `${efficiency.toFixed(1)}%`, color: '#8b5cf6' }
+  ];
+
+  // Custom SVG text renderer to place values statically to the right of each bar
+  const renderCustomBarLabel = ({ x, y, width, height, index }) => {
+    const item = data[index];
+    return (
+      <text 
+        x={x + width + 8} 
+        y={y + height / 2 + 4} 
+        fill="#334155" 
+        fontSize={10} 
+        fontWeight={800}
+        className="font-sans"
+      >
+        {item.display}
+      </text>
+    );
+  };
+
+  return (
+    <div className="w-full h-48 relative">
+      <MountedResponsiveContainer width="100%" height="100%">
+        <BarChart
+          layout="vertical"
+          data={data}
+          margin={{ top: 10, right: 110, left: 10, bottom: 5 }}
+        >
+          <XAxis type="number" hide domain={[0, 100]} />
+          <YAxis 
+            dataKey="name" 
+            type="category" 
+            axisLine={false} 
+            tickLine={false} 
+            tick={{ fontSize: 9, fontWeight: 800, fill: '#475569' }}
+            width={95}
+          />
+          <Tooltip 
+            content={({ active, payload }) => {
+              if (active && payload && payload.length) {
+                const item = payload[0].payload;
+                return (
+                  <div className="bg-slate-900/95 text-white px-3 py-1.5 rounded-xl text-[10px] shadow-xl border border-slate-800">
+                    <span className="font-extrabold text-slate-300 uppercase tracking-wider block mb-0.5">{item.name}</span>
+                    <span className="font-black text-sm text-white">{item.display}</span>
+                  </div>
+                );
+              }
+              return null;
+            }}
+          />
+          <Bar dataKey="pct" radius={[0, 4, 4, 0]} barSize={24} label={renderCustomBarLabel}>
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.color} />
+            ))}
+          </Bar>
+        </BarChart>
+      </MountedResponsiveContainer>
+    </div>
+  );
+};
+
+// Project Portfolio area chart representing all 4 KPIs
+const PortfolioAreaChart = ({ activeProjects, totalInventory, totalUnsold, avgCompletion }) => {
+  const data = [
+    { name: 'Active Projects', value: activeProjects, display: `${activeProjects} Projects` },
+    { name: 'Avg Completion', value: avgCompletion, display: `${avgCompletion.toFixed(1)}%` },
+    { name: 'Unsold Balance', value: totalUnsold, display: `${totalUnsold.toLocaleString('en-IN')} Units` },
+    { name: 'Total Inventory', value: totalInventory, display: `${totalInventory.toLocaleString('en-IN')} Units` }
+  ];
+
+  return (
+    <div className="w-full h-48 relative">
+      <MountedResponsiveContainer width="100%" height="100%">
+        <AreaChart
+          data={data}
+          margin={{ top: 20, right: 15, left: 10, bottom: 5 }}
+        >
+          <defs>
+            <linearGradient id="portfolioAreaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
+              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+          <XAxis 
+            dataKey="name" 
+            axisLine={false} 
+            tickLine={false} 
+            tick={{ fontSize: 9, fontWeight: 800, fill: '#475569' }} 
+          />
+          <YAxis 
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 9, fontWeight: 700, fill: '#475569' }}
+            domain={[0, 'auto']}
+          />
+          <Tooltip 
+            content={({ active, payload }) => {
+              if (active && payload && payload.length) {
+                const item = payload[0].payload;
+                return (
+                  <div className="bg-slate-900/95 text-white px-3 py-1.5 rounded-xl text-[10px] shadow-xl border border-slate-800">
+                    <span className="font-extrabold text-slate-300 uppercase tracking-wider block mb-0.5">{item.name}</span>
+                    <span className="font-black text-sm text-white">{item.display}</span>
+                  </div>
+                );
+              }
+              return null;
+            }}
+          />
+          <Area 
+            type="monotone" 
+            dataKey="value" 
+            stroke="#2563eb" 
+            strokeWidth={3} 
+            fillOpacity={1} 
+            fill="url(#portfolioAreaGrad)" 
+            dot={{ r: 5, strokeWidth: 2, stroke: '#ffffff', fill: '#2563eb' }}
+            activeDot={{ r: 7, strokeWidth: 2 }}
+          />
+        </AreaChart>
+      </MountedResponsiveContainer>
+    </div>
+  );
+};
 
 export default function Overview() {
   const { filteredProjects } = useData();
@@ -69,12 +447,12 @@ export default function Overview() {
   };
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="space-y-2.5 pb-2">
+    <motion.div variants={container} initial="hidden" animate="show" className="space-y-4 pb-4">
 
       {/* Page Title */}
       <motion.div variants={item}>
         <h2 className="text-2xl font-black text-nyati-navy">Dashboard Overview</h2>
-        <p className="text-slate-400 text-xs mt-1">
+        <p className="text-slate-600 text-xs mt-1">
           Consolidated snapshot across all sections — Sales, Outstanding, Construction & Portfolio.
         </p>
       </motion.div>
@@ -84,14 +462,14 @@ export default function Overview() {
         className="bg-white rounded-3xl shadow-premium border border-slate-100 overflow-hidden"
       >
         {/* Section Header */}
-        <div className="flex items-center justify-between px-6 py-2 border-b border-slate-100 bg-gradient-to-r from-nyati-navy/5 to-transparent">
+        <div className="flex items-center justify-between px-6 py-3 border-b border-slate-100 bg-gradient-to-r from-nyati-navy/5 to-transparent">
           <div className="flex items-center gap-3">
             <div className="p-1.5 bg-nyati-orange/10 rounded-xl">
               <LayoutDashboard className="w-4 h-4 text-nyati-orange" />
             </div>
             <div>
               <h3 className="font-bold text-nyati-navy text-sm">Sales & Collection</h3>
-              <p className="text-slate-600 text-[10px]">FY actuals vs budget targets</p>
+              <p className="text-slate-600 text-[10px] mt-0.5">FY actuals vs budget targets</p>
             </div>
           </div>
           <button
@@ -102,58 +480,59 @@ export default function Overview() {
           </button>
         </div>
 
-        {/* 4 KPI tiles */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-slate-100">
-          {[
-            {
-              label: 'Units Sold', icon: ClipboardList,
-              actual: totals.soldToDate, budget: totals.budgetUnits,
-              eff: unitsEff, suffix: '', decimals: 0
-            },
-            {
-              label: 'Avg Rate', icon: IndianRupee,
-              actual: totals.actualRate, budget: totals.budgetRate,
-              eff: rateEff, prefix: '₹', suffix: '/sf', decimals: 0
-            },
-            {
-              label: 'Saleable Area', icon: Maximize,
-              actual: totals.actualArea, budget: totals.budgetArea,
-              eff: areaEff, suffix: ' sf', decimals: 0
-            },
-            {
-              label: 'Total Collection', icon: CreditCard,
-              actual: totals.actualCollection, budget: totals.budgetCollection,
-              eff: collectionEff, prefix: '₹', suffix: ' Cr', decimals: 2
-            },
-          ].map((kpi) => {
-            const badge = getEffBadge(kpi.eff);
-            const Icon = kpi.icon;
-            return (
-              <div key={kpi.label} className="py-2.5 px-5 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">{kpi.label}</span>
-                  <Icon className="w-3.5 h-3.5 text-slate-300" />
-                </div>
-                <p className={`text-lg font-extrabold ${getEffColor(kpi.eff)}`}>
-                  {kpi.prefix || ''}<AnimatedNumber value={kpi.actual} decimals={kpi.decimals} />{kpi.suffix}
-                </p>
-                <div className="space-y-0.5">
-                  <div className="flex justify-between text-[10px] text-slate-600">
-                    <span>Budget: {kpi.prefix || ''}{kpi.budget.toLocaleString('en-IN', { maximumFractionDigits: kpi.decimals })}{kpi.suffix}</span>
-                    <span className={`px-1.5 py-0.5 rounded-full border font-bold ${badge.cls}`}>{badge.text}</span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(100, kpi.eff)}%` }}
-                      transition={{ duration: 1, ease: 'easeOut' }}
-                      className={`h-full rounded-full ${getEffBg(kpi.eff)}`}
-                    />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-slate-100 py-4 px-6 gap-4 lg:gap-0">
+          {/* Left Side: Stacking list of 4 metric rows */}
+          <div className="w-full lg:w-[480px] flex-shrink-0 flex flex-col gap-2 lg:pr-6">
+            <OverviewMetricRow 
+              label="Units Sold" 
+              actual={totals.soldToDate} 
+              budget={totals.budgetUnits} 
+              decimals={0} 
+              status={unitsEff >= 100 ? 'On Target' : unitsEff >= 70 ? 'Progressing' : 'Critical'} 
+              icon={ClipboardList} 
+            />
+            <OverviewMetricRow 
+              label="Avg Rate" 
+              actual={totals.actualRate} 
+              budget={totals.budgetRate} 
+              prefix="₹" 
+              suffix="/sf" 
+              decimals={0} 
+              status={rateEff >= 100 ? 'On Target' : rateEff >= 70 ? 'Progressing' : 'Critical'} 
+              icon={IndianRupee} 
+            />
+            <OverviewMetricRow 
+              label="Saleable Area" 
+              actual={totals.actualArea} 
+              budget={totals.budgetArea} 
+              suffix=" sf" 
+              decimals={0} 
+              status={areaEff >= 100 ? 'On Target' : areaEff >= 70 ? 'Progressing' : 'Critical'} 
+              icon={Maximize} 
+            />
+            <OverviewMetricRow 
+              label="Total Collection" 
+              actual={totals.actualCollection} 
+              budget={totals.budgetCollection} 
+              prefix="₹" 
+              suffix=" Cr" 
+              decimals={2} 
+              status={collectionEff >= 100 ? 'On Target' : collectionEff >= 70 ? 'Progressing' : 'Critical'} 
+              icon={CreditCard} 
+            />
+          </div>
+
+          {/* Right Side: Sales Combo Chart */}
+          <div className="flex-1 min-w-0 lg:pl-6">
+            <SalesComboChart 
+              data={[
+                { name: 'Units', value: unitsEff, rawActual: totals.soldToDate, rawTarget: totals.budgetUnits, unit: ' units' },
+                { name: 'Rate', value: rateEff, rawActual: totals.actualRate, rawTarget: totals.budgetRate, prefix: '₹', unit: '/sf' },
+                { name: 'Area', value: areaEff, rawActual: totals.actualArea, rawTarget: totals.budgetArea, unit: ' sf' },
+                { name: 'Collection', value: collectionEff, rawActual: totals.actualCollection, rawTarget: totals.budgetCollection, prefix: '₹', unit: ' Cr' }
+              ]} 
+            />
+          </div>
         </div>
       </motion.div>
 
@@ -161,14 +540,15 @@ export default function Overview() {
       <motion.div variants={item}
         className="bg-white rounded-3xl shadow-premium border border-slate-100 overflow-hidden"
       >
-        <div className="flex items-center justify-between px-6 py-2 border-b border-slate-100 bg-gradient-to-r from-nyati-navy/5 to-transparent">
+        {/* Section Header */}
+        <div className="flex items-center justify-between px-6 py-3 border-b border-slate-100 bg-gradient-to-r from-nyati-navy/5 to-transparent">
           <div className="flex items-center gap-3">
             <div className="p-1.5 bg-sky-500/10 rounded-xl">
               <BarChart3 className="w-4 h-4 text-sky-500" />
             </div>
             <div>
               <h3 className="font-bold text-nyati-navy text-sm">Outstanding</h3>
-              <p className="text-slate-600 text-[10px]">Consolidated dues, collections, and ageing matrix</p>
+              <p className="text-slate-600 text-[10px] mt-0.5">Consolidated dues, collections, and ageing matrix</p>
             </div>
           </div>
           <button
@@ -179,70 +559,55 @@ export default function Overview() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-slate-100">
-          {/* Total Outstanding */}
-          <div className="py-2.5 px-5 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Total Outstanding</span>
-              <Landmark className="w-3.5 h-3.5 text-slate-300" />
-            </div>
-            <p className="text-lg font-extrabold text-red-500">
-              ₹<AnimatedNumber value={grandTotalOutstanding} decimals={2} /> Cr
-            </p>
-            <p className="text-[10px] text-slate-600">
-              Due milestone: ₹{grandTotalDueMilestone.toFixed(2)} Cr
-            </p>
-            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.min(100, (grandTotalCollection / grandTotalDueMilestone) * 100)}%` }}
-                transition={{ duration: 1, ease: 'easeOut' }}
-                className="h-full rounded-full bg-sky-500"
-              />
-            </div>
-            <p className="text-[10px] text-slate-600">
-              {grandTotalDueMilestone > 0 ? ((grandTotalCollection / grandTotalDueMilestone) * 100).toFixed(1) : 0}% collected
-            </p>
+        <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-slate-100 py-4 px-6 gap-4 lg:gap-0">
+          {/* Left Side: Stacking list of 4 metric rows */}
+          <div className="w-full lg:w-[480px] flex-shrink-0 flex flex-col gap-2 lg:pr-6">
+            <OverviewMetricRow 
+              label="Total Outstanding" 
+              actual={grandTotalOutstanding} 
+              prefix="₹" 
+              suffix=" Cr" 
+              decimals={2} 
+              status="Critical" 
+              icon={Landmark} 
+            />
+            <OverviewMetricRow 
+              label="Total Collection" 
+              actual={grandTotalCollection} 
+              prefix="₹" 
+              suffix=" Cr" 
+              decimals={2} 
+              status="On Target" 
+              icon={CreditCard} 
+            />
+            <OverviewMetricRow 
+              label="Registered O/S" 
+              actual={grandTotalRegOS} 
+              prefix="₹" 
+              suffix=" Cr" 
+              decimals={2} 
+              status="Progressing" 
+              icon={Activity} 
+            />
+            <OverviewMetricRow 
+              label="Ageing >120 Days" 
+              actual={grandAgeingGt120} 
+              prefix="₹" 
+              suffix=" Cr" 
+              decimals={2} 
+              status="Critical" 
+              icon={AlertTriangle} 
+            />
           </div>
 
-          {/* Total Collection */}
-          <div className="py-2.5 px-5 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Total Collection</span>
-              <CreditCard className="w-3.5 h-3.5 text-slate-300" />
-            </div>
-            <p className="text-lg font-extrabold text-emerald-600">
-              ₹<AnimatedNumber value={grandTotalCollection} decimals={2} /> Cr
-            </p>
-            <p className="text-[10px] text-slate-600">Against ₹{grandTotalDueMilestone.toFixed(2)} Cr due</p>
-          </div>
-
-          {/* Critical Ageing > 120 days */}
-          <div className="py-2.5 px-5 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Ageing &gt;120 Days</span>
-              <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
-            </div>
-            <p className="text-lg font-extrabold text-red-500">
-              ₹<AnimatedNumber value={grandAgeingGt120} decimals={2} /> Cr
-            </p>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-600 border border-red-100">
-              <AlertTriangle className="w-2.5 h-2.5" /> Needs Follow-up
-            </span>
-          </div>
-
-          {/* Registered Outstanding */}
-          <div className="py-2.5 px-5 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Registered O/S</span>
-              <Activity className="w-3.5 h-3.5 text-slate-300" />
-            </div>
-            <p className="text-lg font-extrabold text-nyati-navy">
-              ₹<AnimatedNumber value={grandTotalRegOS} decimals={2} /> Cr
-            </p>
-            <p className="text-[10px] text-slate-600">
-              Unregistered: ₹{grandTotalUnregOS.toFixed(2)} Cr
-            </p>
+          {/* Right Side: Outstanding Line Chart */}
+          <div className="flex-1 min-w-0 lg:pl-6">
+            <OutstandingLineChart 
+              collection={grandTotalCollection} 
+              outstanding={grandTotalOutstanding} 
+              regOS={grandTotalRegOS} 
+              ageing120={grandAgeingGt120} 
+            />
           </div>
         </div>
       </motion.div>
@@ -251,14 +616,15 @@ export default function Overview() {
       <motion.div variants={item}
         className="bg-white rounded-3xl shadow-premium border border-slate-100 overflow-hidden"
       >
-        <div className="flex items-center justify-between px-6 py-2 border-b border-slate-100 bg-gradient-to-r from-nyati-navy/5 to-transparent">
+        {/* Section Header */}
+        <div className="flex items-center justify-between px-6 py-3 border-b border-slate-100 bg-gradient-to-r from-nyati-navy/5 to-transparent">
           <div className="flex items-center gap-3">
             <div className="p-1.5 bg-nyati-orange/10 rounded-xl">
               <Hammer className="w-4 h-4 text-nyati-orange" />
             </div>
             <div>
               <h3 className="font-bold text-nyati-navy text-sm">Construction Budget</h3>
-              <p className="text-slate-600 text-[10px]">Target planned vs achieved construction costs and progress</p>
+              <p className="text-slate-600 text-[10px] mt-0.5">Target planned vs achieved construction costs and progress</p>
             </div>
           </div>
           <button
@@ -269,63 +635,54 @@ export default function Overview() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-slate-100">
-          {/* Target Planned */}
-          <div className="py-2.5 px-5 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Target / Planned</span>
-              <ClipboardList className="w-3.5 h-3.5 text-slate-300" />
-            </div>
-            <p className="text-lg font-extrabold text-slate-500">
-              ₹<AnimatedNumber value={grandConstTarget} decimals={2} /> Cr
-            </p>
-            <p className="text-[10px] text-slate-600">Allocated budget baseline</p>
+        <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-slate-100 py-4 px-6 gap-4 lg:gap-0">
+          {/* Left Side: Stacking list of 4 metric rows */}
+          <div className="w-full lg:w-[480px] flex-shrink-0 flex flex-col gap-2 lg:pr-6">
+            <OverviewMetricRow 
+              label="Target Planned" 
+              actual={grandConstTarget} 
+              prefix="₹" 
+              suffix=" Cr" 
+              decimals={2} 
+              status="On Target" 
+              icon={ClipboardList} 
+            />
+            <OverviewMetricRow 
+              label="Achieved Value" 
+              actual={grandConstAchieved} 
+              prefix="₹" 
+              suffix=" Cr" 
+              decimals={2} 
+              status="Progressing" 
+              icon={Landmark} 
+            />
+            <OverviewMetricRow 
+              label="Variance" 
+              actual={Math.abs(grandConstTarget - grandConstAchieved)} 
+              prefix="₹" 
+              suffix=" Cr" 
+              decimals={2} 
+              status={grandConstTarget - grandConstAchieved >= 0 ? 'On Target' : 'Critical'} 
+              icon={TrendingDown} 
+            />
+            <OverviewMetricRow 
+              label="Efficiency" 
+              actual={constEff} 
+              suffix="%" 
+              decimals={1} 
+              status={constEff >= 100 ? 'On Target' : constEff >= 70 ? 'Progressing' : 'Critical'} 
+              icon={Hammer} 
+            />
           </div>
 
-          {/* Achieved Value */}
-          <div className="py-2.5 px-5 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Achieved Value</span>
-              <Landmark className="w-3.5 h-3.5 text-slate-300" />
-            </div>
-            <p className="text-lg font-extrabold text-nyati-navy">
-              ₹<AnimatedNumber value={grandConstAchieved} decimals={2} /> Cr
-            </p>
-            <p className="text-[10px] text-slate-600">Payout value of executed work</p>
-          </div>
-
-          {/* Variance */}
-          <div className="py-2.5 px-5 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Variance</span>
-              <TrendingDown className="w-3.5 h-3.5 text-slate-300" />
-            </div>
-            <p className={`text-lg font-extrabold ${grandConstTarget - grandConstAchieved >= 0 ? 'text-nyati-success' : 'text-nyati-danger'}`}>
-              ₹<AnimatedNumber value={Math.abs(grandConstTarget - grandConstAchieved)} decimals={2} /> Cr
-            </p>
-            <p className="text-[10px] text-slate-600">
-              {grandConstTarget - grandConstAchieved >= 0 ? 'Under target budget' : 'Over budget limits'}
-            </p>
-          </div>
-
-          {/* Construction Efficiency */}
-          <div className="py-2.5 px-5 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Construction EFF</span>
-              <Hammer className="w-3.5 h-3.5 text-slate-300" />
-            </div>
-            <p className={`text-lg font-extrabold ${getEffColor(constEff)}`}>
-              <AnimatedNumber value={constEff} decimals={1} suffix="%" />
-            </p>
-            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.min(100, constEff)}%` }}
-                transition={{ duration: 1, ease: 'easeOut' }}
-                className={`h-full rounded-full ${getEffBg(constEff)}`}
-              />
-            </div>
-            <p className="text-[10px] text-slate-600">Overall efficiency index</p>
+          {/* Right Side: Construction Row Chart */}
+          <div className="flex-1 min-w-0 lg:pl-6">
+            <ConstructionRowChart 
+              target={grandConstTarget} 
+              achieved={grandConstAchieved} 
+              variance={grandConstTarget - grandConstAchieved} 
+              efficiency={constEff} 
+            />
           </div>
         </div>
       </motion.div>
@@ -334,14 +691,15 @@ export default function Overview() {
       <motion.div variants={item}
         className="bg-white rounded-3xl shadow-premium border border-slate-100 overflow-hidden"
       >
-        <div className="flex items-center justify-between px-6 py-2 border-b border-slate-100 bg-gradient-to-r from-nyati-navy/5 to-transparent">
+        {/* Section Header */}
+        <div className="flex items-center justify-between px-6 py-3 border-b border-slate-100 bg-gradient-to-r from-nyati-navy/5 to-transparent">
           <div className="flex items-center gap-3">
             <div className="p-1.5 bg-emerald-500/10 rounded-xl">
               <Layers className="w-4 h-4 text-emerald-600" />
             </div>
             <div>
               <h3 className="font-bold text-nyati-navy text-sm">Project Portfolio</h3>
-              <p className="text-slate-600 text-[10px]">Inventory funnel & construction completion</p>
+              <p className="text-slate-600 text-[10px] mt-0.5">Inventory funnel & construction completion</p>
             </div>
           </div>
           <button
@@ -352,73 +710,50 @@ export default function Overview() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-slate-100">
-          {/* Total Projects */}
-          <div className="py-2.5 px-5 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Active Projects</span>
-              <Activity className="w-3.5 h-3.5 text-slate-300" />
-            </div>
-            <p className="text-lg font-extrabold text-nyati-navy">
-              <AnimatedNumber value={filteredProjects.length} decimals={0} />
-            </p>
-            <p className="text-[10px] text-slate-600">{filteredProjects.filter(p => p.type === 'R').length} Resi · {filteredProjects.filter(p => p.type === 'C').length} Comm · {filteredProjects.filter(p => p.type === 'L').length} Luxe</p>
+        <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-slate-100 py-4 px-6 gap-4 lg:gap-0">
+          {/* Left Side: Stacking list of 4 metric rows */}
+          <div className="w-full lg:w-[480px] flex-shrink-0 flex flex-col gap-2 lg:pr-6">
+            <OverviewMetricRow 
+              label="Active Projects" 
+              actual={filteredProjects.length} 
+              decimals={0} 
+              status="On Target" 
+              icon={Activity} 
+            />
+            <OverviewMetricRow 
+              label="Total Inventory" 
+              actual={totalInventory} 
+              suffix=" units" 
+              decimals={0} 
+              status="Progressing" 
+              icon={ClipboardList} 
+            />
+            <OverviewMetricRow 
+              label="Unsold Balance" 
+              actual={totalUnsold} 
+              suffix=" units" 
+              decimals={0} 
+              status="Progressing" 
+              icon={TrendingDown} 
+            />
+            <OverviewMetricRow 
+              label="Avg Completion" 
+              actual={avgCompletion} 
+              suffix="%" 
+              decimals={1} 
+              status={avgCompletion >= 90 ? 'On Target' : avgCompletion >= 60 ? 'Progressing' : 'Critical'} 
+              icon={CheckCircle} 
+            />
           </div>
 
-          {/* Total Inventory */}
-          <div className="py-2.5 px-5 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Total Inventory</span>
-              <ClipboardList className="w-3.5 h-3.5 text-slate-300" />
-            </div>
-            <p className="text-lg font-extrabold text-nyati-navy">
-              <AnimatedNumber value={totalInventory} decimals={0} /> <span className="text-sm font-semibold text-slate-600">units</span>
-            </p>
-            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${totalInventory > 0 ? (totalSold / totalInventory) * 100 : 0}%` }}
-                transition={{ duration: 1, ease: 'easeOut' }}
-                className="h-full rounded-full bg-nyati-navy"
-              />
-            </div>
-            <p className="text-[10px] text-slate-600">
-              {totalInventory > 0 ? ((totalSold / totalInventory) * 100).toFixed(1) : 0}% sold
-            </p>
-          </div>
-
-          {/* Unsold Balance */}
-          <div className="py-2.5 px-5 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Unsold Balance</span>
-              <TrendingDown className="w-3.5 h-3.5 text-slate-300" />
-            </div>
-            <p className="text-lg font-extrabold text-amber-500">
-              <AnimatedNumber value={totalUnsold} decimals={0} /> <span className="text-sm font-semibold text-slate-600">units</span>
-            </p>
-            <p className="text-[10px] text-slate-600">
-              {totalInventory > 0 ? ((totalUnsold / totalInventory) * 100).toFixed(1) : 0}% remaining inventory
-            </p>
-          </div>
-
-          {/* Avg Construction Completion */}
-          <div className="py-2.5 px-5 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Avg Completion</span>
-              <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-            </div>
-            <p className={`text-lg font-extrabold ${getEffColor(avgCompletion)}`}>
-              <AnimatedNumber value={avgCompletion} decimals={1} suffix="%" />
-            </p>
-            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.min(100, avgCompletion)}%` }}
-                transition={{ duration: 1, ease: 'easeOut' }}
-                className={`h-full rounded-full ${getEffBg(avgCompletion)}`}
-              />
-            </div>
-            <p className="text-[10px] text-slate-600">Avg across {filteredProjects.length} projects</p>
+          {/* Right Side: Portfolio Area Chart */}
+          <div className="flex-1 min-w-0 lg:pl-6">
+            <PortfolioAreaChart 
+              activeProjects={filteredProjects.length} 
+              totalInventory={totalInventory} 
+              totalUnsold={totalUnsold} 
+              avgCompletion={avgCompletion} 
+            />
           </div>
         </div>
       </motion.div>

@@ -1,16 +1,54 @@
 import React from 'react';
 import { useData } from '../context/DataContext';
 import AnimatedNumber from '../components/AnimatedNumber';
-import { Hammer, AlertTriangle, PieChart } from 'lucide-react';
+import { Hammer, AlertTriangle, PieChart, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function ConstructionBudget() {
   const { filteredProjects } = useData();
+  const [sortBy, setSortBy] = React.useState('name');
+  const [sortOrder, setSortOrder] = React.useState('asc');
+
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortOrder(field === 'name' ? 'asc' : 'desc');
+    }
+  };
+
+  // Sort projects based on chosen metric and order
+  const sortedProjects = React.useMemo(() => {
+    return [...filteredProjects].sort((a, b) => {
+      let valA, valB;
+      if (sortBy === 'name') {
+        valA = a.name.toLowerCase();
+        valB = b.name.toLowerCase();
+      } else if (sortBy === 'target') {
+        valA = a.construction.target;
+        valB = b.construction.target;
+      } else if (sortBy === 'achieved') {
+        valA = a.construction.achieved;
+        valB = b.construction.achieved;
+      } else if (sortBy === 'variance') {
+        valA = a.construction.variance;
+        valB = b.construction.variance;
+      } else if (sortBy === 'eff') {
+        valA = a.construction.eff;
+        valB = b.construction.eff;
+      }
+
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filteredProjects, sortBy, sortOrder]);
 
   // Construction Columns Grand Totals
   const grandConstTarget = filteredProjects.reduce((s, p) => s + p.construction.target, 0);
   const grandConstAchieved = filteredProjects.reduce((s, p) => s + p.construction.achieved, 0);
-  const grandConstVariance = grandConstTarget - grandConstAchieved;
+  const grandConstVariance = grandConstAchieved - grandConstTarget;
   const grandConstEff = grandConstTarget > 0 ? (grandConstAchieved / grandConstTarget) * 100 : 0;
 
   // Construction Highlights & Bullet Summaries
@@ -113,34 +151,96 @@ export default function ConstructionBudget() {
       <div
         className="bg-white rounded-3xl shadow-premium border border-slate-100"
       >
-        <div className="sticky top-0 z-10 bg-white rounded-t-3xl border-b border-slate-100 px-6 py-5 shadow-sm">
-          <h3 className="font-bold text-nyati-navy text-base">Construction Cost Budget Summary</h3>
-          <p className="text-slate-400 text-xs mt-0.5">Compare construction target milestones against achieved value payouts and variance tracking.</p>
+        <div className="sticky top-0 z-10 bg-white rounded-t-3xl border-b border-slate-100 px-6 py-4 shadow-sm">
+          <div>
+            <h3 className="font-bold text-nyati-navy text-base">Construction Cost Budget Summary</h3>
+            <p className="text-slate-400 text-xs mt-0.5">Compare construction target milestones against achieved value payouts and variance tracking.</p>
+          </div>
         </div>
 
         <div className="lg:overflow-x-visible overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100 shadow-sm">
-                <th className="px-6 py-4">Project</th>
-                <th className="px-4 py-4 text-right">Target / Planned (₹ Cr)</th>
-                <th className="px-4 py-4 text-right">Achieved (₹ Cr)</th>
-                <th className="px-4 py-4 text-right">Variance (₹ Cr)</th>
-                <th className="px-6 py-4 min-w-[220px]">EFF % / Progress</th>
+                <th 
+                  onClick={() => handleSort('name')}
+                  className="px-6 py-4 cursor-pointer hover:bg-slate-100/80 transition-colors select-none group"
+                >
+                  <div className="flex items-center gap-1.5 justify-start">
+                    <span>Project</span>
+                    {sortBy === 'name' ? (
+                      sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-nyati-orange shrink-0" /> : <ArrowDown className="w-3.5 h-3.5 text-nyati-orange shrink-0" />
+                    ) : (
+                      <ArrowUpDown className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                    )}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('target')}
+                  className="px-4 py-4 cursor-pointer hover:bg-slate-100/80 transition-colors select-none group text-right"
+                >
+                  <div className="flex items-center gap-1.5 justify-end">
+                    <span>Target / Planned (₹ Cr)</span>
+                    {sortBy === 'target' ? (
+                      sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-nyati-orange shrink-0" /> : <ArrowDown className="w-3.5 h-3.5 text-nyati-orange shrink-0" />
+                    ) : (
+                      <ArrowUpDown className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                    )}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('achieved')}
+                  className="px-4 py-4 cursor-pointer hover:bg-slate-100/80 transition-colors select-none group text-right"
+                >
+                  <div className="flex items-center gap-1.5 justify-end">
+                    <span>Achieved (₹ Cr)</span>
+                    {sortBy === 'achieved' ? (
+                      sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-nyati-orange shrink-0" /> : <ArrowDown className="w-3.5 h-3.5 text-nyati-orange shrink-0" />
+                    ) : (
+                      <ArrowUpDown className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                    )}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('variance')}
+                  className="px-4 py-4 cursor-pointer hover:bg-slate-100/80 transition-colors select-none group text-right"
+                >
+                  <div className="flex items-center gap-1.5 justify-end">
+                    <span>Variance (₹ Cr)</span>
+                    {sortBy === 'variance' ? (
+                      sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-nyati-orange shrink-0" /> : <ArrowDown className="w-3.5 h-3.5 text-nyati-orange shrink-0" />
+                    ) : (
+                      <ArrowUpDown className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                    )}
+                  </div>
+                </th>
+                <th 
+                  onClick={() => handleSort('eff')}
+                  className="px-6 py-4 min-w-[220px] cursor-pointer hover:bg-slate-100/80 transition-colors select-none group"
+                >
+                  <div className="flex items-center gap-1.5 justify-start">
+                    <span>EFF % / Progress</span>
+                    {sortBy === 'eff' ? (
+                      sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-nyati-orange shrink-0" /> : <ArrowDown className="w-3.5 h-3.5 text-nyati-orange shrink-0" />
+                    ) : (
+                      <ArrowUpDown className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                    )}
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 font-medium text-slate-600">
-              {filteredProjects.length === 0 ? (
+              {sortedProjects.length === 0 ? (
                 <tr>
                   <td colSpan="5" className="px-6 py-12 text-center text-slate-400 font-semibold">
                     No active projects matching active filters.
                   </td>
                 </tr>
               ) : (
-                filteredProjects.map((p) => {
+                sortedProjects.map((p) => {
                   const target = p.construction.target;
                   const achieved = p.construction.achieved;
-                  const variance = target - achieved;
+                  const variance = achieved - target;
                   const eff = p.construction.eff;
 
                   return (

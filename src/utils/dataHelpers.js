@@ -180,7 +180,7 @@ export function processRawData(rawData) {
     // Construction Budget (₹ Cr)
     const constTarget = parseFloat((budgetValCr * 0.55).toFixed(2));
     const constAchieved = parseFloat((actualValCr * 0.50).toFixed(2));
-    const constVariance = parseFloat((constTarget - constAchieved).toFixed(2));
+    const constVariance = parseFloat((constAchieved - constTarget).toFixed(2));
     const constEff = constTarget > 0 ? (constAchieved / constTarget) * 100 : 0;
     const constComp = Math.min(100, Math.round((constAchieved / constTarget) * 100)) || 65;
 
