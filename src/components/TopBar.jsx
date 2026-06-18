@@ -11,6 +11,8 @@ export default function TopBar({ toggleSidebar }) {
   const getPageTitle = () => {
     switch (location.pathname) {
       case '/':
+        return 'Management Information System';
+      case '/sales-collection':
         return 'Sales & Collection Dashboard';
       case '/outstanding':
         return 'Outstanding';
@@ -26,6 +28,8 @@ export default function TopBar({ toggleSidebar }) {
   const getPageSubtitle = () => {
     switch (location.pathname) {
       case '/':
+        return 'Nyati Engineers & Consultants Pvt. Ltd. corporate dashboard';
+      case '/sales-collection':
         return 'FY sales achievements, rate analysis, and actual vs budget collection rates';
       case '/outstanding':
         return 'Milestone dues, collection status, and project ageing matrices';

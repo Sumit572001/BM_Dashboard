@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { calculateGrandTotals } from '../utils/dataHelpers';
 import AnimatedNumber from '../components/AnimatedNumber';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid, Treemap } from 'recharts';
 import { ChevronDown, Calendar, Percent, Landmark, HelpCircle, X, CheckCircle, Layers, AlertTriangle, PieChart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -10,6 +10,17 @@ export default function Dashboard2() {
   const { filteredProjects } = useData();
   const [activeMonth, setActiveMonth] = useState('APR 26');
   const [activeMetric, setActiveMetric] = useState('value'); // 'unit' | 'value' | 'collection' | 'registration'
+  const [ageingView, setAgeingView] = useState('table'); // 'table' | 'treemap'
+  const [showTreemap, setShowTreemap] = useState(false);
+
+  useEffect(() => {
+    if (ageingView === 'treemap') {
+      const timer = setTimeout(() => setShowTreemap(true), 150);
+      return () => clearTimeout(timer);
+    } else {
+      setShowTreemap(false);
+    }
+  }, [ageingView]);
 
   // Modal state for ageing drilldown
   const [drilldownData, setDrilldownData] = useState(null);
@@ -74,6 +85,80 @@ export default function Dashboard2() {
   const grandAgeing91_120 = filteredProjects.reduce((s, p) => s + p.ageing['91-120'], 0);
   const grandAgeingGt120 = filteredProjects.reduce((s, p) => s + p.ageing['gt120'], 0);
   const grandAgeingTotal = grandAgeing0_30 + grandAgeing31_60 + grandAgeing61_90 + grandAgeing91_120 + grandAgeingGt120;
+
+  // Map ageing data to nested tree list for Treemap
+  const treemapData = [
+    {
+      name: 'Aging Dues',
+      children: filteredProjects.flatMap(p => {
+        return [
+          { name: `${p.name} (0-30D)`, projectName: p.name, bucket: '0-30', value: p.ageing['0-30'], color: '#10b981' },
+          { name: `${p.name} (31-60D)`, projectName: p.name, bucket: '31-60', value: p.ageing['31-60'], color: '#f59e0b' },
+          { name: `${p.name} (61-90D)`, projectName: p.name, bucket: '61-90', value: p.ageing['61-90'], color: '#f97316' },
+          { name: `${p.name} (91-120D)`, projectName: p.name, bucket: '91-120', value: p.ageing['91-120'], color: '#ef4444' },
+          { name: `${p.name} (>120D)`, projectName: p.name, bucket: '>120', value: p.ageing['gt120'], color: '#b91c1c' },
+        ].filter(item => item.value > 0);
+      })
+    }
+  ];
+
+  // Custom Treemap SVG node renderer
+  const renderTreemapContent = (props) => {
+    const { x, y, width, height, payload, name, value, color } = props;
+    
+    // Fallback if payload is not present
+    const projectName = payload?.projectName || name || '';
+    const itemValue = payload?.value || value || 0;
+    const bucket = payload?.bucket || '';
+    const itemColor = payload?.color || color || '#94a3b8';
+
+    const valueLabel = `₹${itemValue.toFixed(2)} Cr`;
+    const bucketLabel = bucket ? `${bucket} Days` : '';
+
+    return (
+      <g 
+        className="cursor-pointer"
+        onClick={() => handleAgeCellClick(projectName, bucket, itemValue)}
+      >
+        <rect
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          style={{
+            fill: itemColor,
+            stroke: '#ffffff',
+            strokeWidth: 2,
+          }}
+          className="transition-all duration-200 hover:opacity-95"
+        />
+        {width > 80 && height > 35 && (
+          <text
+            x={x + 8}
+            y={y + 18}
+            fill="#ffffff"
+            fontSize={9.5}
+            fontWeight="bold"
+            className="font-sans select-none"
+          >
+            {projectName.length > 18 ? projectName.substring(0, 16) + '...' : projectName}
+          </text>
+        )}
+        {width > 80 && height > 35 && (
+          <text
+            x={x + 8}
+            y={y + 30}
+            fill="#ffffff"
+            fontSize={9}
+            fontWeight="black"
+            className="font-sans select-none opacity-90"
+          >
+            {bucketLabel ? `${bucketLabel}: ` : ''}{valueLabel}
+          </text>
+        )}
+      </g>
+    );
+  };
 
   // Outstanding Highlights Calculations
   const totalOS = filteredProjects.reduce((s, p) => s + p.outstanding, 0);
@@ -308,61 +393,145 @@ export default function Dashboard2() {
         </div>
       </div>
 
-      {/* SECTION C: AGEING OUTSTANDING Table */}
+      {/* SECTION C: AGEING OUTSTANDING Table / Treemap */}
       <div ref={sectionCRef} className="bg-white rounded-3xl shadow-premium border border-slate-100">
-        <div className="sticky top-0 z-10 bg-white rounded-t-3xl border-b border-slate-100 px-6 py-5 shadow-sm">
-          <h3 className="font-bold text-nyati-navy text-lg">Ageing Outstanding Matrix</h3>
-          <p className="text-slate-400 text-xs mt-0.5">Click cells to drill down to flat details. Visualized heatmap displays critical delays (&gt;90 days).</p>
+        <div className="sticky top-0 z-10 bg-white rounded-t-3xl border-b border-slate-100 px-6 py-5 shadow-sm flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h3 className="font-bold text-nyati-navy text-lg">Ageing Outstanding Matrix</h3>
+            <p className="text-slate-400 text-xs mt-0.5">Click cells or blocks to drill down to flat details. Heatmap displays critical delays (&gt;90 days).</p>
+          </div>
+          
+          {/* View switcher */}
+          <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+            <button
+              onClick={() => setAgeingView('table')}
+              className={`px-3 py-1.5 rounded-lg transition-all ${ageingView === 'table' ? 'bg-white text-nyati-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            >
+              Table View
+            </button>
+            <button
+              onClick={() => setAgeingView('treemap')}
+              className={`px-3 py-1.5 rounded-lg transition-all ${ageingView === 'treemap' ? 'bg-white text-nyati-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            >
+              Treemap View
+            </button>
+          </div>
         </div>
-        <div className="lg:overflow-x-visible overflow-x-auto">
-          <table className="w-full text-center text-xs">
-            <thead>
-              <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100 text-left shadow-sm">
-                <th className="px-6 py-4 text-left">Project</th>
-                <th className="px-4 py-4 text-center">0–30 Days (₹ Cr)</th>
-                <th className="px-4 py-4 text-center">31–60 Days (₹ Cr)</th>
-                <th className="px-4 py-4 text-center">61–90 Days (₹ Cr)</th>
-                <th className="px-4 py-4 text-center">91–120 Days (₹ Cr)</th>
-                <th className="px-4 py-4 text-center">&gt;120 Days (₹ Cr)</th>
-                <th className="px-6 py-4 text-center">Total (₹ Cr)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50 font-semibold text-slate-700">
-              {filteredProjects.map((p) => (
-                <tr key={p.name} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-3.5 text-left font-bold text-slate-700">{p.name}</td>
-                  {['0-30', '31-60', '61-90', '91-120', 'gt120'].map((bucket) => {
-                    const value = p.ageing[bucket];
-                    return (
-                      <td
-                        key={bucket}
-                        onClick={() => handleAgeCellClick(p.name, bucket, value)}
-                        className={`px-4 py-3.5 cursor-pointer font-bold transition-all hover:scale-95 duration-100 ${getAgeingHeatClass(value)}`}
-                      >
-                        <AnimatedNumber value={value} prefix="₹" decimals={2} />
-                      </td>
-                    );
-                  })}
-                  <td className="px-6 py-3.5 bg-slate-50/40 font-bold text-nyati-navy">
-                    ₹{p.ageing.total.toFixed(2)}
+
+        {ageingView === 'table' ? (
+          <div className="lg:overflow-x-visible overflow-x-auto">
+            <table className="w-full text-center text-xs">
+              <thead>
+                <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100 text-left shadow-sm">
+                  <th className="px-6 py-4 text-left">Project</th>
+                  <th className="px-4 py-4 text-center">0–30 Days (₹ Cr)</th>
+                  <th className="px-4 py-4 text-center">31–60 Days (₹ Cr)</th>
+                  <th className="px-4 py-4 text-center">61–90 Days (₹ Cr)</th>
+                  <th className="px-4 py-4 text-center">91–120 Days (₹ Cr)</th>
+                  <th className="px-4 py-4 text-center">&gt;120 Days (₹ Cr)</th>
+                  <th className="px-6 py-4 text-center">Total (₹ Cr)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50 font-semibold text-slate-700">
+                {filteredProjects.map((p) => (
+                  <tr key={p.name} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-3.5 text-left font-bold text-slate-700">{p.name}</td>
+                    {['0-30', '31-60', '61-90', '91-120', 'gt120'].map((bucket) => {
+                      const value = p.ageing[bucket];
+                      return (
+                        <td
+                          key={bucket}
+                          onClick={() => handleAgeCellClick(p.name, bucket, value)}
+                          className={`px-4 py-3.5 cursor-pointer font-bold transition-all hover:scale-95 duration-100 ${getAgeingHeatClass(value)}`}
+                        >
+                          <AnimatedNumber value={value} prefix="₹" decimals={2} />
+                        </td>
+                      );
+                    })}
+                    <td className="px-6 py-3.5 bg-slate-50/40 font-bold text-nyati-navy">
+                      ₹{p.ageing.total.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+                {/* Grand Total Row */}
+                <tr className="bg-slate-50/80 font-bold text-nyati-navy border-t border-slate-200">
+                  <td className="px-6 py-4 text-left">GRAND TOTAL</td>
+                  <td className="px-4 py-4 text-center">₹{grandAgeing0_30.toFixed(2)}</td>
+                  <td className="px-4 py-4 text-center">₹{grandAgeing31_60.toFixed(2)}</td>
+                  <td className="px-4 py-4 text-center">₹{grandAgeing61_90.toFixed(2)}</td>
+                  <td className="px-4 py-4 text-center">₹{grandAgeing91_120.toFixed(2)}</td>
+                  <td className="px-4 py-4 text-center">₹{grandAgeingGt120.toFixed(2)}</td>
+                  <td className="px-6 py-4 bg-slate-50 font-extrabold text-nyati-orange">
+                    ₹{grandAgeingTotal.toFixed(2)}
                   </td>
                 </tr>
-              ))}
-              {/* Grand Total Row */}
-              <tr className="bg-slate-50/80 font-bold text-nyati-navy border-t border-slate-200">
-                <td className="px-6 py-4 text-left">GRAND TOTAL</td>
-                <td className="px-4 py-4 text-center">₹{grandAgeing0_30.toFixed(2)}</td>
-                <td className="px-4 py-4 text-center">₹{grandAgeing31_60.toFixed(2)}</td>
-                <td className="px-4 py-4 text-center">₹{grandAgeing61_90.toFixed(2)}</td>
-                <td className="px-4 py-4 text-center">₹{grandAgeing91_120.toFixed(2)}</td>
-                <td className="px-4 py-4 text-center">₹{grandAgeingGt120.toFixed(2)}</td>
-                <td className="px-6 py-4 bg-slate-50 font-extrabold text-nyati-orange">
-                  ₹{grandAgeingTotal.toFixed(2)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="p-6">
+            {!showTreemap ? (
+              <div className="h-96 w-full bg-slate-50/50 rounded-2xl animate-pulse flex items-center justify-center text-slate-400 font-semibold">
+                Initializing Ageing Treemap...
+              </div>
+            ) : (!treemapData[0] || treemapData[0].children.length === 0) ? (
+              <div className="h-96 flex items-center justify-center text-slate-400">No project aging data to display.</div>
+            ) : (
+              <div className="h-96 w-full relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <Treemap
+                    data={treemapData}
+                    dataKey="value"
+                    stroke="#fff"
+                    fill="#8884d8"
+                    content={renderTreemapContent}
+                  >
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const item = payload[0].payload;
+                          return (
+                            <div className="bg-slate-900/95 text-white px-3.5 py-2 rounded-xl text-xs shadow-xl border border-slate-800 space-y-1">
+                              <p className="font-extrabold text-slate-300 uppercase tracking-wider">{item.projectName}</p>
+                              <p className="font-semibold text-slate-200">Ageing: <span className="font-bold text-white">{item.bucket} Days</span></p>
+                              <p className="font-black text-sm text-nyati-orange">Outstanding: ₹{item.value.toFixed(2)} Cr</p>
+                              <p className="text-[10px] text-slate-400 font-medium italic mt-1">Click block to view flat details</p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                  </Treemap>
+                </ResponsiveContainer>
+              </div>
+            )}
+            
+            {/* Custom Legend */}
+            <div className="flex flex-wrap items-center justify-center gap-6 mt-6 pt-4 border-t border-slate-100 text-[11px] font-bold text-slate-600">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-[#10b981]" />
+                <span>0–30 days</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-[#f59e0b]" />
+                <span>31–60 days</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-[#f97316]" />
+                <span>61–90 days</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-[#ef4444]" />
+                <span>91–120 days</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-[#b91c1c]" />
+                <span>&gt;120 days</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Highlights & AI Recommendations Row */}

@@ -9,8 +9,8 @@ export default function Sidebar({ isOpen, toggleSidebar, onHoverChange }) {
   const [hovered, setHovered] = useState(false);
 
   const links = [
-    { name: 'Overview', path: '/overview', icon: Home },
-    { name: 'Sales & Collection', path: '/', icon: LayoutDashboard },
+    { name: 'Overview', path: '/', icon: Home },
+    { name: 'Sales & Collection', path: '/sales-collection', icon: LayoutDashboard },
     { name: 'Outstanding', path: '/outstanding', icon: BarChart3 },
     { name: 'Construction Budget Review', path: '/construction-budget', icon: Hammer },
     { name: 'Project Portfolio', path: '/portfolio', icon: Layers },

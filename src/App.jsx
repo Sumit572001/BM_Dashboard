@@ -89,7 +89,7 @@ function AppContent() {
   const location = useLocation();
 
   // Pages where FilterBar should be hidden
-  const hideFilterBar = ['/portfolio', '/overview'].includes(location.pathname);
+  const hideFilterBar = ['/portfolio', '/'].includes(location.pathname);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -123,18 +123,18 @@ function AppContent() {
 
         {/* Dynamic Page Views wrapped in ErrorBoundary */}
         <main className={`flex-1 overflow-y-auto w-full ${location.pathname === '/portfolio' ? '' :
-          ['/outstanding', '/construction-budget', '/overview'].includes(location.pathname) ? 'px-6 pb-6 pt-2' :
+          ['/outstanding', '/construction-budget', '/'].includes(location.pathname) ? 'px-6 pb-6 pt-2' :
             'p-6'
           }`}>
           <ErrorBoundary>
             <Routes>
-              <Route path="/overview" element={<Overview />} />
-              <Route path="/" element={<Dashboard1 />} />
+              <Route path="/" element={<Overview />} />
+              <Route path="/sales-collection" element={<Dashboard1 />} />
               <Route path="/outstanding" element={<Dashboard2 />} />
               <Route path="/construction-budget" element={<ConstructionBudget />} />
               <Route path="/portfolio" element={<Dashboard3 />} />
               {/* Fallback to overview */}
-              <Route path="*" element={<Navigate to="/overview" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </ErrorBoundary>
         </main>
