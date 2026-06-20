@@ -10,16 +10,11 @@ export default function Dashboard2() {
   const { filteredProjects } = useData();
   const [activeMonth, setActiveMonth] = useState('APR 26');
   const [activeMetric, setActiveMetric] = useState('value'); // 'unit' | 'value' | 'collection' | 'registration'
-  const [ageingView, setAgeingView] = useState('table'); // 'table' | 'treemap'
-  const [showTreemap, setShowTreemap] = useState(false);
+  const [ageingView, setAgeingView] = useState('treemap'); // 'table' | 'treemap'
+  const [showTreemap, setShowTreemap] = useState(true);
 
   useEffect(() => {
-    if (ageingView === 'treemap') {
-      const timer = setTimeout(() => setShowTreemap(true), 150);
-      return () => clearTimeout(timer);
-    } else {
-      setShowTreemap(false);
-    }
+    setShowTreemap(ageingView === 'treemap');
   }, [ageingView]);
 
   // Modal state for ageing drilldown
@@ -87,16 +82,17 @@ export default function Dashboard2() {
   const grandAgeingTotal = grandAgeing0_30 + grandAgeing31_60 + grandAgeing61_90 + grandAgeing91_120 + grandAgeingGt120;
 
   // Map ageing data to nested tree list for Treemap
+  // Order: red (>120d) first → green (0-30d) last so heatmap shows critical dues at top
   const treemapData = [
     {
       name: 'Aging Dues',
       children: filteredProjects.flatMap(p => {
         return [
-          { name: `${p.name} (0-30D)`, projectName: p.name, bucket: '0-30', value: p.ageing['0-30'], color: '#10b981' },
-          { name: `${p.name} (31-60D)`, projectName: p.name, bucket: '31-60', value: p.ageing['31-60'], color: '#f59e0b' },
-          { name: `${p.name} (61-90D)`, projectName: p.name, bucket: '61-90', value: p.ageing['61-90'], color: '#f97316' },
+          { name: `${p.name} (>120D)`,   projectName: p.name, bucket: '>120',   value: p.ageing['gt120'],   color: '#b91c1c' },
           { name: `${p.name} (91-120D)`, projectName: p.name, bucket: '91-120', value: p.ageing['91-120'], color: '#ef4444' },
-          { name: `${p.name} (>120D)`, projectName: p.name, bucket: '>120', value: p.ageing['gt120'], color: '#b91c1c' },
+          { name: `${p.name} (61-90D)`,  projectName: p.name, bucket: '61-90',  value: p.ageing['61-90'],  color: '#f97316' },
+          { name: `${p.name} (31-60D)`,  projectName: p.name, bucket: '31-60',  value: p.ageing['31-60'],  color: '#f59e0b' },
+          { name: `${p.name} (0-30D)`,   projectName: p.name, bucket: '0-30',   value: p.ageing['0-30'],   color: '#10b981' },
         ].filter(item => item.value > 0);
       })
     }
@@ -132,28 +128,28 @@ export default function Dashboard2() {
           }}
           className="transition-all duration-200 hover:opacity-95"
         />
-        {width > 80 && height > 35 && (
+        {width > 45 && height > 22 && (
           <text
-            x={x + 8}
-            y={y + 18}
-            fill="#ffffff"
-            fontSize={9.5}
-            fontWeight="bold"
-            className="font-sans select-none"
-          >
-            {projectName.length > 18 ? projectName.substring(0, 16) + '...' : projectName}
-          </text>
-        )}
-        {width > 80 && height > 35 && (
-          <text
-            x={x + 8}
-            y={y + 30}
+            x={x + 6}
+            y={y + 14}
             fill="#ffffff"
             fontSize={9}
-            fontWeight="black"
+            fontWeight="normal"
+            className="font-sans select-none"
+          >
+            {projectName.length > 20 ? projectName.substring(0, 18) + '…' : projectName}
+          </text>
+        )}
+        {width > 45 && height > 34 && (
+          <text
+            x={x + 6}
+            y={y + 26}
+            fill="#ffffff"
+            fontSize={8.5}
+            fontWeight="normal"
             className="font-sans select-none opacity-90"
           >
-            {bucketLabel ? `${bucketLabel}: ` : ''}{valueLabel}
+            {valueLabel}
           </text>
         )}
       </g>
@@ -343,7 +339,6 @@ export default function Dashboard2() {
       <div ref={sectionBRef} className="bg-white rounded-3xl shadow-premium border border-slate-100">
         <div className="sticky top-0 z-10 bg-white rounded-t-3xl border-b border-slate-100 px-6 py-5 shadow-sm">
           <h3 className="font-bold text-nyati-navy text-lg">Consolidated Project Outstanding</h3>
-          <p className="text-slate-400 text-xs mt-0.5">Summary of dues and collections by project. Alerts trigger on total outstanding milestones.</p>
         </div>
         <div className="lg:overflow-x-visible overflow-x-auto">
           <table className="w-full text-left text-xs">
@@ -401,19 +396,19 @@ export default function Dashboard2() {
             <p className="text-slate-400 text-xs mt-0.5">Click cells or blocks to drill down to flat details. Heatmap displays critical delays (&gt;90 days).</p>
           </div>
           
-          {/* View switcher */}
+          {/* View switcher — Heatmap is default, Table is secondary */}
           <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+            <button
+              onClick={() => setAgeingView('treemap')}
+              className={`px-3 py-1.5 rounded-lg transition-all ${ageingView === 'treemap' ? 'bg-white text-nyati-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            >
+              Heatmap View
+            </button>
             <button
               onClick={() => setAgeingView('table')}
               className={`px-3 py-1.5 rounded-lg transition-all ${ageingView === 'table' ? 'bg-white text-nyati-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             >
               Table View
-            </button>
-            <button
-              onClick={() => setAgeingView('treemap')}
-              className={`px-3 py-1.5 rounded-lg transition-all ${ageingView === 'treemap' ? 'bg-white text-nyati-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-            >
-              Treemap View
             </button>
           </div>
         </div>
@@ -484,6 +479,7 @@ export default function Dashboard2() {
                     dataKey="value"
                     stroke="#fff"
                     fill="#8884d8"
+                    isAnimationActive={false}
                     content={renderTreemapContent}
                   >
                     <Tooltip
@@ -541,7 +537,6 @@ export default function Dashboard2() {
           <div>
             <div className="px-6 py-5 border-b border-slate-100">
               <h3 className="font-bold text-nyati-navy text-base">Outstanding & Receivables Highlights</h3>
-              <p className="text-slate-400 text-xs mt-0.5">Key analysis insights and risk highlights for outstanding milestone receivables.</p>
             </div>
 
             {/* Bullet points display list */}

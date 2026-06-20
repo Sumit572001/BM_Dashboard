@@ -16,15 +16,13 @@ export default function Dashboard3() {
   const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef(null);
 
-  // Auto-init first project on load
+  // Auto-init selected project from context if present on load
   useEffect(() => {
-    if (processedProjects.length > 0 && selectedNames.length === 0) {
-      const first = processedProjects[0].name;
-      setSelectedNames([first]);
-      setViewingName(first);
-      setActiveProjectName(first);
+    if (activeProject && !selectedNames.includes(activeProject.name)) {
+      setSelectedNames([activeProject.name]);
+      setViewingName(activeProject.name);
     }
-  }, [processedProjects]);
+  }, [activeProject]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -42,9 +40,14 @@ export default function Dashboard3() {
     setSelectedNames(prev => {
       if (prev.includes(name)) {
         const next = prev.filter(n => n !== name);
-        if (viewingName === name && next.length > 0) {
-          setViewingName(next[0]);
-          setActiveProjectName(next[0]);
+        if (viewingName === name) {
+          if (next.length > 0) {
+            setViewingName(next[0]);
+            setActiveProjectName(next[0]);
+          } else {
+            setViewingName('');
+            setActiveProjectName('');
+          }
         }
         return next;
       } else {
@@ -66,9 +69,9 @@ export default function Dashboard3() {
   );
 
   // Project shown in detail panels
-  const displayProject = processedProjects.find(p => p.name === viewingName) || activeProject;
+  const displayProject = viewingName ? processedProjects.find(p => p.name === viewingName) : null;
 
-  if (!displayProject) {
+  if (processedProjects.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-slate-400">
         <Compass className="w-12 h-12 mb-4 animate-spin text-nyati-navy/40" />
@@ -76,7 +79,6 @@ export default function Dashboard3() {
       </div>
     );
   }
-
 
   // Balance Months auto-calculation (RERA Dec 31, 2026 - Today)
   const reraDate = new Date('2026-12-31');
@@ -86,18 +88,22 @@ export default function Dashboard3() {
   const balanceMonths = diffMonths > 0 ? diffMonths : 0;
 
   // Build the list of buildings
-  const buildingsText = (displayProject?.buildings || [])
-    .map(b => b?.name ? b.name.replace(/\(.*\)/g, '').trim() : '')
-    .filter(Boolean)
-    .join(', ');
+  const buildingsText = displayProject
+    ? (displayProject.buildings || [])
+        .map(b => b?.name ? b.name.replace(/\(.*\)/g, '').trim() : '')
+        .filter(Boolean)
+        .join(', ')
+    : '';
 
   // Project Portfolio highlights based on displayProject
-  const totalFnlUnits = (displayProject?.funnel?.landOwner || 0) + (displayProject?.funnel?.premium || 0) + (displayProject?.funnel?.forSale || 0);
-  const soldFnlUnits = displayProject?.funnel?.sold || 0;
-  const soldFnlPct = totalFnlUnits > 0 ? (soldFnlUnits / totalFnlUnits) * 100 : 0;
-  const deliveryLeft = balanceMonths;
+  const totalFnlUnits = displayProject
+    ? (displayProject.funnel?.landOwner || 0) + (displayProject.funnel?.premium || 0) + (displayProject.funnel?.forSale || 0)
+    : 0;
+  const soldFnlUnits = displayProject ? (displayProject.funnel?.sold || 0) : 0;
+  const soldFnlPct = displayProject && totalFnlUnits > 0 ? (soldFnlUnits / totalFnlUnits) * 100 : 0;
+  const deliveryLeft = displayProject ? balanceMonths : 0;
 
-  const portfolioPoints = [
+  const portfolioPoints = displayProject ? [
     {
       title: "Portfolio Configuration & Capacity",
       text: `${displayProject.name} is configured as a ${displayProject.type === 'L' ? 'Luxury (3BHK, 4BHK, Villas)' : displayProject.type === 'C' ? 'Commercial (Shops & Corporate Offices)' : 'Residential (2BHK, 3BHK)'} development consisting of ${displayProject.buildings?.length || 3} structural blocks with ${(displayProject.totalUnits || 0).toLocaleString('en-IN')} total inventory units.`,
@@ -118,9 +124,14 @@ export default function Dashboard3() {
       text: `Current customer registry ledger indicates ${displayProject.registeredUnits || 0} units are fully registered and secured, with ${displayProject.unregisteredUnits || 0} units pending agreement closures.`,
       status: (displayProject.registeredUnits / (displayProject.soldToDate || 1)) >= 0.7 ? 'success' : 'warning'
     }
+  ] : [
+    { title: "Portfolio Configuration & Capacity", text: "-", status: 'info' },
+    { title: "Inventory Allocation & Sales Progress", text: "-", status: 'info' },
+    { title: "RERA Delivery Schedule & Timeline", text: "-", status: 'info' },
+    { title: "Agreement & Registration Status", text: "-", status: 'info' }
   ];
 
-  const aiRecommendations = [
+  const aiRecommendations = displayProject ? [
     {
       type: 'success',
       subject: 'RERA Milestone Alignment',
@@ -131,6 +142,9 @@ export default function Dashboard3() {
       subject: 'Inventory Run-rate Acceleration',
       text: `With ${displayProject.funnel?.unsold || 0} unsold units remaining, consider running targeted promotional campaigns to liquidate residual inventory ahead of final finishing stages.`
     }
+  ] : [
+    { type: 'info', subject: 'RERA Milestone Alignment', text: "-" },
+    { type: 'info', subject: 'Inventory Run-rate Acceleration', text: "-" }
   ];
 
   const getStatusBadge = (status) => {
@@ -156,9 +170,9 @@ export default function Dashboard3() {
     return circumference - (safePct / 100) * circumference;
   };
 
-  // Registration ring metrics (compact)
-  const regRadius = 22;
-  const regStrokeWidth = 5.5;
+  // Registration ring metrics (larger)
+  const regRadius = 32;
+  const regStrokeWidth = 7;
   const regCircumference = 2 * Math.PI * regRadius;
   const getRegStrokeOffset = (pct) => {
     const safePct = Math.min(100, Math.max(0, pct || 0));
@@ -178,7 +192,7 @@ export default function Dashboard3() {
     <div className="flex flex-col min-h-full">
 
       {/* Sticky Multi-Select Project Selector */}
-      <div className="sticky top-0 z-20 bg-white border-b border-slate-100 px-6 py-4 shadow-sm space-y-3">
+      <div className="sticky top-0 z-20 bg-white border-b border-slate-100 px-6 py-2 shadow-sm space-y-2">
 
         {/* Header + dropdown trigger */}
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -223,7 +237,7 @@ export default function Dashboard3() {
                   </div>
                   <div className="flex justify-between px-1 pb-2 mb-1 border-b border-slate-100 text-[10px]">
                     <button
-                      onClick={() => { setSelectedNames([]); setViewingName(''); }}
+                      onClick={() => { setSelectedNames([]); setViewingName(''); setActiveProjectName(''); }}
                       className="font-bold text-slate-400 hover:text-nyati-navy"
                     >Clear All</button>
                     <button
@@ -301,7 +315,7 @@ export default function Dashboard3() {
       <div className="flex-1 p-6 pb-12 space-y-6">
 
         {/* Main Combined Grid Wrapper - Groups all 4 cards into one cohesive section */}
-        <div className="bg-slate-50/40 rounded-[24px] p-3 border border-slate-200/50 grid grid-cols-1 grid-rows-[auto_auto] lg:grid-rows-[58%_42%] gap-3 shadow-inner lg:h-[calc(100vh-230px)] lg:min-h-[580px]">
+        <div className="bg-slate-50/40 rounded-[24px] p-3 border border-slate-200/50 grid grid-cols-1 grid-rows-[auto_auto] lg:grid-rows-[63%_37%] gap-3 shadow-inner lg:h-[calc(100vh-195px)] lg:min-h-[580px]">
 
           {/* Main Grid Panels (Row 1) */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 min-h-0">
@@ -316,52 +330,66 @@ export default function Dashboard3() {
               <div className="flex flex-col min-h-0 justify-between h-full">
                 <div className="border-b border-slate-100 pb-2 mb-2 shrink-0">
                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">IDENTITY FILE</span>
-                  <h3 className="font-black text-nyati-navy text-base mt-0.5 truncate">{displayProject?.name}</h3>
+                  <h3 className="font-black text-nyati-navy text-base mt-0.5 truncate">
+                    {displayProject ? displayProject.name : 'No Project Selected'}
+                  </h3>
                 </div>
 
-                <div className="space-y-2 text-xs text-slate-600 font-medium overflow-y-auto pr-1 flex-1 py-1">
+                <div className="space-y-2 text-xs text-slate-600 font-medium overflow-hidden pr-1 flex-1 py-1">
                   <div className="flex justify-between py-1 border-b border-slate-50">
                     <span className="text-slate-400">Configuration</span>
-                    <span className="text-slate-800 font-bold text-right truncate max-w-[150px]">{displayProject?.type === 'L' ? '3BHK, 4BHK, Villas' : displayProject?.type === 'C' ? 'Shops & Offices' : '2BHK, 3BHK Residential'}</span>
+                    <span className="text-slate-800 font-bold text-right truncate max-w-[150px]">
+                      {displayProject
+                        ? (displayProject.type === 'L' ? '3BHK, 4BHK, Villas' : displayProject.type === 'C' ? 'Shops & Offices' : '2BHK, 3BHK Residential')
+                        : '-'}
+                    </span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-slate-50">
                     <span className="text-slate-400">Buildings</span>
                     <span className="text-slate-800 font-bold max-w-[150px] truncate text-right" title={buildingsText}>
-                      {buildingsText || 'A1, A2, B1'}
+                      {displayProject ? (buildingsText || '-') : '-'}
                     </span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-slate-50">
                     <span className="text-slate-400">Total Project Units</span>
-                    <span className="text-slate-800 font-bold">{(displayProject?.totalUnits || 0).toLocaleString('en-IN')} Units</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-slate-50">
-                    <span className="text-slate-400">Saleable Area</span>
-                    <span className="text-slate-800 font-bold">{Math.round((displayProject?.totalUnits || 0) * 1200).toLocaleString('en-IN')} sq.ft</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-slate-50">
-                    <span className="text-slate-400">Project Start Date</span>
-                    <span className="text-slate-800 font-bold">01-Apr-2024</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-slate-50">
-                    <span className="text-slate-400">Engg Finish Target</span>
-                    <span className="text-slate-800 font-bold">31-Oct-2026</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-slate-50">
-                    <span className="text-slate-400">RERA Registration</span>
-                    <span className="text-nyati-success font-bold flex items-center gap-1">
-                      <CheckCircle className="w-3.5 h-3.5" /> Approved
+                    <span className="text-slate-800 font-bold">
+                      {displayProject ? `${displayProject.totalUnits.toLocaleString('en-IN')} Units` : '-'}
                     </span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-slate-50">
+                    <span className="text-slate-400">Saleable Area</span>
+                    <span className="text-slate-800 font-bold">
+                      {displayProject ? `${Math.round(displayProject.totalUnits * 1200).toLocaleString('en-IN')} sq.ft` : '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-50">
+                    <span className="text-slate-400">Project Start Date</span>
+                    <span className="text-slate-800 font-bold">{displayProject ? '01-Apr-2024' : '-'}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-50">
+                    <span className="text-slate-400">Engg Finish Target</span>
+                    <span className="text-slate-800 font-bold">{displayProject ? '31-Oct-2026' : '-'}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-50">
+                    <span className="text-slate-400">RERA Registration</span>
+                    {displayProject ? (
+                      <span className="text-nyati-success font-bold flex items-center gap-1">
+                        <CheckCircle className="w-3.5 h-3.5" /> Approved
+                      </span>
+                    ) : (
+                      <span className="text-slate-800 font-bold">-</span>
+                    )}
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-50">
                     <span className="text-slate-400">RERA Completion</span>
-                    <span className="text-slate-800 font-bold">31-Dec-2026</span>
+                    <span className="text-slate-800 font-bold">{displayProject ? '31-Dec-2026' : '-'}</span>
                   </div>
                 </div>
 
                 <div className="mt-4 bg-nyati-navy text-white rounded-2xl p-3 flex items-center justify-between shadow-md shrink-0">
                   <div>
                     <span className="text-[9px] text-slate-300 font-bold uppercase tracking-wider block">Time Left to Delivery</span>
-                    <span className="text-xl font-black">{balanceMonths} Months</span>
+                    <span className="text-xl font-black">{displayProject ? `${balanceMonths} Months` : '-'}</span>
                   </div>
                   <div className="p-2 bg-white/10 rounded-xl">
                     <Calendar className="w-5 h-5 text-nyati-orange" />
@@ -384,13 +412,15 @@ export default function Dashboard3() {
                 </div>
 
                 {/* CSS Connector Tree Funnel */}
-                <div className="space-y-2 font-semibold text-xs relative pl-4 before:absolute before:left-1 before:top-2 before:bottom-6 before:w-[2px] before:bg-slate-200 flex-1 overflow-y-auto py-1 pr-1">
+                <div className="space-y-2 font-semibold text-xs relative pl-4 before:absolute before:left-1 before:top-2 before:bottom-6 before:w-[2px] before:bg-slate-200 flex-1 overflow-hidden py-1 pr-1">
 
                   {/* Total Units */}
                   <div className="relative py-0.5 before:absolute before:-left-3 before:top-3 before:w-2.5 before:h-[2px] before:bg-slate-200">
                     <div className="bg-nyati-navy text-white rounded-xl px-3 py-1.5 flex justify-between items-center shadow-sm">
                       <span>Total Inventory Units</span>
-                      <span className="font-black text-sm"><AnimatedNumber value={(displayProject?.funnel?.landOwner || 0) + (displayProject?.funnel?.premium || 0) + (displayProject?.funnel?.forSale || 0)} /></span>
+                      <span className="font-black text-sm">
+                        {displayProject ? <AnimatedNumber value={totalFnlUnits} /> : '-'}
+                      </span>
                     </div>
                   </div>
 
@@ -398,7 +428,7 @@ export default function Dashboard3() {
                   <div className="relative py-0 pl-3 before:absolute before:-left-3 before:top-2.5 before:w-5 before:h-[2px] before:bg-slate-200">
                     <div className="bg-slate-50 text-slate-600 rounded-lg px-2.5 py-1 flex justify-between items-center border border-slate-100">
                       <span>├── Land Owner Share</span>
-                      <span className="font-bold">{displayProject?.funnel?.landOwner || 0}</span>
+                      <span className="font-bold">{displayProject ? (displayProject.funnel?.landOwner || 0) : '-'}</span>
                     </div>
                   </div>
 
@@ -406,7 +436,7 @@ export default function Dashboard3() {
                   <div className="relative py-0 pl-3 before:absolute before:-left-3 before:top-2.5 before:w-5 before:h-[2px] before:bg-slate-200">
                     <div className="bg-slate-50 text-slate-600 rounded-lg px-2.5 py-1 flex justify-between items-center border border-slate-100">
                       <span>├── Premium/Rsvd Share</span>
-                      <span className="font-bold">{displayProject?.funnel?.premium || 0}</span>
+                      <span className="font-bold">{displayProject ? (displayProject.funnel?.premium || 0) : '-'}</span>
                     </div>
                   </div>
 
@@ -414,7 +444,7 @@ export default function Dashboard3() {
                   <div className="relative py-0.5 before:absolute before:-left-3 before:top-3 before:w-2.5 before:h-[2px] before:bg-slate-200">
                     <div className="bg-nyati-orange/10 text-nyati-orange rounded-xl px-3 py-1.5 flex justify-between items-center border border-nyati-orange/10">
                       <span>└── Active Units for Sale</span>
-                      <span className="font-black text-sm">{displayProject?.funnel?.forSale || 0}</span>
+                      <span className="font-black text-sm">{displayProject ? (displayProject.funnel?.forSale || 0) : '-'}</span>
                     </div>
                   </div>
 
@@ -425,7 +455,7 @@ export default function Dashboard3() {
                     <div className="relative before:absolute before:-left-4 before:top-2.5 before:w-3.5 before:h-[2px] before:bg-slate-200">
                       <div className="bg-emerald-50 text-emerald-800 rounded-lg px-2 py-1 flex justify-between items-center border border-emerald-100">
                         <span className="flex items-center gap-1 font-bold">✅ Sold cumulative</span>
-                        <span className="font-black text-xs">{displayProject?.funnel?.sold || 0}</span>
+                        <span className="font-black text-xs">{displayProject ? (displayProject.funnel?.sold || 0) : '-'}</span>
                       </div>
                     </div>
 
@@ -433,7 +463,7 @@ export default function Dashboard3() {
                     <div className="relative before:absolute before:-left-4 before:top-2.5 before:w-3.5 before:h-[2px] before:bg-slate-200">
                       <div className="bg-red-50 text-red-800 rounded-lg px-2 py-1 flex justify-between items-center border border-red-100">
                         <span className="flex items-center gap-1 font-bold">🔴 Unsold balance</span>
-                        <span className="font-black text-xs">{displayProject?.funnel?.unsold || 0}</span>
+                        <span className="font-black text-xs">{displayProject ? (displayProject.funnel?.unsold || 0) : '-'}</span>
                       </div>
                     </div>
 
@@ -445,19 +475,27 @@ export default function Dashboard3() {
                 <div className="mt-4 border-t border-dashed border-slate-100 pt-3 grid grid-cols-2 gap-2 text-[9px] text-slate-400 font-semibold uppercase shrink-0">
                   <div className="bg-slate-50 p-1.5 rounded-xl border border-slate-100">
                     <span className="block text-[8px] tracking-wider mb-0.5">Avg Rate Upto Date</span>
-                    <span className="text-slate-800 font-bold text-xs">₹{Math.round(displayProject?.actualRate || 0).toLocaleString('en-IN')}/sf</span>
+                    <span className="text-slate-800 font-bold text-xs">
+                      {displayProject ? `₹${Math.round(displayProject.actualRate || 0).toLocaleString('en-IN')}/sf` : '-'}
+                    </span>
                   </div>
                   <div className="bg-slate-50 p-1.5 rounded-xl border border-slate-100">
                     <span className="block text-[8px] tracking-wider mb-0.5">Budget Value Target</span>
-                    <span className="text-slate-800 font-bold text-xs">₹{(displayProject?.budgetValCr || 0).toFixed(2)} Cr</span>
+                    <span className="text-slate-800 font-bold text-xs">
+                      {displayProject ? `₹${(displayProject.budgetValCr || 0).toFixed(2)} Cr` : '-'}
+                    </span>
                   </div>
                   <div className="bg-slate-50 p-1.5 rounded-xl border border-slate-100">
                     <span className="block text-[8px] tracking-wider mb-0.5">FY Avg Rate</span>
-                    <span className="text-slate-800 font-bold text-xs">₹{Math.round(displayProject?.budgetRate || 0).toLocaleString('en-IN')}/sf</span>
+                    <span className="text-slate-800 font-bold text-xs">
+                      {displayProject ? `₹${Math.round(displayProject.budgetRate || 0).toLocaleString('en-IN')}/sf` : '-'}
+                    </span>
                   </div>
                   <div className="bg-slate-50 p-1.5 rounded-xl border border-slate-100">
                     <span className="block text-[8px] tracking-wider mb-0.5">Achieved Value</span>
-                    <span className="text-slate-800 font-bold text-xs">₹{(displayProject?.actualValCr || 0).toFixed(2)} Cr</span>
+                    <span className="text-slate-800 font-bold text-xs">
+                      {displayProject ? `₹${(displayProject.actualValCr || 0).toFixed(2)} Cr` : '-'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -477,84 +515,92 @@ export default function Dashboard3() {
                 </div>
 
                 {/* Circular Progress Rings */}
-                <div className="grid grid-cols-3 gap-1 py-1 flex-1 items-center min-h-0">
+                <div className="grid grid-cols-3 gap-3 py-2 flex-1 items-center min-h-0">
 
                   {/* Sold Upto Date */}
                   <div className="flex flex-col items-center text-center">
-                    <div className="relative w-12 h-12 mb-1.5 shrink-0">
-                      <svg viewBox="0 0 60 60" className="w-full h-full transform -rotate-90">
-                        <circle cx="30" cy="30" r={regRadius} stroke="#e2e8f0" strokeWidth={regStrokeWidth} fill="transparent" />
+                    <div className="relative w-20 h-20 mb-2 shrink-0">
+                      <svg viewBox="0 0 80 80" className="w-full h-full transform -rotate-90">
+                        <circle cx="40" cy="40" r={regRadius} stroke="#e2e8f0" strokeWidth={regStrokeWidth} fill="transparent" />
                         <motion.circle
-                          cx="30" cy="30" r={regRadius} stroke="#004080" strokeWidth={regStrokeWidth} fill="transparent"
+                          cx="40" cy="40" r={regRadius} stroke="#004080" strokeWidth={regStrokeWidth} fill="transparent"
                           strokeDasharray={regCircumference}
                           initial={{ strokeDashoffset: regCircumference }}
-                          animate={{ strokeDashoffset: getRegStrokeOffset(displayProject?.totalUnits ? (displayProject.soldToDate / displayProject.totalUnits) * 100 : 0) }}
+                          animate={{ strokeDashoffset: getRegStrokeOffset(displayProject && displayProject.totalUnits ? (displayProject.soldToDate / displayProject.totalUnits) * 100 : 0) }}
                           transition={{ duration: 1.2, ease: 'easeOut' }}
                         />
                       </svg>
-                      <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-nyati-navy">
-                        {(displayProject?.totalUnits ? (displayProject.soldToDate / displayProject.totalUnits) * 100 : 0).toFixed(0)}%
+                      <span className="absolute inset-0 flex items-center justify-center text-[13px] font-extrabold text-nyati-navy">
+                        {displayProject && displayProject.totalUnits
+                          ? `${((displayProject.soldToDate / displayProject.totalUnits) * 100).toFixed(0)}%`
+                          : '-'}
                       </span>
                     </div>
-                    <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 block">Sold</span>
-                    <span className="text-slate-700 font-bold text-[9px]">{displayProject?.soldToDate || 0} Units</span>
+                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block">Sold</span>
+                    <span className="text-slate-700 font-extrabold text-[11px]">
+                      {displayProject ? `${displayProject.soldToDate} Units` : '-'}
+                    </span>
                   </div>
 
                   {/* Registered */}
                   <div className="flex flex-col items-center text-center">
-                    <div className="relative w-12 h-12 mb-1.5 shrink-0">
-                      <svg viewBox="0 0 60 60" className="w-full h-full transform -rotate-90">
-                        <circle cx="30" cy="30" r={regRadius} stroke="#e2e8f0" strokeWidth={regStrokeWidth} fill="transparent" />
+                    <div className="relative w-20 h-20 mb-2 shrink-0">
+                      <svg viewBox="0 0 80 80" className="w-full h-full transform -rotate-90">
+                        <circle cx="40" cy="40" r={regRadius} stroke="#e2e8f0" strokeWidth={regStrokeWidth} fill="transparent" />
                         <motion.circle
-                          cx="30" cy="30" r={regRadius} stroke="#38A169" strokeWidth={regStrokeWidth} fill="transparent"
+                          cx="40" cy="40" r={regRadius} stroke="#38A169" strokeWidth={regStrokeWidth} fill="transparent"
                           strokeDasharray={regCircumference}
                           initial={{ strokeDashoffset: regCircumference }}
-                          animate={{ strokeDashoffset: getRegStrokeOffset(75) }}
+                          animate={{ strokeDashoffset: getRegStrokeOffset(displayProject ? 75 : 0) }}
                           transition={{ duration: 1.2, ease: 'easeOut' }}
                         />
                       </svg>
-                      <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-nyati-success">
-                        75%
+                      <span className="absolute inset-0 flex items-center justify-center text-[13px] font-extrabold text-nyati-success">
+                        {displayProject ? '75%' : '-'}
                       </span>
                     </div>
-                    <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 block">Registered</span>
-                    <span className="text-slate-700 font-bold text-[9px]">{displayProject?.registeredUnits || 0} Units</span>
+                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block">Registered</span>
+                    <span className="text-slate-700 font-extrabold text-[11px]">
+                      {displayProject ? `${displayProject.registeredUnits} Units` : '-'}
+                    </span>
                   </div>
 
                   {/* Unregistered */}
                   <div className="flex flex-col items-center text-center">
-                    <div className="relative w-12 h-12 mb-1.5 shrink-0">
-                      <svg viewBox="0 0 60 60" className="w-full h-full transform -rotate-90">
-                        <circle cx="30" cy="30" r={regRadius} stroke="#e2e8f0" strokeWidth={regStrokeWidth} fill="transparent" />
+                    <div className="relative w-20 h-20 mb-2 shrink-0">
+                      <svg viewBox="0 0 80 80" className="w-full h-full transform -rotate-90">
+                        <circle cx="40" cy="40" r={regRadius} stroke="#e2e8f0" strokeWidth={regStrokeWidth} fill="transparent" />
                         <motion.circle
-                          cx="30" cy="30" r={regRadius} stroke="#E53E3E" strokeWidth={regStrokeWidth} fill="transparent"
+                          cx="40" cy="40" r={regRadius} stroke="#E53E3E" strokeWidth={regStrokeWidth} fill="transparent"
                           strokeDasharray={regCircumference}
                           initial={{ strokeDashoffset: regCircumference }}
-                          animate={{ strokeDashoffset: getRegStrokeOffset(25) }}
+                          animate={{ strokeDashoffset: getRegStrokeOffset(displayProject ? 25 : 0) }}
                           transition={{ duration: 1.2, ease: 'easeOut' }}
                         />
                       </svg>
-                      <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-nyati-danger">
-                        25%
+                      <span className="absolute inset-0 flex items-center justify-center text-[13px] font-extrabold text-nyati-danger">
+                        {displayProject ? '25%' : '-'}
                       </span>
                     </div>
-                    <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 block">Unreg.</span>
-                    <span className="text-slate-700 font-bold text-[9px]">{displayProject?.unregisteredUnits || 0} Units</span>
+                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block">Unreg.</span>
+                    <span className="text-slate-700 font-extrabold text-[11px]">
+                      {displayProject ? `${displayProject.unregisteredUnits} Units` : '-'}
+                    </span>
                   </div>
 
                 </div>
 
                 {/* Registration Aging bar chart */}
-                <div className="border-t border-slate-100 pt-3 mt-3 space-y-1.5 shrink-0">
-                  <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block">Registration Ageing (₹ Cr)</span>
+                <div className="border-t border-slate-100 pt-3 mt-3 space-y-2 shrink-0">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Registration Ageing (₹ Cr)</span>
 
-                  <div className="h-20 w-full">
+                  <div className="h-40 w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={ageingChartData} margin={{ top: 5, right: 0, left: -25, bottom: -10 }}>
-                        <XAxis dataKey="name" fontSize={9} stroke="#94a3b8" tickLine={false} axisLine={false} />
-                        <YAxis fontSize={9} stroke="#94a3b8" tickLine={false} axisLine={false} />
-                        <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '10px', borderRadius: '8px' }} />
-                        <Bar dataKey="value" fill="#E76F2E" radius={[2, 2, 0, 0]} barSize={14} />
+                      <BarChart data={ageingChartData} margin={{ top: 10, right: 5, left: -20, bottom: 0 }}>
+                        <XAxis dataKey="name" fontSize={10} stroke="#94a3b8" tickLine={false} axisLine={false} />
+                        <YAxis fontSize={10} stroke="#94a3b8" tickLine={false} axisLine={false} />
+                        <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ fontSize: '11px', borderRadius: '8px' }} />
+                        <Bar dataKey="value" fill="#E76F2E" radius={[4, 4, 0, 0]} barSize={32} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -566,68 +612,107 @@ export default function Dashboard3() {
           </div>
 
           {/* PANEL 4: Row 2 — Construction Cost Section */}
-          <div className="bg-white rounded-2xl p-3 shadow-premium border border-slate-100 grid grid-cols-1 md:grid-cols-4 gap-3 min-h-0">
+          <div className="bg-white rounded-2xl p-2 shadow-premium border border-slate-100 grid grid-cols-1 md:grid-cols-4 gap-3 min-h-0">
 
             {/* Cost Table details */}
             <div className="md:col-span-3 flex flex-col justify-between min-h-0">
-              <div className="border-b border-slate-100 pb-2 shrink-0">
+              <div className="border-b border-slate-100 pb-1 shrink-0">
                 <h3 className="font-bold text-nyati-navy text-base flex items-center gap-2">
                   <Hammer className="w-4 h-4 text-nyati-orange" />
                   Construction Cost Section
                 </h3>
-                <p className="text-slate-400 text-[10px] mt-0.5">Budgeted construction targets, achieved metrics, and calculated efficiency rates.</p>
               </div>
 
               <div className="overflow-y-auto flex-1 pr-1 py-1 min-h-0">
                 <table className="w-full text-left text-xs font-semibold">
                   <thead>
                     <tr className="text-slate-400 uppercase tracking-wider border-b border-slate-50">
-                      <th className="py-1.5">Field Metric</th>
-                      <th className="py-1.5 text-right">FY Target</th>
-                      <th className="py-1.5 text-right">Actual</th>
-                      <th className="py-1.5 text-right">Variance</th>
-                      <th className="py-1.5 text-right">EFF %</th>
+                      <th className="py-1">Field Metric</th>
+                      <th className="py-1 text-right">FY Target</th>
+                      <th className="py-1 text-right">Actual</th>
+                      <th className="py-1 text-right">Variance</th>
+                      <th className="py-1 text-right">EFF %</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 text-slate-700">
                     {/* Saleable Area */}
                     <tr>
-                      <td className="py-1.5 text-slate-800">Saleable Area (sq.ft)</td>
-                      <td className="py-1.5 text-right">{(displayProject?.budgetArea || 0).toLocaleString('en-IN')} sf</td>
-                      <td className="py-1.5 text-right">{(displayProject?.actualArea || 0).toLocaleString('en-IN')} sf</td>
-                      <td className="py-1.5 text-right text-nyati-success">+{((displayProject?.budgetArea || 0) - (displayProject?.actualArea || 0)).toLocaleString('en-IN')} sf</td>
-                      <td className="py-1.5 text-right text-nyati-navy">{(displayProject?.budgetArea ? (displayProject.actualArea / displayProject.budgetArea * 100) : 0).toFixed(0)}%</td>
+                      <td className="py-1 text-slate-800">Saleable Area (sq.ft)</td>
+                      <td className="py-1 text-right">
+                        {displayProject ? `${(displayProject.budgetArea || 0).toLocaleString('en-IN')} sf` : '-'}
+                      </td>
+                      <td className="py-1 text-right">
+                        {displayProject ? `${(displayProject.actualArea || 0).toLocaleString('en-IN')} sf` : '-'}
+                      </td>
+                      <td className="py-1 text-right text-nyati-success">
+                        {displayProject ? `+${((displayProject.budgetArea || 0) - (displayProject.actualArea || 0)).toLocaleString('en-IN')} sf` : '-'}
+                      </td>
+                      <td className="py-1 text-right text-nyati-navy">
+                        {displayProject ? `${(displayProject.budgetArea ? (displayProject.actualArea / displayProject.budgetArea * 100) : 0).toFixed(0)}%` : '-'}
+                      </td>
                     </tr>
 
                     {/* Signed Off Cost */}
                     <tr>
-                      <td className="py-1.5 text-slate-800">Signed Off Cost (₹ Cr)</td>
-                      <td className="py-1.5 text-right">₹{(displayProject?.construction?.target || 0).toFixed(2)} Cr</td>
-                      <td className="py-1.5 text-right">₹{(displayProject?.construction?.achieved || 0).toFixed(2)} Cr</td>
-                      <td className={`py-1.5 text-right ${(displayProject?.construction?.variance || 0) >= 0 ? 'text-nyati-success' : 'text-nyati-danger'}`}>
-                        {(displayProject?.construction?.variance || 0) >= 0 ? '+' : ''}₹{(displayProject?.construction?.variance || 0).toFixed(2)} Cr
+                      <td className="py-1 text-slate-800">Signed Off Cost (₹ Cr)</td>
+                      <td className="py-1 text-right">
+                        {displayProject ? `₹${(displayProject.construction?.target || 0).toFixed(2)} Cr` : '-'}
                       </td>
-                      <td className="py-1.5 text-right text-nyati-navy">{(displayProject?.construction?.eff || 0).toFixed(0)}%</td>
+                      <td className="py-1 text-right">
+                        {displayProject ? `₹${(displayProject.construction?.achieved || 0).toFixed(2)} Cr` : '-'}
+                      </td>
+                      <td className="py-1 text-right">
+                        {displayProject ? (
+                          <span className={(displayProject.construction?.variance || 0) >= 0 ? 'text-nyati-success' : 'text-nyati-danger'}>
+                            {(displayProject.construction?.variance || 0) >= 0 ? '+' : ''}₹{(displayProject.construction?.variance || 0).toFixed(2)} Cr
+                          </span>
+                        ) : '-'}
+                      </td>
+                      <td className="py-1 text-right text-nyati-navy">
+                        {displayProject ? `${(displayProject.construction?.eff || 0).toFixed(0)}%` : '-'}
+                      </td>
                     </tr>
 
                     {/* Rate per SFT */}
                     <tr>
-                      <td className="py-1.5 text-slate-800">Rate (₹/sq.ft / Sign Cost)</td>
-                      <td className="py-1.5 text-right">₹{displayProject?.budgetArea ? Math.round(((displayProject?.construction?.target || 0) * 10000000) / displayProject.budgetArea) : 0}/sf</td>
-                      <td className="py-1.5 text-right">₹{displayProject?.actualArea ? Math.round(((displayProject?.construction?.achieved || 0) * 10000000) / displayProject.actualArea) : 0}/sf</td>
-                      <td className="py-1.5 text-right text-nyati-danger">
-                        -₹{displayProject?.budgetArea && displayProject?.actualArea ? Math.round(Math.abs((((displayProject?.construction?.target || 0) * 10000000) / displayProject.budgetArea) - (((displayProject?.construction?.achieved || 0) * 10000000) / displayProject.actualArea))) : 0}/sf
+                      <td className="py-1 text-slate-800">Rate (₹/sq.ft / Sign Cost)</td>
+                      <td className="py-1 text-right">
+                        {displayProject ? `₹${displayProject.budgetArea ? Math.round(((displayProject.construction?.target || 0) * 10000000) / displayProject.budgetArea) : 0}/sf` : '-'}
                       </td>
-                      <td className="py-1.5 text-right text-nyati-navy">100%</td>
+                      <td className="py-1 text-right">
+                        {displayProject ? `₹${displayProject.actualArea ? Math.round(((displayProject.construction?.achieved || 0) * 10000000) / displayProject.actualArea) : 0}/sf` : '-'}
+                      </td>
+                      <td className="py-1 text-right">
+                        {displayProject ? (
+                          <span className="text-nyati-danger">
+                            -₹{displayProject.budgetArea && displayProject.actualArea ? Math.round(Math.abs((((displayProject.construction?.target || 0) * 10000000) / displayProject.budgetArea) - (((displayProject.construction?.achieved || 0) * 10000000) / displayProject.actualArea))) : 0}/sf
+                          </span>
+                        ) : '-'}
+                      </td>
+                      <td className="py-1 text-right text-nyati-navy">
+                        {displayProject ? '100%' : '-'}
+                      </td>
                     </tr>
 
                     {/* Actual Expenses */}
                     <tr>
-                      <td className="py-1.5 text-slate-800">Actual Expenses (₹ Cr)</td>
-                      <td className="py-1.5 text-right">₹{(displayProject?.construction?.target ? displayProject.construction.target * 0.90 : 0).toFixed(2)} Cr</td>
-                      <td className="py-1.5 text-right">₹{(displayProject?.construction?.achieved || 0).toFixed(2)} Cr</td>
-                      <td className="py-1.5 text-right text-nyati-danger">-₹{displayProject?.construction?.achieved && displayProject?.construction?.target ? (displayProject.construction.achieved - (displayProject.construction.target * 0.90)).toFixed(2) : 0} Cr</td>
-                      <td className="py-1.5 text-right text-nyati-navy">{(displayProject?.construction?.target && displayProject?.construction?.achieved ? ((displayProject.construction.achieved / (displayProject.construction.target * 0.90)) * 100).toFixed(0) : 0)}%</td>
+                      <td className="py-1 text-slate-800">Actual Expenses (₹ Cr)</td>
+                      <td className="py-1 text-right">
+                        {displayProject ? `₹${(displayProject.construction?.target ? displayProject.construction.target * 0.90 : 0).toFixed(2)} Cr` : '-'}
+                      </td>
+                      <td className="py-1 text-right">
+                        {displayProject ? `₹${(displayProject.construction?.achieved || 0).toFixed(2)} Cr` : '-'}
+                      </td>
+                      <td className="py-1 text-right">
+                        {displayProject ? (
+                          <span className="text-nyati-danger">
+                            -₹{displayProject.construction?.achieved && displayProject.construction?.target ? (displayProject.construction.achieved - (displayProject.construction.target * 0.90)).toFixed(2) : 0} Cr
+                          </span>
+                        ) : '-'}
+                      </td>
+                      <td className="py-1 text-right text-nyati-navy">
+                        {displayProject ? `${(displayProject.construction?.target && displayProject.construction?.achieved ? ((displayProject.construction.achieved / (displayProject.construction.target * 0.90)) * 100).toFixed(0) : 0)}%` : '-'}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -636,29 +721,31 @@ export default function Dashboard3() {
 
             {/* Circular Animated Completion Gauge */}
             <div className="flex flex-col items-center justify-center text-center p-3 border border-slate-100 rounded-3xl bg-slate-50/50 min-h-0 h-full">
-              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-2 block shrink-0">Overall Progress</span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2 block shrink-0">Overall Progress</span>
 
-              <div className="relative w-20 h-20 mb-2 shrink-0">
-                <svg viewBox="0 0 80 80" className="w-full h-full transform -rotate-90">
-                  <circle cx="40" cy="40" r="32" stroke="#e2e8f0" strokeWidth="6" fill="transparent" />
+              <div className="relative w-28 h-28 mb-3 shrink-0">
+                <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
+                  <circle cx="50" cy="50" r="42" stroke="#e2e8f0" strokeWidth={7} fill="transparent" />
                   <motion.circle
-                    cx="40" cy="40" r="32" stroke="#E76F2E" strokeWidth="6" fill="transparent"
-                    strokeDasharray={201.06}
-                    initial={{ strokeDashoffset: 201.06 }}
-                    animate={{ strokeDashoffset: 201.06 - ((displayProject?.construction?.completion || 0) / 100) * 201.06 }}
+                    cx="50" cy="50" r="42" stroke="#E76F2E" strokeWidth={7} fill="transparent"
+                    strokeDasharray={263.89}
+                    initial={{ strokeDashoffset: 263.89 }}
+                    animate={{ strokeDashoffset: 263.89 - (displayProject ? (((displayProject.construction?.completion || 0) / 100) * 263.89) : 0) }}
                     transition={{ duration: 1.5, ease: 'easeOut' }}
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-lg font-black text-nyati-navy">
-                    <AnimatedNumber value={displayProject?.construction?.completion || 0} suffix="%" />
+                  <span className="text-2xl font-black text-nyati-navy">
+                    {displayProject ? (
+                      <AnimatedNumber value={displayProject.construction?.completion || 0} suffix="%" />
+                    ) : '-'}
                   </span>
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Completion</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Completion</span>
                 </div>
               </div>
 
-              <div className="text-[9px] font-semibold text-slate-500 leading-normal shrink-0">
-                Structure & engineering is <strong className="text-nyati-navy">on schedule</strong>.
+              <div className="text-[11px] font-semibold text-slate-500 leading-normal shrink-0">
+                Structure & engineering is {displayProject ? <strong className="text-nyati-navy">on schedule</strong> : <strong className="text-slate-400">-</strong>}.
               </div>
             </div>
 
@@ -673,7 +760,6 @@ export default function Dashboard3() {
             <div>
               <div className="px-6 py-5 border-b border-slate-100">
                 <h3 className="font-bold text-nyati-navy text-base">Project Portfolio Details Highlights</h3>
-                <p className="text-slate-400 text-xs mt-0.5">Key analysis insights and structural status updates for the active project.</p>
               </div>
 
               {/* Bullet points display list */}

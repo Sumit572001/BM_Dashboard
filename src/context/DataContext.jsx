@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useMemo } from 'react';
-import { processRawData, filterData } from '../utils/dataHelpers';
+import { processRawData, filterData, getConstructionMonthlyData } from '../utils/dataHelpers';
 
 const DataContext = createContext();
 
@@ -38,23 +38,21 @@ export const DataProvider = ({ children }) => {
   const activeProject = useMemo(() => {
     if (processedProjects.length === 0) return null;
     if (activeProjectName) {
-      return processedProjects.find(p => p.name === activeProjectName) || processedProjects[0];
+      return processedProjects.find(p => p.name === activeProjectName) || null;
     }
-    return processedProjects[0];
+    return null;
   }, [processedProjects, activeProjectName]);
+
+  // Monthly construction budget timeline data
+  const constructionMonthly = useMemo(() => {
+    return getConstructionMonthlyData(rawData, filteredProjects);
+  }, [rawData, filteredProjects]);
 
   // Handle data upload
   const uploadData = (parsedArray, name) => {
     setIsLoading(true);
     setRawData(parsedArray);
     setFileName(name);
-    // Auto-select first project in details view
-    if (parsedArray && parsedArray.length > 0) {
-      const processed = processRawData(parsedArray);
-      if (processed.length > 0) {
-        setActiveProjectName(processed[0].name);
-      }
-    }
     setIsLoading(false);
   };
 
@@ -92,6 +90,7 @@ export const DataProvider = ({ children }) => {
       activeProject,
       activeProjectName,
       setActiveProjectName,
+      constructionMonthly,
       filters,
       updateFilters,
       uploadData,

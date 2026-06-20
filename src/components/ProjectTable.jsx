@@ -79,7 +79,7 @@ export default function ProjectTable() {
           <div>
             <h3 className="font-bold text-nyati-navy text-lg">Project-Wise Sales Summary</h3>
             <p className="text-slate-400 text-xs mt-0.5">
-              Click headers to sort. Hover on rows and click to view portfolio breakdowns.
+              Click headers to sort.
             </p>
           </div>
           <div className="text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-1.5">
@@ -185,19 +185,17 @@ export default function ProjectTable() {
                 return (
                   <motion.tr
                     key={p.name}
-                    onClick={() => handleRowClick(p.name)}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.2 }}
-                    className="hover:bg-sky-50/40 cursor-pointer group transition-all duration-150 select-none"
+                    className="hover:bg-sky-50/40 group transition-all duration-150 select-none"
                   >
                     {/* Project Name & Category Tag */}
-                    <td className="px-6 py-4 font-bold text-slate-700 group-hover:text-nyati-navy flex items-center justify-between min-w-[200px]">
+                    <td className="px-6 py-4 font-bold text-slate-700 group-hover:text-nyati-navy flex items-center justify-start min-w-[200px]">
                       <div className="flex items-center gap-2.5 truncate">
                         <span className="truncate">{p.name}</span>
                         {renderTypeBadge(p.type)}
                       </div>
-                      <ArrowRight className="w-4 h-4 text-nyati-orange opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 shrink-0 ml-2" />
                     </td>
 
                     {/* Budget Units */}

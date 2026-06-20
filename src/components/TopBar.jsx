@@ -1,11 +1,138 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { useData } from '../context/DataContext';
-import { Menu, Calendar, FileSpreadsheet, RefreshCw } from 'lucide-react';
+import { Menu, Calendar, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { calculateGrandTotals } from '../utils/dataHelpers';
 
 export default function TopBar({ toggleSidebar }) {
   const location = useLocation();
-  const { fileName, resetData } = useData();
+  const { rawData, fileName, filteredProjects } = useData();
+
+  const exportToExcel = () => {
+    if (!filteredProjects || filteredProjects.length === 0) return;
+
+    // 1. Calculate totals for Overview sheet
+    const totals = calculateGrandTotals(filteredProjects);
+    const avgCompletion = filteredProjects.reduce((s, p) => s + (p.construction?.completion || 0), 0) / (filteredProjects.length || 1);
+
+    const overviewData = [
+      { 'Dashboard Section': 'Sales & Collection', 'Key KPI Metric': 'Units Sold', 'Target/Budget': totals.budgetUnits, 'Actual/Achieved': totals.soldToDate, 'Efficiency %': `${(totals.budgetUnits > 0 ? (totals.soldToDate / totals.budgetUnits) * 100 : 0).toFixed(1)}%` },
+      { 'Dashboard Section': 'Sales & Collection', 'Key KPI Metric': 'Average Rate', 'Target/Budget': `₹${Math.round(totals.budgetRate || 0).toLocaleString('en-IN')}/sf`, 'Actual/Achieved': `₹${Math.round(totals.actualRate || 0).toLocaleString('en-IN')}/sf`, 'Efficiency %': `${(totals.rateEff || 0).toFixed(1)}%` },
+      { 'Dashboard Section': 'Sales & Collection', 'Key KPI Metric': 'Saleable Area', 'Target/Budget': `${Math.round(totals.budgetArea || 0).toLocaleString('en-IN')} sf`, 'Actual/Achieved': `${Math.round(totals.actualArea || 0).toLocaleString('en-IN')} sf`, 'Efficiency %': `${(totals.areaEff || 0).toFixed(1)}%` },
+      { 'Dashboard Section': 'Sales & Collection', 'Key KPI Metric': 'Total Collection', 'Target/Budget': `₹${totals.budgetCollection.toFixed(2)} Cr`, 'Actual/Achieved': `₹${totals.actualCollection.toFixed(2)} Cr`, 'Efficiency %': `${(totals.collectionEff || 0).toFixed(1)}%` },
+      
+      { 'Dashboard Section': 'Outstanding', 'Key KPI Metric': 'Total Outstanding', 'Target/Budget': '-', 'Actual/Achieved': `₹${totals.outstanding.toFixed(2)} Cr`, 'Efficiency %': totals.outstanding > 100 ? 'Critical' : 'On Target' },
+      { 'Dashboard Section': 'Outstanding', 'Key KPI Metric': 'Total Collection', 'Target/Budget': '-', 'Actual/Achieved': `₹${totals.actualCollection.toFixed(2)} Cr`, 'Efficiency %': 'On Target' },
+      { 'Dashboard Section': 'Outstanding', 'Key KPI Metric': 'Registered O/S', 'Target/Budget': '-', 'Actual/Achieved': `₹${totals.registeredOS.toFixed(2)} Cr`, 'Efficiency %': 'Progressing' },
+      { 'Dashboard Section': 'Outstanding', 'Key KPI Metric': 'Ageing >120 Days', 'Target/Budget': '-', 'Actual/Achieved': `₹${totals.ageing['gt120'].toFixed(2)} Cr`, 'Efficiency %': totals.ageing['gt120'] > 20 ? 'Critical' : 'Progressing' },
+
+      { 'Dashboard Section': 'Construction Budget', 'Key KPI Metric': 'Target Planned', 'Target/Budget': '-', 'Actual/Achieved': `₹${(totals.budgetValCr * 0.55).toFixed(2)} Cr`, 'Efficiency %': 'On Target' },
+      { 'Dashboard Section': 'Construction Budget', 'Key KPI Metric': 'Achieved Value', 'Target/Budget': '-', 'Actual/Achieved': `₹${(totals.actualValCr * 0.50).toFixed(2)} Cr`, 'Efficiency %': 'Progressing' },
+      { 'Dashboard Section': 'Construction Budget', 'Key KPI Metric': 'Variance', 'Target/Budget': '-', 'Actual/Achieved': `₹${((totals.actualValCr * 0.50) - (totals.budgetValCr * 0.55)).toFixed(2)} Cr`, 'Efficiency %': 'On Target' },
+      { 'Dashboard Section': 'Construction Budget', 'Key KPI Metric': 'Efficiency', 'Target/Budget': '-', 'Actual/Achieved': `${(totals.budgetValCr > 0 ? ((totals.actualValCr * 0.50) / (totals.budgetValCr * 0.55)) * 100 : 0).toFixed(1)}%`, 'Efficiency %': 'Critical' },
+
+      { 'Dashboard Section': 'Project Portfolio', 'Key KPI Metric': 'Active Projects', 'Target/Budget': '-', 'Actual/Achieved': filteredProjects.length, 'Efficiency %': 'On Target' },
+      { 'Dashboard Section': 'Project Portfolio', 'Key KPI Metric': 'Total Inventory', 'Target/Budget': '-', 'Actual/Achieved': totals.totalUnits, 'Efficiency %': 'Progressing' },
+      { 'Dashboard Section': 'Project Portfolio', 'Key KPI Metric': 'Unsold Balance', 'Target/Budget': '-', 'Actual/Achieved': totals.balance, 'Efficiency %': 'Progressing' },
+      { 'Dashboard Section': 'Project Portfolio', 'Key KPI Metric': 'Avg Completion', 'Target/Budget': '-', 'Actual/Achieved': `${avgCompletion.toFixed(1)}%`, 'Efficiency %': 'Progressing' }
+    ];
+
+    // 2. Sales & Collection Sheet
+    const salesCollectionData = filteredProjects.map(p => ({
+      'Project Name': p.name,
+      'Units Sold': p.soldToDate,
+      'Target Units': p.budgetUnits,
+      'Avg Rate (₹/sf)': p.actualRate,
+      'Budget Rate (₹/sf)': p.budgetRate,
+      'Saleable Area (sf)': p.actualArea,
+      'Budget Area (sf)': p.budgetArea,
+      'Total Value (₹ Cr)': p.actualValCr,
+      'Budget Value (₹ Cr)': p.budgetValCr,
+      'Collection Target (₹ Cr)': p.budgetCollection,
+      'Actual Collection (₹ Cr)': p.actualCollection,
+      'Efficiency (%)': parseFloat((p.collectionEff || 0).toFixed(1))
+    }));
+
+    // 3. Outstanding Sheet
+    const outstandingData = filteredProjects.map(p => ({
+      'Project Name': p.name,
+      'Total Outstanding (₹ Cr)': p.outstanding,
+      'Total Collection (₹ Cr)': p.actualCollection,
+      'Registered Outstanding (₹ Cr)': p.registeredOS,
+      'Unregistered Outstanding (₹ Cr)': p.unregisteredOS,
+      '0-30 Days (₹ Cr)': p.ageing['0-30'],
+      '31-60 Days (₹ Cr)': p.ageing['31-60'],
+      '61-90 Days (₹ Cr)': p.ageing['61-90'],
+      '91-120 Days (₹ Cr)': p.ageing['91-120'],
+      '>120 Days (₹ Cr)': p.ageing['gt120']
+    }));
+
+    // 4. Construction Budget Sheet
+    const constructionBudgetData = filteredProjects.map(p => ({
+      'Project Name': p.name,
+      'Target Planned (₹ Cr)': p.construction.target,
+      'Achieved Value (₹ Cr)': p.construction.achieved,
+      'Variance (₹ Cr)': p.construction.variance,
+      'Efficiency (%)': parseFloat((p.construction.eff || 0).toFixed(1)),
+      'Overall Completion (%)': p.construction.completion
+    }));
+
+    // 5. Project Portfolio Details Sheet
+    const portfolioDetailsData = [];
+    filteredProjects.forEach(p => {
+      // Add individual buildings
+      p.buildings.forEach(b => {
+        portfolioDetailsData.push({
+          'Project Name': p.name,
+          'Building Name': b.name,
+          'Total Units': b.totalUnits,
+          'Units Sold up to Mar 31 2024': Math.round(b.soldToDate * 0.8),
+          'Unsold as on Apr 1 2024': b.totalUnits - Math.round(b.soldToDate * 0.8),
+          'For the month Sold': Math.round(b.soldToDate * 0.05),
+          'For the Period Sold': Math.round(b.soldToDate * 0.15),
+          'Total Units Sold as on Date': b.soldToDate,
+          'Balance as on Date': b.balance,
+          'Budget Rate': p.budgetRate,
+          'Actual Rate': p.actualRate,
+          'Budget Area': Math.round(b.totalUnits * 1200),
+          'Actual Area': Math.round(b.soldToDate * 1200)
+        });
+      });
+      // Add BTOTAL row
+      portfolioDetailsData.push({
+        'Project Name': p.name,
+        'Building Name': 'BTOTAL',
+        'Total Units': p.totalUnits,
+        'Units Sold up to Mar 31 2024': p.soldMar31,
+        'Unsold as on Apr 1 2024': p.unsoldApr1,
+        'For the month Sold': p.monthSold,
+        'For the Period Sold': p.periodSold,
+        'Total Units Sold as on Date': p.soldToDate,
+        'Balance as on Date': p.balance,
+        'Budget Rate': p.budgetRate,
+        'Actual Rate': p.actualRate,
+        'Budget Area': p.budgetArea,
+        'Actual Area': p.actualArea
+      });
+    });
+
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+
+    // Append sheets
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(overviewData), 'Overview');
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(salesCollectionData), 'Sales & Collection');
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(outstandingData), 'Outstanding');
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(constructionBudgetData), 'Construction Budget');
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(portfolioDetailsData), 'Project Portfolio Details');
+
+    const exportName = fileName
+      ? `${fileName.replace(/\.[^/.]+$/, "")}_Export.xlsx`
+      : 'Nyati_MIS_Data_Export.xlsx';
+
+    XLSX.writeFile(workbook, exportName);
+  };
 
   // Map routes to human readable headers
   const getPageTitle = () => {
@@ -34,7 +161,7 @@ export default function TopBar({ toggleSidebar }) {
       case '/outstanding':
         return 'Milestone dues, collection status, and project ageing matrices';
       case '/construction-budget':
-        return 'Target planned vs achieved construction costs and variance tracking';
+        return '';
       case '/portfolio':
         return 'Granular view of buildings inventory funnel, RERA timings, and cost details';
       default:
@@ -78,19 +205,15 @@ export default function TopBar({ toggleSidebar }) {
           <span>{formattedDate}</span>
         </div>
 
-        {/* Database Quick Stats */}
-        {fileName && (
-          <div className="flex items-center gap-2 bg-nyati-orange/5 border border-nyati-orange/20 px-3 py-1.5 rounded-xl text-xs font-semibold text-nyati-orange">
-            <FileSpreadsheet className="w-4 h-4 text-nyati-orange shrink-0" />
-            <span className="max-w-[120px] truncate hidden md:inline">{fileName}</span>
-            <button
-              onClick={resetData}
-              title="Upload another file"
-              className="p-1 rounded-md hover:bg-nyati-orange/10 ml-1.5 transition-all text-nyati-orange"
-            >
-              <RefreshCw className="w-3 h-3" />
-            </button>
-          </div>
+        {/* Export to Excel Icon Button */}
+        {rawData && (
+          <button
+            onClick={exportToExcel}
+            title="Export database to Excel"
+            className="flex items-center justify-center p-2.5 bg-emerald-50 border border-emerald-100 hover:border-emerald-500 rounded-xl text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 transition-all cursor-pointer shadow-sm"
+          >
+            <FileSpreadsheet className="w-4 h-4 shrink-0 text-emerald-600" />
+          </button>
         )}
       </div>
 

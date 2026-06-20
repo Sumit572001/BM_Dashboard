@@ -29,18 +29,40 @@ export default function UploadZone() {
         throw new Error('Unsupported file format. Please upload a CSV or Excel (.xlsx/.xls) file.');
       }
 
-      if (!parsedData || parsedData.length === 0) {
+      if (!parsedData) {
         throw new Error('The file appears to be empty.');
       }
 
-      // Verify if it contains some standard columns
-      const firstRow = parsedData[0];
-      const hasProjectColumn = Object.keys(firstRow).some(k => 
-        k.toLowerCase().includes('project') || k.toLowerCase().includes('building')
+      const isMultiSheet = !Array.isArray(parsedData) && (
+        parsedData['Sales & Collection'] || 
+        parsedData['Outstanding'] || 
+        parsedData['Construction Budget'] || 
+        parsedData['Project Portfolio Details']
       );
 
-      if (!hasProjectColumn) {
-        throw new Error('File columns do not match expected Nyati MIS format (must contain project or building name).');
+      if (isMultiSheet) {
+        const checkSheet = parsedData['Sales & Collection'] || parsedData['Project Portfolio Details'] || [];
+        if (checkSheet.length === 0) {
+          throw new Error('Multi-sheet file does not contain expected data.');
+        }
+        const hasProjectColumn = Object.keys(checkSheet[0] || {}).some(k => 
+          k.toLowerCase().includes('project') || k.toLowerCase().includes('building')
+        );
+        if (!hasProjectColumn) {
+          throw new Error('File columns do not match expected Nyati MIS format.');
+        }
+      } else {
+        const rawArray = Array.isArray(parsedData) ? parsedData : [];
+        if (rawArray.length === 0) {
+          throw new Error('The file appears to be empty.');
+        }
+        const firstRow = rawArray[0];
+        const hasProjectColumn = Object.keys(firstRow || {}).some(k => 
+          k.toLowerCase().includes('project') || k.toLowerCase().includes('building')
+        );
+        if (!hasProjectColumn) {
+          throw new Error('File columns do not match expected Nyati MIS format (must contain project or building name).');
+        }
       }
 
       uploadData(parsedData, file.name);

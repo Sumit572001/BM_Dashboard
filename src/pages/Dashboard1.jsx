@@ -251,7 +251,6 @@ export default function Dashboard1() {
             <div className="border-b border-slate-100">
               <div className="px-6 py-5">
                 <h3 className="font-bold text-nyati-navy text-base">Department-Wise Highlights & Bullet Summaries</h3>
-                <p className="text-slate-400 text-xs mt-0.5">Select a category tab to view deep-dive analysis bullet points across functional teams.</p>
               </div>
 
               {/* Tabs list */}

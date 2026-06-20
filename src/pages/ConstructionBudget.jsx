@@ -1,57 +1,159 @@
 import React from 'react';
 import { useData } from '../context/DataContext';
-import AnimatedNumber from '../components/AnimatedNumber';
-import { Hammer, AlertTriangle, PieChart, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { cleanProjName } from '../utils/dataHelpers';
+import { Hammer, AlertTriangle, PieChart } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { 
+  ResponsiveContainer, 
+  BarChart, 
+  Bar, 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend 
+} from 'recharts';
+
+// Custom Tooltip component for premium charting feel
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-premium text-xs">
+        <p className="font-bold text-slate-800 mb-1">{label}</p>
+        {payload.map((p, idx) => (
+          <p key={idx} className="font-semibold py-0.5" style={{ color: p.color || p.stroke }}>
+            {p.name}: ₹{p.value !== null && p.value !== undefined ? p.value.toFixed(2) : '-'} Cr
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
 
 export default function ConstructionBudget() {
-  const { filteredProjects } = useData();
-  const [sortBy, setSortBy] = React.useState('name');
-  const [sortOrder, setSortOrder] = React.useState('asc');
+  const { constructionMonthly, filteredProjects } = useData();
 
-  const handleSort = (field) => {
-    if (sortBy === field) {
-      setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortBy(field);
-      setSortOrder(field === 'name' ? 'asc' : 'desc');
+  // 1. Filter the construction monthly projects to match the active filtered projects in context
+  const activeProjects = React.useMemo(() => {
+    if (!constructionMonthly || !constructionMonthly.projects) return [];
+    // Get set of normalized names from currently filtered projects
+    const activeCleanNames = new Set(filteredProjects.map(p => cleanProjName(p.name)));
+    return constructionMonthly.projects.filter(p => activeCleanNames.has(cleanProjName(p.name)));
+  }, [constructionMonthly, filteredProjects]);
+
+  // 2. Dynamically calculate Portfolio Total for only the active/filtered projects
+  const displayPortfolioTotal = React.useMemo(() => {
+    if (!constructionMonthly || !constructionMonthly.months) return null;
+    const months = constructionMonthly.months;
+    
+    if (activeProjects.length === 0) return null;
+
+    const planned = {};
+    const actual = {};
+    const efficiency = {};
+
+    months.forEach(m => {
+      const planSum = activeProjects.reduce((sum, p) => sum + (p.planned[m] || 0), 0);
+      const actSum = activeProjects.reduce((sum, p) => sum + (p.actual[m] || 0), 0);
+      planned[m] = planSum;
+      actual[m] = actSum;
+      efficiency[m] = planSum > 0 ? Math.round((actSum / planSum) * 100) : 0;
+    });
+
+    return {
+      name: 'Portfolio Total',
+      planned,
+      actual,
+      efficiency
+    };
+  }, [constructionMonthly, activeProjects]);
+
+  // 3. Dynamically determine the latest month containing non-zero actual data
+  const latestMonthWithActual = React.useMemo(() => {
+    if (!constructionMonthly || !constructionMonthly.months || activeProjects.length === 0) {
+      return 'May-26'; // fallback standard month
     }
-  };
+    const { months } = constructionMonthly;
+    // Scan backwards from last month to find the latest month with any actual work done
+    for (let i = months.length - 1; i >= 0; i--) {
+      const m = months[i];
+      const hasActual = activeProjects.some(p => {
+        const val = p.actual[m];
+        return val !== null && val !== undefined && val !== 0;
+      });
+      if (hasActual) {
+        return m;
+      }
+    }
+    return 'May-26'; // fallback
+  }, [constructionMonthly, activeProjects]);
 
-  // Sort projects based on chosen metric and order
-  const sortedProjects = React.useMemo(() => {
-    return [...filteredProjects].sort((a, b) => {
-      let valA, valB;
-      if (sortBy === 'name') {
-        valA = a.name.toLowerCase();
-        valB = b.name.toLowerCase();
-      } else if (sortBy === 'target') {
-        valA = a.construction.target;
-        valB = b.construction.target;
-      } else if (sortBy === 'achieved') {
-        valA = a.construction.achieved;
-        valB = b.construction.achieved;
-      } else if (sortBy === 'variance') {
-        valA = a.construction.variance;
-        valB = b.construction.variance;
-      } else if (sortBy === 'eff') {
-        valA = a.construction.eff;
-        valB = b.construction.eff;
+  // Months list
+  const months = constructionMonthly?.months || [
+    'Apr-26', 'May-26', 'Jun-26', 'Jul-26', 'Aug-26', 'Sep-26', 
+    'Oct-26', 'Nov-26', 'Dec-26', 'Jan-27', 'Feb-27', 'Mar-27'
+  ];
+
+  // 4. Calculate total FY Planned and Actual to Date for KPI cards
+  const totalFYPlanned = React.useMemo(() => {
+    if (!displayPortfolioTotal) return 0;
+    return Object.values(displayPortfolioTotal.planned).reduce((sum, v) => sum + (v || 0), 0);
+  }, [displayPortfolioTotal]);
+
+  const totalActualToDate = React.useMemo(() => {
+    if (!displayPortfolioTotal || !constructionMonthly || !constructionMonthly.months) return 0;
+    const months = constructionMonthly.months;
+    const reportingIndex = months.indexOf(latestMonthWithActual);
+    let sum = 0;
+    months.forEach((m, idx) => {
+      if (idx <= reportingIndex) {
+        sum += displayPortfolioTotal.actual[m] || 0;
+      }
+    });
+    return sum;
+  }, [displayPortfolioTotal, constructionMonthly, latestMonthWithActual]);
+
+  // 5. Pre-calculate chart series data (Monthly values and Cumulative values)
+  const chartData = React.useMemo(() => {
+    if (!constructionMonthly || !constructionMonthly.months || activeProjects.length === 0) return [];
+    const months = constructionMonthly.months;
+    const data = [];
+    
+    let cumPlanned = 0;
+    let cumActual = 0;
+    const reportingIndex = months.indexOf(latestMonthWithActual);
+
+    months.forEach((m, idx) => {
+      const mPlan = activeProjects.reduce((sum, p) => sum + (p.planned[m] || 0), 0);
+      const mAct = activeProjects.reduce((sum, p) => sum + (p.actual[m] || 0), 0);
+
+      cumPlanned += mPlan;
+      
+      let actualValForChart = null;
+      let cumActualValForChart = null;
+
+      if (idx <= reportingIndex) {
+        actualValForChart = mAct;
+        cumActual += mAct;
+        cumActualValForChart = cumActual;
       }
 
-      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-      return 0;
+      data.push({
+        name: m,
+        Planned: parseFloat(mPlan.toFixed(2)),
+        Actual: actualValForChart !== null ? parseFloat(actualValForChart.toFixed(2)) : null,
+        "Cumulative Planned": parseFloat(cumPlanned.toFixed(2)),
+        "Cumulative Actual": cumActualValForChart !== null ? parseFloat(cumActualValForChart.toFixed(2)) : null
+      });
     });
-  }, [filteredProjects, sortBy, sortOrder]);
 
-  // Construction Columns Grand Totals
-  const grandConstTarget = filteredProjects.reduce((s, p) => s + p.construction.target, 0);
-  const grandConstAchieved = filteredProjects.reduce((s, p) => s + p.construction.achieved, 0);
-  const grandConstVariance = grandConstAchieved - grandConstTarget;
-  const grandConstEff = grandConstTarget > 0 ? (grandConstAchieved / grandConstTarget) * 100 : 0;
+    return data;
+  }, [constructionMonthly, activeProjects, latestMonthWithActual]);
 
-  // Construction Highlights & Bullet Summaries
+  // Highlights & Bullet Summaries
   const totalConstBudget = filteredProjects.reduce((s, p) => s + p.construction.target, 0);
   const totalConstAchieved = filteredProjects.reduce((s, p) => s + p.construction.achieved, 0);
   const constVariance = totalConstBudget - totalConstAchieved;
@@ -111,6 +213,18 @@ export default function ConstructionBudget() {
     }
   };
 
+  // Helper to check if a month is in the future relative to latest reporting month
+  const isFutureMonth = (monthStr) => {
+    const monthIndex = months.indexOf(monthStr);
+    const reportingIndex = months.indexOf(latestMonthWithActual);
+    return monthIndex > reportingIndex;
+  };
+
+  // Helper to check if a month is the reporting month
+  const isReportingMonth = (monthStr) => {
+    return monthStr === latestMonthWithActual;
+  };
+
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -141,158 +255,352 @@ export default function ConstructionBudget() {
         </div>
         <div>
           <h2 className="text-xl font-extrabold text-nyati-navy">Construction Budget Review</h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Overview of target/planned vs actual construction expenses achieved, sorted by active project filters.
-          </p>
         </div>
       </motion.div>
 
-      {/* Construction Cost Budget Summary Table */}
-      <div
-        className="bg-white rounded-3xl shadow-premium border border-slate-100"
+      {/* KPI Cards & Charts Split Row (NOW AT THE TOP) */}
+      <motion.div
+        variants={itemVariants}
+        className="grid grid-cols-1 xl:grid-cols-4 gap-6"
       >
-        <div className="sticky top-0 z-10 bg-white rounded-t-3xl border-b border-slate-100 px-6 py-4 shadow-sm">
-          <div>
-            <h3 className="font-bold text-nyati-navy text-base">Construction Cost Budget Summary</h3>
-            <p className="text-slate-400 text-xs mt-0.5">Compare construction target milestones against achieved value payouts and variance tracking.</p>
+        {/* Left Column: KPI Cards (stacked vertically) */}
+        <div className="xl:col-span-1 flex flex-col gap-6">
+          {/* Card 1: FY Planned */}
+          <div className="bg-white rounded-3xl p-6 shadow-premium border border-slate-100 border-t-4 border-t-[#10b981] flex flex-col justify-between flex-1 min-h-[188px]">
+            <div>
+              <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">FY Planned (₹ Cr)</span>
+              <h4 className="text-4xl font-black text-slate-800 mt-3">
+                {totalFYPlanned.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </h4>
+            </div>
+            <p className="text-xs text-slate-400 font-semibold mt-4">
+              {months[0]} to {months[months.length - 1]}
+            </p>
+          </div>
+
+          {/* Card 2: Actual to Date */}
+          <div className="bg-white rounded-3xl p-6 shadow-premium border border-slate-100 border-t-4 border-t-[#4f46e5] flex flex-col justify-between flex-1 min-h-[188px]">
+            <div>
+              <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Actual to Date (₹ Cr)</span>
+              <h4 className="text-4xl font-black text-slate-800 mt-3">
+                {totalActualToDate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </h4>
+            </div>
+            <p className="text-xs text-slate-400 font-semibold mt-4">
+              Through {latestMonthWithActual}
+            </p>
           </div>
         </div>
 
-        <div className="lg:overflow-x-visible overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+        {/* Right Column: Graphs */}
+        <div className="xl:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Chart 1: Monthly Progress */}
+          <div className="bg-white rounded-3xl p-6 shadow-premium border border-slate-100 flex flex-col justify-between h-[400px]">
+            <div className="mb-4">
+              <h4 className="font-extrabold text-nyati-navy text-sm">Monthly Progress — Plan vs Actual (₹ Cr)</h4>
+            </div>
+            <div className="w-full flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={chartData}
+                  margin={{ top: 10, right: 5, left: -25, bottom: 35 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis 
+                    dataKey="name" 
+                    interval={0}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                    tick={{ fill: '#94a3b8', fontSize: 8, fontWeight: 500 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 500 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend 
+                    verticalAlign="top"
+                    height={36}
+                    iconType="rect"
+                    iconSize={12}
+                    tick={{ fontSize: 11, fontWeight: 600 }}
+                  />
+                  <Bar dataKey="Planned" name="Planned" fill="#5570f2" radius={[4, 4, 0, 0]} maxBarSize={24} />
+                  <Bar dataKey="Actual" name="Actual" fill="#0d9488" radius={[4, 4, 0, 0]} maxBarSize={24} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Chart 2: Cumulative Progress */}
+          <div className="bg-white rounded-3xl p-6 shadow-premium border border-slate-100 flex flex-col justify-between h-[400px]">
+            <div className="mb-4">
+              <h4 className="font-extrabold text-nyati-navy text-sm">Cumulative Progress — Plan vs Actual (₹ Cr)</h4>
+            </div>
+            <div className="w-full flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={chartData}
+                  margin={{ top: 10, right: 5, left: -20, bottom: 35 }}
+                >
+                  <defs>
+                    <linearGradient id="colorPlanned" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.08}/>
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0}/>
+                    </linearGradient>
+                    <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.08}/>
+                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0.0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis 
+                    dataKey="name" 
+                    interval={0}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                    tick={{ fill: '#94a3b8', fontSize: 8, fontWeight: 500 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 500 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend 
+                    verticalAlign="top"
+                    height={36}
+                    iconType="rect"
+                    iconSize={12}
+                    tick={{ fontSize: 11, fontWeight: 600 }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="Cumulative Planned" 
+                    name="Cumulative Planned" 
+                    stroke="#3b82f6" 
+                    strokeWidth={2}
+                    fillOpacity={1} 
+                    fill="url(#colorPlanned)" 
+                    dot={{ r: 3, strokeWidth: 1 }}
+                    activeDot={{ r: 5 }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="Cumulative Actual" 
+                    name="Cumulative Actual" 
+                    stroke="#ef4444" 
+                    strokeWidth={2}
+                    fillOpacity={1} 
+                    fill="url(#colorActual)" 
+                    dot={{ r: 3, strokeWidth: 1 }}
+                    activeDot={{ r: 5 }}
+                    connectNulls={false}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Monthly Timeline Budget Table Card (NOW BELOW THE CHARTS) */}
+      <motion.div
+        variants={itemVariants}
+        className="bg-white rounded-3xl shadow-premium border border-slate-100 overflow-hidden"
+      >
+        {/* Card Header matching Screenshot bullet point style */}
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#0d9488] inline-block shrink-0"></span>
+          <h3 className="font-extrabold text-nyati-navy text-sm">Portfolio — Project-wise Plan vs Actual (₹ Cr)</h3>
+        </div>
+
+        {/* Scrollable Container with sticky table columns */}
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-left text-xs border-collapse min-w-[1200px]">
             <thead>
-              <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100 shadow-sm">
-                <th 
-                  onClick={() => handleSort('name')}
-                  className="px-6 py-4 cursor-pointer hover:bg-slate-100/80 transition-colors select-none group"
-                >
-                  <div className="flex items-center gap-1.5 justify-start">
-                    <span>Project</span>
-                    {sortBy === 'name' ? (
-                      sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-nyati-orange shrink-0" /> : <ArrowDown className="w-3.5 h-3.5 text-nyati-orange shrink-0" />
-                    ) : (
-                      <ArrowUpDown className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-                    )}
-                  </div>
+              <tr className="bg-[#4f46e5] text-white uppercase tracking-wider font-bold text-center border-b border-slate-200">
+                {/* Project Column - Sticky */}
+                <th className="sticky left-0 bg-[#4f46e5] z-30 px-6 py-3.5 text-left font-bold min-w-[170px] max-w-[170px] w-[170px] border-r border-[#4338ca]">
+                  Project
                 </th>
-                <th 
-                  onClick={() => handleSort('target')}
-                  className="px-4 py-4 cursor-pointer hover:bg-slate-100/80 transition-colors select-none group text-right"
-                >
-                  <div className="flex items-center gap-1.5 justify-end">
-                    <span>Target / Planned (₹ Cr)</span>
-                    {sortBy === 'target' ? (
-                      sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-nyati-orange shrink-0" /> : <ArrowDown className="w-3.5 h-3.5 text-nyati-orange shrink-0" />
-                    ) : (
-                      <ArrowUpDown className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-                    )}
-                  </div>
+                {/* Type Column - Sticky */}
+                <th className="sticky left-[170px] bg-[#4f46e5] z-30 px-4 py-3.5 text-left font-bold min-w-[100px] max-w-[100px] w-[100px] border-r border-[#4338ca]">
+                  Type
                 </th>
-                <th 
-                  onClick={() => handleSort('achieved')}
-                  className="px-4 py-4 cursor-pointer hover:bg-slate-100/80 transition-colors select-none group text-right"
-                >
-                  <div className="flex items-center gap-1.5 justify-end">
-                    <span>Achieved (₹ Cr)</span>
-                    {sortBy === 'achieved' ? (
-                      sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-nyati-orange shrink-0" /> : <ArrowDown className="w-3.5 h-3.5 text-nyati-orange shrink-0" />
-                    ) : (
-                      <ArrowUpDown className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  onClick={() => handleSort('variance')}
-                  className="px-4 py-4 cursor-pointer hover:bg-slate-100/80 transition-colors select-none group text-right"
-                >
-                  <div className="flex items-center gap-1.5 justify-end">
-                    <span>Variance (₹ Cr)</span>
-                    {sortBy === 'variance' ? (
-                      sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-nyati-orange shrink-0" /> : <ArrowDown className="w-3.5 h-3.5 text-nyati-orange shrink-0" />
-                    ) : (
-                      <ArrowUpDown className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  onClick={() => handleSort('eff')}
-                  className="px-6 py-4 min-w-[220px] cursor-pointer hover:bg-slate-100/80 transition-colors select-none group"
-                >
-                  <div className="flex items-center gap-1.5 justify-start">
-                    <span>EFF % / Progress</span>
-                    {sortBy === 'eff' ? (
-                      sortOrder === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-nyati-orange shrink-0" /> : <ArrowDown className="w-3.5 h-3.5 text-nyati-orange shrink-0" />
-                    ) : (
-                      <ArrowUpDown className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-                    )}
-                  </div>
-                </th>
+                {/* Month columns */}
+                {months.map(m => (
+                  <th key={m} className="px-4 py-3.5 text-center font-bold min-w-[80px]">
+                    {m}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50 font-medium text-slate-600">
-              {sortedProjects.length === 0 ? (
+            <tbody className="font-medium text-slate-600">
+              {activeProjects.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-12 text-center text-slate-400 font-semibold">
-                    No active projects matching active filters.
+                  <td colSpan={months.length + 2} className="px-6 py-12 text-center text-slate-400 font-semibold">
+                    No active projects matching selected filters.
                   </td>
                 </tr>
               ) : (
-                sortedProjects.map((p) => {
-                  const target = p.construction.target;
-                  const achieved = p.construction.achieved;
-                  const variance = achieved - target;
-                  const eff = p.construction.eff;
+                <>
+                  {/* PORTFOLIO TOTAL ROW BLOCK */}
+                  {displayPortfolioTotal && (
+                    <>
+                      {/* Planned Row */}
+                      <tr className="bg-slate-50/80 font-bold border-b border-slate-200">
+                        {/* Project Cell (rowSpan=3) */}
+                        <td 
+                          rowSpan={3} 
+                          className="sticky left-0 bg-[#f8fafc] z-20 px-6 py-4 font-extrabold text-[#4f46e5] border-r border-slate-200 text-left align-middle"
+                        >
+                          Portfolio Total
+                        </td>
+                        <td className="sticky left-[170px] bg-[#f8fafc] z-20 px-4 py-3 text-left font-bold text-[#4f46e5] border-r border-slate-200">
+                          Planned
+                        </td>
+                        {months.map(m => {
+                          const val = displayPortfolioTotal.planned[m];
+                          return (
+                            <td key={m} className="px-4 py-3 text-center text-slate-700 font-bold">
+                              {val !== null && val !== undefined ? val.toFixed(2) : '-'}
+                            </td>
+                          );
+                        })}
+                      </tr>
 
-                  return (
-                    <tr key={p.name} className="hover:bg-sky-50/20 transition-colors">
-                      <td className="px-6 py-3.5 font-bold text-slate-700">{p.name}</td>
-                      <td className="px-4 py-3.5 text-right text-slate-500">₹{target.toFixed(2)}</td>
-                      <td className="px-4 py-3.5 text-right font-semibold text-nyati-navy">₹{achieved.toFixed(2)}</td>
-                      <td className={`px-4 py-3.5 text-right font-bold ${variance >= 0 ? 'text-nyati-success' : 'text-nyati-danger'}`}>
-                        {variance >= 0 ? '+' : ''}₹{variance.toFixed(2)}
-                      </td>
-                      <td className="px-6 py-3.5 min-w-[220px]">
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-slate-700 w-10 shrink-0 text-right">{eff.toFixed(0)}%</span>
-                          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${eff >= 100 ? 'bg-nyati-success' : eff >= 50 ? 'bg-nyati-warning' : 'bg-nyati-danger'}`}
-                              style={{ width: `${Math.min(100, eff)}%` }}
-                            />
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
+                      {/* Actual Row */}
+                      <tr className="bg-slate-50/80 font-bold border-b border-slate-200">
+                        <td className="sticky left-[170px] bg-[#f8fafc] z-20 px-4 py-3 text-left font-bold text-[#10b981] border-r border-slate-200">
+                          Actual
+                        </td>
+                        {months.map(m => {
+                          const val = displayPortfolioTotal.actual[m];
+                          return (
+                            <td key={m} className="px-4 py-3 text-center text-emerald-600 font-extrabold">
+                              {val !== null && val !== undefined ? val.toFixed(2) : '0.00'}
+                            </td>
+                          );
+                        })}
+                      </tr>
 
-              {/* Grand Total Row */}
-              {filteredProjects.length > 0 && (
-                <tr className="bg-slate-50/80 font-bold text-nyati-navy border-t-2 border-slate-200">
-                  <td className="px-6 py-4">GRAND TOTAL</td>
-                  <td className="px-4 py-4 text-right">₹{grandConstTarget.toFixed(2)}</td>
-                  <td className="px-4 py-4 text-right">₹{grandConstAchieved.toFixed(2)}</td>
-                  <td className={`px-4 py-4 text-right ${grandConstVariance >= 0 ? 'text-nyati-success' : 'text-nyati-danger'}`}>
-                    {grandConstVariance >= 0 ? '+' : ''}₹{grandConstVariance.toFixed(2)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <span className="font-extrabold w-10 text-right">{grandConstEff.toFixed(0)}%</span>
-                      <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-nyati-navy rounded-full"
-                          style={{ width: `${Math.min(100, grandConstEff)}%` }}
-                        />
-                      </div>
-                    </div>
-                  </td>
-                </tr>
+                      {/* Efficiency Row */}
+                      <tr className="bg-slate-50/80 font-bold border-b-2 border-slate-300">
+                        <td className="sticky left-[170px] bg-[#f8fafc] z-20 px-4 py-3 text-left font-bold text-blue-600 border-r border-slate-200">
+                          Effi. %
+                        </td>
+                        {months.map(m => {
+                          const val = displayPortfolioTotal.efficiency[m];
+                          return (
+                            <td key={m} className="px-4 py-3 text-center text-blue-600 font-extrabold">
+                              {val !== null && val !== undefined ? `${val}%` : '0%'}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    </>
+                  )}
+
+                  {/* INDIVIDUAL PROJECTS ROW BLOCKS */}
+                  {activeProjects.map((p, pIdx) => {
+                    const isLastProject = pIdx === activeProjects.length - 1;
+                    const blockBorderClass = isLastProject ? 'border-b border-slate-200' : 'border-b border-slate-200';
+
+                    return (
+                      <React.Fragment key={p.name}>
+                        {/* Planned Row */}
+                        <tr className="hover:bg-sky-50/5 transition-colors border-b border-slate-100">
+                          {/* Project Cell (rowSpan=3) */}
+                          <td 
+                            rowSpan={3} 
+                            className="sticky left-0 bg-white z-20 px-6 py-4 font-bold text-blue-900 border-r border-slate-200 text-left align-middle border-l-4 border-l-blue-500"
+                          >
+                            {p.name}
+                          </td>
+                          <td className="sticky left-[170px] bg-white z-20 px-4 py-3.5 text-left font-semibold text-slate-500 border-r border-slate-200">
+                            Planned
+                          </td>
+                          {months.map(m => {
+                            const val = p.planned[m];
+                            return (
+                              <td key={m} className="px-4 py-3.5 text-center text-slate-500 font-medium">
+                                {val !== null && val !== undefined ? val.toFixed(2) : '-'}
+                              </td>
+                            );
+                          })}
+                        </tr>
+
+                        {/* Actual Row */}
+                        <tr className="hover:bg-sky-50/5 transition-colors border-b border-slate-100">
+                          <td className="sticky left-[170px] bg-white z-20 px-4 py-3.5 text-left font-bold text-slate-700 border-r border-slate-200">
+                            Actual
+                          </td>
+                          {months.map(m => {
+                            const val = p.actual[m];
+                            const eff = p.efficiency[m] || 0;
+                            const isFuture = isFutureMonth(m);
+                            const isReporting = isReportingMonth(m);
+
+                            // Text formatting & styling logic
+                            let textClass = 'text-slate-500 font-medium';
+                            if (isFuture) {
+                              return <td key={m} className="px-4 py-3.5 text-center text-slate-400 font-semibold">-</td>;
+                            }
+                            if (isReporting) {
+                              textClass = eff >= 100 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold';
+                            }
+
+                            return (
+                              <td key={m} className={`px-4 py-3.5 text-center ${textClass}`}>
+                                {val !== null && val !== undefined ? val.toFixed(2) : '0.00'}
+                              </td>
+                            );
+                          })}
+                        </tr>
+
+                        {/* Efficiency Row */}
+                        <tr className={`hover:bg-sky-50/5 transition-colors ${blockBorderClass} border-b-2 border-slate-200/50`}>
+                          <td className="sticky left-[170px] bg-white z-20 px-4 py-3.5 text-left font-medium text-slate-500 border-r border-slate-200">
+                            Effi. %
+                          </td>
+                          {months.map(m => {
+                            const val = p.efficiency[m];
+                            const isFuture = isFutureMonth(m);
+                            const isReporting = isReportingMonth(m);
+
+                            // Text formatting & styling logic
+                            let textClass = 'text-slate-400 font-medium';
+                            if (isFuture) {
+                              return <td key={m} className="px-4 py-3.5 text-center text-slate-400">-</td>;
+                            }
+                            if (isReporting) {
+                              textClass = val >= 100 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold';
+                            }
+
+                            return (
+                              <td key={m} className={`px-4 py-3.5 text-center ${textClass}`}>
+                                {val !== null && val !== undefined ? `${val}%` : '0%'}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      </React.Fragment>
+                    );
+                  })}
+                </>
               )}
             </tbody>
           </table>
         </div>
-      </div>
+      </motion.div>
 
       {/* Highlights & AI Recommendations Row */}
       <motion.div
@@ -304,7 +612,6 @@ export default function ConstructionBudget() {
           <div>
             <div className="px-6 py-5 border-b border-slate-100">
               <h3 className="font-bold text-nyati-navy text-base">Construction Cost & Status Highlights</h3>
-              <p className="text-slate-400 text-xs mt-0.5">Key analysis insights and structural status updates for construction milestones.</p>
             </div>
 
             {/* Bullet points display list */}
@@ -332,7 +639,6 @@ export default function ConstructionBudget() {
         <div className="bg-white rounded-3xl p-6 shadow-premium border border-slate-100 flex flex-col justify-start self-start h-fit w-full">
           <div>
             <div className="border-b border-slate-100 pb-4 mb-5">
-
               <h3 className="font-black text-nyati-navy text-lg mt-0.5">Strategic Action Board</h3>
             </div>
 

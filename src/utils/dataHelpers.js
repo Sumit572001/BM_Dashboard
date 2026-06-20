@@ -47,9 +47,275 @@ export function getProjectType(projectName) {
   return 'R'; // Default: Residential
 }
 
-// Process raw array of objects into structured, derived project data
+// Helper to normalize project names for mapping across sheets
+export function cleanProjName(name) {
+  if (!name) return '';
+  return name.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').replace(/\s*\([RLC]\)\s*/g, '').trim().toLowerCase();
+}
+
+let lastRawData = null;
+
+// Process raw array of objects or multi-sheet workbook into structured project data
 export function processRawData(rawData) {
-  if (!Array.isArray(rawData) || rawData.length === 0) return [];
+  if (!rawData) return [];
+  lastRawData = rawData;
+
+  // Check if rawData is a multi-sheet object containing our standard dashboard sheets
+  const isMultiSheet = !Array.isArray(rawData) && (
+    rawData['Sales & Collection'] || 
+    rawData['Outstanding'] || 
+    rawData['Construction Budget'] || 
+    rawData['Project Portfolio Details']
+  );
+
+  if (isMultiSheet) {
+    const salesCollection = rawData['Sales & Collection'] || [];
+    const outstanding = rawData['Outstanding'] || [];
+    const construction = rawData['Construction Budget'] || [];
+    const portfolio = rawData['Project Portfolio Details'] || [];
+
+    // Pre-calculate monthly project totals if construction sheet is monthly (2D array)
+    const monthlyProjectTotals = {};
+    const sheet2D = rawData['Construction Budget'] || rawData['sheet1'];
+    if (Array.isArray(sheet2D) && sheet2D.length > 2) {
+      let headerRowIndex = -1;
+      for (let i = 0; i < sheet2D.length; i++) {
+        const row = sheet2D[i];
+        if (row && row[0] && String(row[0]).trim().toLowerCase().startsWith('project')) {
+          headerRowIndex = i;
+          break;
+        }
+      }
+      if (headerRowIndex !== -1) {
+        const headerRow = sheet2D[headerRowIndex];
+        const monthCols = [];
+        for (let c = 2; c < headerRow.length; c++) {
+          if (headerRow[c] !== null && headerRow[c] !== undefined && headerRow[c] !== '') {
+            monthCols.push(c);
+          }
+        }
+        let currentProjName = '';
+        for (let i = headerRowIndex + 1; i < sheet2D.length; i++) {
+          const row = sheet2D[i];
+          if (!row || row.length === 0) continue;
+          const cell0 = row[0] ? String(row[0]).trim() : '';
+          const typeLabel = row[1] ? String(row[1]).trim() : '';
+          if (cell0) {
+            currentProjName = cell0;
+          }
+          if (currentProjName && !currentProjName.toLowerCase().includes('total')) {
+            const cleanKey = cleanProjName(currentProjName);
+            if (!monthlyProjectTotals[cleanKey]) {
+              monthlyProjectTotals[cleanKey] = { target: 0, achieved: 0 };
+            }
+            let sum = 0;
+            monthCols.forEach(c => {
+              const val = row[c];
+              if (val !== null && val !== undefined && val !== '') {
+                sum += parseFloat(val) || 0;
+              }
+            });
+            if (typeLabel.toLowerCase().includes('planned')) {
+              monthlyProjectTotals[cleanKey].target += sum;
+            } else if (typeLabel.toLowerCase().includes('actual')) {
+              monthlyProjectTotals[cleanKey].achieved += sum;
+            }
+          }
+        }
+      }
+    }
+
+    // Save monthlyProjectTotals on rawData for reference in helper functions
+    rawData._monthlyProjectTotals = monthlyProjectTotals;
+    rawData._cleanProjName = cleanProjName;
+
+    // Find all unique project names across all sheets
+    const allProjectNames = Array.from(new Set([
+      ...salesCollection.map(r => getStringVal(r, ['Project Name', 'Project'])),
+      ...outstanding.map(r => getStringVal(r, ['Project Name', 'Project'])),
+      ...Object.keys(monthlyProjectTotals).map(k => {
+        // Find matching original casing name from other sheets if possible, otherwise use uppercase
+        const matched = salesCollection.find(r => cleanProjName(getStringVal(r, ['Project Name', 'Project'])) === k);
+        return matched ? getStringVal(matched, ['Project Name', 'Project']) : k.toUpperCase();
+      }),
+      ...portfolio.map(r => getStringVal(r, ['Project Name', 'Project']))
+    ].filter(Boolean)));
+
+    return allProjectNames.map((projectName, idx) => {
+      const cleanName = projectName.replace(/\s*\([RLC]\)\s*/g, '');
+      const type = getProjectType(cleanName);
+
+      // Find matching rows in each sheet
+      const pSales = salesCollection.find(r => getStringVal(r, ['Project Name', 'Project']) === projectName) || {};
+      const pOutstanding = outstanding.find(r => getStringVal(r, ['Project Name', 'Project']) === projectName) || {};
+      const pConstruction = construction.find(r => getStringVal(r, ['Project Name', 'Project']) === projectName) || {};
+      const pPortfolioRows = portfolio.filter(r => getStringVal(r, ['Project Name', 'Project']) === projectName);
+
+      // 1. Portfolio & building breakdown
+      const summaryRow = pPortfolioRows.find(r => {
+        const bName = getStringVal(r, ['Building Name', 'Building', 'Bldg Name']).toUpperCase();
+        return bName.includes('TOTAL') || bName.includes('BTOTAL');
+      }) || {};
+
+      const totalUnits = getVal(summaryRow, ['Total Units', 'Units'], getVal(pSales, ['Target Units', 'Budget Units', 'Total Units'], 100));
+      const soldToDate = getVal(summaryRow, ['Total Units Sold as on Date', 'Units Sold as on Date', 'Cumulative Sold'], getVal(pSales, ['Units Sold', 'soldToDate'], 75));
+      const balance = getVal(summaryRow, ['Balance as on Date', 'Balance', 'Unsold Balance'], totalUnits - soldToDate);
+      const soldMar31 = getVal(summaryRow, ['Units Sold up to Mar 31 2024', 'Sold up to Mar 31 2024']);
+      const unsoldApr1 = getVal(summaryRow, ['Unsold as on Apr 1 2024', 'Unsold Apr 1 2024']);
+      const monthSold = getVal(summaryRow, ['For the month Sold', 'Month Sold']);
+      const periodSold = getVal(summaryRow, ['For the Period Sold', 'Period Sold']);
+
+      const bldgs = pPortfolioRows
+        .filter(r => {
+          const bName = getStringVal(r, ['Building Name', 'Building', 'Bldg Name']).toUpperCase();
+          return !bName.includes('TOTAL') && !bName.includes('BTOTAL') && bName !== '';
+        })
+        .map(r => ({
+          name: getStringVal(r, ['Building Name', 'Building']),
+          totalUnits: getVal(r, ['Total Units', 'Units']),
+          soldToDate: getVal(r, ['Total Units Sold as on Date', 'Units Sold as on Date']),
+          balance: getVal(r, ['Balance as on Date', 'Balance']),
+        }));
+
+      const finalBldgs = bldgs.length > 0 ? bldgs : [
+        { name: 'WING A', totalUnits: Math.round(totalUnits * 0.6), soldToDate: Math.round(soldToDate * 0.6), balance: Math.round(balance * 0.6) },
+        { name: 'WING B', totalUnits: totalUnits - Math.round(totalUnits * 0.6), soldToDate: soldToDate - Math.round(soldToDate * 0.6), balance: balance - Math.round(balance * 0.6) }
+      ];
+
+      // 2. Sales and rates
+      const budgetUnits = getVal(pSales, ['Target Units', 'Budget Units'], Math.round(totalUnits * 0.85));
+      const salesEff = budgetUnits > 0 ? (soldToDate / budgetUnits) * 100 : 0;
+      const varianceUnits = budgetUnits - soldToDate;
+
+      const baseRate = 6000 + (projectName.charCodeAt(0) % 5) * 1200 + (type === 'L' ? 3000 : type === 'C' ? 1500 : 0);
+      const budgetRate = getVal(pSales, ['Budget Rate (₹/sf)', 'Budget Rate', 'Rate Budget'], baseRate);
+      const actualRate = getVal(pSales, ['Avg Rate (₹/sf)', 'Avg Rate', 'Actual Rate', 'Rate Actual'], baseRate + (projectName.charCodeAt(1) % 3) * 250 - 200);
+      const rateEff = budgetRate > 0 ? (actualRate / budgetRate) * 100 : 0;
+
+      const avgUnitSize = type === 'L' ? 2200 : type === 'C' ? 800 : 1200;
+      const budgetArea = getVal(pSales, ['Budget Area (sf)', 'Budget Area'], budgetUnits * avgUnitSize);
+      const actualArea = getVal(pSales, ['Saleable Area (sf)', 'Saleable Area', 'Actual Area'], soldToDate * avgUnitSize);
+      const areaEff = budgetArea > 0 ? (actualArea / budgetArea) * 100 : 0;
+
+      const actualValCr = getVal(pSales, ['Total Value (₹ Cr)', 'Actual Value (₹ Cr)'], parseFloat(((actualArea * actualRate) / 10000000).toFixed(2)));
+      const budgetValCr = getVal(pSales, ['Budget Value (₹ Cr)'], parseFloat(((budgetArea * budgetRate) / 10000000).toFixed(2)));
+
+      const budgetCollection = getVal(pSales, ['Collection Target (₹ Cr)'], parseFloat((budgetValCr * 0.75).toFixed(2)));
+      const actualCollection = getVal(pOutstanding, ['Total Collection (₹ Cr)', 'Actual Collection (₹ Cr)'], getVal(pSales, ['Actual Collection (₹ Cr)'], parseFloat((actualValCr * 0.68).toFixed(2))));
+      const collectionEff = budgetCollection > 0 ? (actualCollection / budgetCollection) * 100 : 0;
+
+      // 3. Outstanding & Ageing
+      const dueMilestone = getVal(pOutstanding, ['Milestone Dues (₹ Cr)', 'Due Milestone (₹ Cr)'], parseFloat((actualValCr * 0.85).toFixed(2)));
+      const outstandingVal = getVal(pOutstanding, ['Total Outstanding (₹ Cr)', 'Outstanding (₹ Cr)'], parseFloat((dueMilestone - actualCollection).toFixed(2)));
+      const registeredOS = getVal(pOutstanding, ['Registered Outstanding (₹ Cr)'], parseFloat((outstandingVal * 0.65).toFixed(2)));
+      const unregisteredOS = getVal(pOutstanding, ['Unregistered Outstanding (₹ Cr)'], parseFloat((outstandingVal * 0.35).toFixed(2)));
+
+      const ageing0_30 = getVal(pOutstanding, ['0-30 Days (₹ Cr)', '0-30 Days'], parseFloat((outstandingVal * 0.35).toFixed(2)));
+      const ageing31_60 = getVal(pOutstanding, ['31-60 Days (₹ Cr)', '31-60 Days'], parseFloat((outstandingVal * 0.25).toFixed(2)));
+      const ageing61_90 = getVal(pOutstanding, ['61-90 Days (₹ Cr)', '61-90 Days'], parseFloat((outstandingVal * 0.18).toFixed(2)));
+      const ageing91_120 = getVal(pOutstanding, ['91-120 Days (₹ Cr)', '91-120 Days'], parseFloat((outstandingVal * 0.12).toFixed(2)));
+      const ageingGt120 = getVal(pOutstanding, ['>120 Days (₹ Cr)', '>120 Days'], parseFloat((outstandingVal * 0.10).toFixed(2)));
+      const ageingTotal = parseFloat((ageing0_30 + ageing31_60 + ageing61_90 + ageing91_120 + ageingGt120).toFixed(2));
+
+      // 4. Registrations
+      const registeredUnits = Math.round(soldToDate * 0.75);
+      const unregisteredUnits = soldToDate - registeredUnits;
+
+      // 5. Construction
+      let constTarget = getVal(pConstruction, ['Target Planned (₹ Cr)'], parseFloat((budgetValCr * 0.55).toFixed(2)));
+      let constAchieved = getVal(pConstruction, ['Achieved Value (₹ Cr)'], parseFloat((actualValCr * 0.50).toFixed(2)));
+
+      const normKey = cleanProjName(projectName);
+      if (monthlyProjectTotals && monthlyProjectTotals[normKey]) {
+        constTarget = monthlyProjectTotals[normKey].target;
+        constAchieved = monthlyProjectTotals[normKey].achieved;
+      }
+
+      const constVariance = parseFloat((constAchieved - constTarget).toFixed(2));
+      const constEff = constTarget > 0 ? (constAchieved / constTarget) * 100 : 0;
+      const constComp = getVal(pConstruction, ['Overall Completion (%)', 'Completion (%)'], Math.min(100, Math.round((constAchieved / constTarget) * 100)) || 65);
+
+      // Funnel Breakdown
+      const landOwnerUnits = Math.round(totalUnits * 0.08);
+      const premiumUnits = Math.round(totalUnits * 0.04);
+      const unitsForSale = totalUnits - landOwnerUnits - premiumUnits;
+      const soldUptoDate = soldToDate;
+      const unsoldUnits = Math.max(0, unitsForSale - soldUptoDate);
+
+      return {
+        id: cleanName.toLowerCase().replace(/\s+/g, '-'),
+        name: cleanName,
+        type,
+        originalRow: summaryRow,
+        buildings: finalBldgs,
+
+        totalUnits,
+        soldToDate,
+        balance,
+        soldMar31,
+        unsoldApr1,
+        monthSold,
+        periodSold,
+
+        budgetUnits,
+        salesEff,
+        varianceUnits,
+
+        budgetRate,
+        actualRate,
+        rateEff,
+
+        budgetArea,
+        actualArea,
+        areaEff,
+
+        budgetValCr,
+        actualValCr,
+        aggAmount: actualValCr * 10000000,
+        aggArea: actualArea,
+        budgetCollection,
+        actualCollection,
+        collectionEff,
+
+        registeredUnits,
+        unregisteredUnits,
+
+        dueMilestone,
+        outstanding: outstandingVal,
+        registeredOS,
+        unregisteredOS,
+
+        ageing: {
+          '0-30': ageing0_30,
+          '31-60': ageing31_60,
+          '61-90': ageing61_90,
+          '91-120': ageing91_120,
+          'gt120': ageingGt120,
+          total: ageingTotal
+        },
+
+        construction: {
+          target: constTarget,
+          achieved: constAchieved,
+          variance: constVariance,
+          eff: constEff,
+          completion: constComp
+        },
+
+        funnel: {
+          landOwner: landOwnerUnits,
+          premium: premiumUnits,
+          forSale: unitsForSale,
+          sold: soldUptoDate,
+          unsold: unsoldUnits
+        }
+      };
+    });
+  }
+
+  // Fallback to array processing
+  const rawArray = Array.isArray(rawData) ? rawData : [];
+  if (rawArray.length === 0) return [];
 
   // 1. Identify project totals (rows where building name has 'TOTAL' or 'BTOTAL')
   // Also keep building details for Dashboard 3 portfolio
@@ -279,6 +545,108 @@ export function processRawData(rawData) {
   });
 }
 
+// Helper to parse grand totals directly from the exported Overview sheet structure
+function parseTotalsFromOverviewSheet(overviewSheet, projects) {
+  const findMetric = (metricName) => {
+    return overviewSheet.find(r => getStringVal(r, ['Key KPI Metric', 'Metric'])?.toLowerCase() === metricName.toLowerCase()) || {};
+  };
+
+  const parseVal = (row, fieldCandidates, fallback = 0) => {
+    const valStr = getStringVal(row, fieldCandidates);
+    if (!valStr) return fallback;
+    const clean = valStr.replace(/,/g, '').replace(/[₹%]/g, '').trim();
+    const parsed = parseFloat(clean);
+    return isNaN(parsed) ? fallback : parsed;
+  };
+
+  const unitsRow = findMetric('Units Sold');
+  const rateRow = findMetric('Average Rate');
+  const areaRow = findMetric('Saleable Area');
+  const collRow = findMetric('Total Collection');
+  
+  const osRow = findMetric('Total Outstanding');
+  const regOSRow = findMetric('Registered O/S');
+  const ageingRow = findMetric('Ageing >120 Days');
+  
+  const constTargetRow = findMetric('Target Planned');
+  const constAchievedRow = findMetric('Achieved Value');
+  const constVarianceRow = findMetric('Variance');
+  const constEffRow = findMetric('Efficiency');
+  
+  const totalInvRow = findMetric('Total Inventory');
+  const unsoldBalRow = findMetric('Unsold Balance');
+  const avgCompRow = findMetric('Avg Completion');
+
+  // Sum projects fallback if not in overview sheet
+  const sum = (field) => projects.reduce((s, p) => s + (p[field] || 0), 0);
+  const sumNested = (obj, field) => projects.reduce((s, p) => s + (p[obj]?.[field] || 0), 0);
+
+  const budgetUnits = parseVal(unitsRow, ['Target/Budget', 'Target', 'Budget'], sum('budgetUnits'));
+  const soldToDate = parseVal(unitsRow, ['Actual/Achieved', 'Actual', 'Achieved'], sum('soldToDate'));
+  
+  const budgetRate = parseVal(rateRow, ['Target/Budget', 'Target', 'Budget'], sum('budgetRate') / (projects.length || 1));
+  const actualRate = parseVal(rateRow, ['Actual/Achieved', 'Actual', 'Achieved'], sum('actualRate') / (projects.length || 1));
+  
+  const budgetArea = parseVal(areaRow, ['Target/Budget', 'Target', 'Budget'], sum('budgetArea'));
+  const actualArea = parseVal(areaRow, ['Actual/Achieved', 'Actual', 'Achieved'], sum('actualArea'));
+  
+  const budgetCollection = parseVal(collRow, ['Target/Budget', 'Target', 'Budget'], sum('budgetCollection'));
+  const actualCollection = parseVal(collRow, ['Actual/Achieved', 'Actual', 'Achieved'], sum('actualCollection'));
+
+  const outstanding = parseVal(osRow, ['Actual/Achieved', 'Actual', 'Achieved'], sum('outstanding'));
+  const registeredOS = parseVal(regOSRow, ['Actual/Achieved', 'Actual', 'Achieved'], sum('registeredOS'));
+  const unregisteredOS = outstanding - registeredOS;
+  const gt120 = parseVal(ageingRow, ['Actual/Achieved', 'Actual', 'Achieved'], sumNested('ageing', 'gt120'));
+
+  const constTarget = parseVal(constTargetRow, ['Actual/Achieved', 'Actual', 'Achieved'], sumNested('construction', 'target'));
+  const constAchieved = parseVal(constAchievedRow, ['Actual/Achieved', 'Actual', 'Achieved'], sumNested('construction', 'achieved'));
+  const constVariance = parseVal(constVarianceRow, ['Actual/Achieved', 'Actual', 'Achieved'], sumNested('construction', 'variance'));
+  const constEff = parseVal(constEffRow, ['Actual/Achieved', 'Actual', 'Achieved'], sumNested('construction', 'eff'));
+  
+  // Overall project counts / inventory
+  const totalUnits = parseVal(totalInvRow, ['Actual/Achieved', 'Actual', 'Achieved'], sum('totalUnits'));
+  const balance = parseVal(unsoldBalRow, ['Actual/Achieved', 'Actual', 'Achieved'], sum('balance'));
+  const avgComp = parseVal(avgCompRow, ['Actual/Achieved', 'Actual', 'Achieved'], sumNested('construction', 'completion') / (projects.length || 1));
+
+  return {
+    totalUnits,
+    soldToDate,
+    balance,
+    budgetUnits,
+    varianceUnits: budgetUnits - soldToDate,
+    budgetRate,
+    actualRate,
+    rateEff: budgetRate > 0 ? (actualRate / budgetRate) * 100 : 0,
+    budgetArea,
+    actualArea,
+    areaEff: budgetArea > 0 ? (actualArea / budgetArea) * 100 : 0,
+    budgetValCr: parseFloat(((budgetArea * budgetRate) / 10000000).toFixed(2)),
+    actualValCr: parseFloat(((actualArea * actualRate) / 10000000).toFixed(2)),
+    budgetCollection,
+    actualCollection,
+    collectionEff: budgetCollection > 0 ? (actualCollection / budgetCollection) * 100 : 0,
+    outstanding,
+    dueMilestone: outstanding + actualCollection,
+    registeredOS,
+    unregisteredOS,
+    ageing: {
+      '0-30': outstanding * 0.35,
+      '31-60': outstanding * 0.25,
+      '61-90': outstanding * 0.18,
+      '91-120': outstanding * 0.12,
+      'gt120': gt120,
+      total: outstanding
+    },
+    construction: {
+      target: constTarget,
+      achieved: constAchieved,
+      variance: constVariance,
+      eff: constEff,
+      completion: avgComp
+    }
+  };
+}
+
 // Calculate grand totals across all processed projects
 export function calculateGrandTotals(projects) {
   if (!Array.isArray(projects) || projects.length === 0) {
@@ -292,6 +660,25 @@ export function calculateGrandTotals(projects) {
       outstanding: 0, dueMilestone: 0, registeredOS: 0, unregisteredOS: 0,
       ageing: { '0-30': 0, '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: 0 }
     };
+  }
+
+  // If Overview sheet exists in uploaded lastRawData and filters are not active
+  if (lastRawData && !Array.isArray(lastRawData) && lastRawData['Overview']) {
+    const salesCollection = lastRawData['Sales & Collection'] || [];
+    const outstanding = lastRawData['Outstanding'] || [];
+    const construction = lastRawData['Construction Budget'] || [];
+    const portfolio = lastRawData['Project Portfolio Details'] || [];
+    const allProjectNames = Array.from(new Set([
+      ...salesCollection.map(r => getStringVal(r, ['Project Name', 'Project'])),
+      ...outstanding.map(r => getStringVal(r, ['Project Name', 'Project'])),
+      ...construction.map(r => getStringVal(r, ['Project Name', 'Project'])),
+      ...portfolio.map(r => getStringVal(r, ['Project Name', 'Project']))
+    ].filter(Boolean)));
+    
+    // Only use the Overview sheet if no filters are applied
+    if (projects.length >= allProjectNames.length) {
+      return parseTotalsFromOverviewSheet(lastRawData['Overview'], projects);
+    }
   }
 
   const sum = (field) => projects.reduce((s, p) => s + (p[field] || 0), 0);
@@ -425,4 +812,196 @@ export function filterData(processedProjects, filters) {
       collectionEff: p.budgetCollection > 0 ? (scaledColl / p.budgetCollection) * 100 : 0
     };
   });
+}
+
+// Extract monthly construction budget details or generate fallback mocked distribution
+export function getConstructionMonthlyData(rawData, processedProjects) {
+  const months = ['Apr-26', 'May-26', 'Jun-26', 'Jul-26', 'Aug-26', 'Sep-26', 'Oct-26', 'Nov-26', 'Dec-26', 'Jan-27', 'Feb-27', 'Mar-27'];
+  
+  // Helper to format month
+  const formatExcelHeader = (val) => {
+    if (typeof val === 'number') {
+      const jsDate = new Date((val - 25569) * 86400 * 1000);
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const m = monthNames[jsDate.getUTCMonth()];
+      const y = String(jsDate.getUTCFullYear()).slice(-2);
+      return `${m}-${y}`;
+    }
+    if (typeof val === 'string') {
+      // If it looks like a number string, try to parse it
+      if (/^\d+(\.\d+)?$/.test(val)) {
+        const num = parseFloat(val);
+        const jsDate = new Date((num - 25569) * 86400 * 1000);
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const m = monthNames[jsDate.getUTCMonth()];
+        const y = String(jsDate.getUTCFullYear()).slice(-2);
+        return `${m}-${y}`;
+      }
+      return val.trim();
+    }
+    return '';
+  };
+
+  const sheet2D = rawData && (rawData['Construction Budget'] || rawData['sheet1']);
+
+  if (Array.isArray(sheet2D) && sheet2D.length > 2) {
+    // 1. Find the header row (starts with "projects" or "project")
+    let headerRowIndex = -1;
+    for (let i = 0; i < sheet2D.length; i++) {
+      const row = sheet2D[i];
+      if (row && row[0] && String(row[0]).trim().toLowerCase().startsWith('project')) {
+        headerRowIndex = i;
+        break;
+      }
+    }
+
+    if (headerRowIndex !== -1) {
+      const headerRow = sheet2D[headerRowIndex];
+      const foundMonths = [];
+      for (let c = 2; c < headerRow.length; c++) {
+        const val = headerRow[c];
+        if (val !== undefined && val !== null && val !== '') {
+          foundMonths.push({
+            colIndex: c,
+            formatted: formatExcelHeader(val)
+          });
+        }
+      }
+
+      if (foundMonths.length > 0) {
+        const parsedProjects = [];
+        let portfolioTotal = null;
+        let currentProject = null;
+
+        for (let i = headerRowIndex + 1; i < sheet2D.length; i++) {
+          const row = sheet2D[i];
+          if (!row || row.length === 0) continue;
+
+          const cell0 = row[0] !== undefined && row[0] !== null ? String(row[0]).trim() : '';
+          const typeLabel = row[1] !== undefined && row[1] !== null ? String(row[1]).trim() : ''; // "Planned", "Actual", "Effi. %"
+
+          if (cell0 || i === headerRowIndex + 1) {
+            // First row or row with name
+            const isFirstRowEmptyName = !cell0 && i === headerRowIndex + 1;
+            const pName = isFirstRowEmptyName ? 'Portfolio Total' : cell0;
+            
+            const newProj = {
+              name: pName,
+              planned: {},
+              actual: {},
+              efficiency: {}
+            };
+
+            if (pName.toLowerCase().includes('total')) {
+              portfolioTotal = newProj;
+            } else {
+              parsedProjects.push(newProj);
+            }
+            currentProject = newProj;
+          }
+
+          if (!currentProject) continue;
+
+          foundMonths.forEach(m => {
+            const val = row[m.colIndex];
+            const numericVal = val !== null && val !== undefined && val !== '' ? parseFloat(val) : null;
+            
+            if (typeLabel.toLowerCase().includes('planned')) {
+              currentProject.planned[m.formatted] = numericVal;
+            } else if (typeLabel.toLowerCase().includes('actual')) {
+              currentProject.actual[m.formatted] = numericVal;
+            } else if (typeLabel.toLowerCase().includes('effi')) {
+              // Convert ratio (e.g. 0.53) to percentage (53)
+              const pctVal = numericVal !== null ? Math.round(numericVal * (numericVal <= 2 ? 100 : 1)) : null;
+              currentProject.efficiency[m.formatted] = pctVal;
+            }
+          });
+        }
+
+        // Post-process: calculate efficiencies if not populated in sheet
+        const sanitizeProj = (p) => {
+          foundMonths.forEach(m => {
+            const f = m.formatted;
+            const plan = p.planned[f] || 0;
+            const act = p.actual[f] || 0;
+            if (p.efficiency[f] === undefined || p.efficiency[f] === null) {
+              p.efficiency[f] = plan > 0 ? Math.round((act / plan) * 100) : 0;
+            }
+          });
+        };
+
+        if (portfolioTotal) sanitizeProj(portfolioTotal);
+        parsedProjects.forEach(sanitizeProj);
+
+        return {
+          months: foundMonths.map(m => m.formatted),
+          portfolioTotal,
+          projects: parsedProjects
+        };
+      }
+    }
+  }
+
+  // Fallback: Generate mock monthly budget data from processedProjects
+  const projectsList = processedProjects.map(p => {
+    const targetTotal = p.construction.target;
+    const achievedTotal = p.construction.achieved;
+
+    // Distribute target and achieved over months
+    const planned = {};
+    const actual = {};
+    const efficiency = {};
+
+    months.forEach((m, idx) => {
+      // Planned distribution: bell curve-ish
+      let factor = 0.08;
+      if (idx >= 3 && idx <= 8) factor = 0.10; // Peak months
+      if (idx === 11 || idx === 0) factor = 0.06; // Start/End
+      const planVal = parseFloat((targetTotal * factor).toFixed(2));
+      planned[m] = planVal;
+
+      // Actuals: only for Apr-26 (idx 0) and May-26 (idx 1)
+      if (idx === 0) {
+        actual[m] = parseFloat((achievedTotal * 0.40).toFixed(2));
+        efficiency[m] = planVal > 0 ? Math.round((actual[m] / planVal) * 100) : 0;
+      } else if (idx === 1) {
+        actual[m] = parseFloat((achievedTotal * 0.60).toFixed(2));
+        efficiency[m] = planVal > 0 ? Math.round((actual[m] / planVal) * 100) : 0;
+      } else {
+        actual[m] = 0;
+        efficiency[m] = 0;
+      }
+    });
+
+    return {
+      name: p.name,
+      planned,
+      actual,
+      efficiency
+    };
+  });
+
+  // Calculate portfolio totals for fallback
+  const portfolioTotalPlanned = {};
+  const portfolioTotalActual = {};
+  const portfolioTotalEfficiency = {};
+
+  months.forEach(m => {
+    const planSum = projectsList.reduce((sum, p) => sum + (p.planned[m] || 0), 0);
+    const actSum = projectsList.reduce((sum, p) => sum + (p.actual[m] || 0), 0);
+    portfolioTotalPlanned[m] = parseFloat(planSum.toFixed(2));
+    portfolioTotalActual[m] = parseFloat(actSum.toFixed(2));
+    portfolioTotalEfficiency[m] = planSum > 0 ? Math.round((actSum / planSum) * 100) : 0;
+  });
+
+  return {
+    months,
+    portfolioTotal: {
+      name: 'Portfolio Total',
+      planned: portfolioTotalPlanned,
+      actual: portfolioTotalActual,
+      efficiency: portfolioTotalEfficiency
+    },
+    projects: projectsList
+  };
 }

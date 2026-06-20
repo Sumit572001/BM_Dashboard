@@ -396,9 +396,9 @@ const PortfolioPieChart = ({ activeProjects, totalInventory, totalUnsold, avgCom
             align="right" 
             verticalAlign="middle" 
             iconType="square"
-            iconSize={8}
+            iconSize={11}
             wrapperStyle={{ 
-              fontSize: '9px', 
+              fontSize: '13px', 
               fontWeight: 800, 
               color: '#334155',
               paddingLeft: '15px'
@@ -478,9 +478,6 @@ export default function Overview() {
       {/* Page Title */}
       <motion.div variants={item} className="flex-shrink-0">
         <h2 className="text-2xl font-black text-nyati-navy">Dashboard Overview</h2>
-        <p className="text-slate-600 text-xs mt-1">
-          Consolidated snapshot across all sections — Sales, Outstanding, Construction & Portfolio.
-        </p>
       </motion.div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 flex-1 min-h-0">
