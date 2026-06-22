@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { getVal } from '../utils/dataHelpers';
 import AnimatedNumber from '../components/AnimatedNumber';
@@ -38,38 +38,163 @@ export default function Dashboard3() {
   // Toggle project in/out of selection
   const toggleProject = (name) => {
     setSelectedNames(prev => {
-      if (prev.includes(name)) {
-        const next = prev.filter(n => n !== name);
-        if (viewingName === name) {
-          if (next.length > 0) {
-            setViewingName(next[0]);
-            setActiveProjectName(next[0]);
-          } else {
-            setViewingName('');
-            setActiveProjectName('');
-          }
-        }
-        return next;
+      const isSelected = prev.includes(name);
+      let next;
+      if (isSelected) {
+        next = prev.filter(n => n !== name);
       } else {
-        setViewingName(name);
-        setActiveProjectName(name);
-        return [...prev, name];
+        next = [...prev, name];
       }
+
+      if (next.length > 1) {
+        setViewingName('Consolidated');
+        setActiveProjectName('');
+      } else if (next.length === 1) {
+        setViewingName(next[0]);
+        setActiveProjectName(next[0]);
+      } else {
+        setViewingName('');
+        setActiveProjectName('');
+      }
+
+      return next;
     });
   };
 
   // Switch active tab
   const handleTabClick = (name) => {
     setViewingName(name);
-    setActiveProjectName(name);
+    if (name === 'Consolidated') {
+      setActiveProjectName('');
+    } else {
+      setActiveProjectName(name);
+    }
   };
 
   const filteredList = processedProjects.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Project shown in detail panels
-  const displayProject = viewingName ? processedProjects.find(p => p.name === viewingName) : null;
+  // Project shown in detail panels (aggregated dynamically if viewing Consolidated or multiple selected)
+  const displayProject = useMemo(() => {
+    if (viewingName && viewingName !== 'Consolidated') {
+      const found = processedProjects.find(p => p.name === viewingName);
+      if (found) return found;
+    }
+
+    const targetProjects = processedProjects.filter(p => selectedNames.includes(p.name));
+    if (targetProjects.length === 0) return null;
+    if (targetProjects.length === 1) return targetProjects[0];
+
+    // Consolidated metrics aggregation
+    const totalUnits = targetProjects.reduce((s, p) => s + (p.totalUnits || 0), 0);
+    const soldToDate = targetProjects.reduce((s, p) => s + (p.soldToDate || 0), 0);
+    const balance = targetProjects.reduce((s, p) => s + (p.balance || 0), 0);
+    const soldMar31 = targetProjects.reduce((s, p) => s + (p.soldMar31 || 0), 0);
+    const unsoldApr1 = targetProjects.reduce((s, p) => s + (p.unsoldApr1 || 0), 0);
+    const monthSold = targetProjects.reduce((s, p) => s + (p.monthSold || 0), 0);
+    const periodSold = targetProjects.reduce((s, p) => s + (p.periodSold || 0), 0);
+
+    const budgetUnits = targetProjects.reduce((s, p) => s + (p.budgetUnits || 0), 0);
+    const salesEff = budgetUnits > 0 ? (soldToDate / budgetUnits) * 100 : 0;
+    const varianceUnits = budgetUnits - soldToDate;
+
+    const budgetArea = targetProjects.reduce((s, p) => s + (p.budgetArea || 0), 0);
+    const actualArea = targetProjects.reduce((s, p) => s + (p.actualArea || 0), 0);
+    const areaEff = budgetArea > 0 ? (actualArea / budgetArea) * 100 : 0;
+
+    const sumActualValueCr = targetProjects.reduce((s, p) => s + (p.actualValCr || 0), 0);
+    const actualRate = actualArea > 0 ? (sumActualValueCr * 10000000) / actualArea : 0;
+
+    const sumBudgetValueCr = targetProjects.reduce((s, p) => s + (p.budgetValCr || 0), 0);
+    const budgetRate = budgetArea > 0 ? (sumBudgetValueCr * 10000000) / budgetArea : 0;
+
+    const rateEff = budgetRate > 0 ? (actualRate / budgetRate) * 100 : 0;
+
+    const budgetCollection = targetProjects.reduce((s, p) => s + (p.budgetCollection || 0), 0);
+    const actualCollection = targetProjects.reduce((s, p) => s + (p.actualCollection || 0), 0);
+    const collectionEff = budgetCollection > 0 ? (actualCollection / budgetCollection) * 100 : 0;
+
+    const registeredUnits = targetProjects.reduce((s, p) => s + (p.registeredUnits || 0), 0);
+    const unregisteredUnits = targetProjects.reduce((s, p) => s + (p.unregisteredUnits || 0), 0);
+
+    const dueMilestone = targetProjects.reduce((s, p) => s + (p.dueMilestone || 0), 0);
+    const outstanding = targetProjects.reduce((s, p) => s + (p.outstanding || 0), 0);
+    const registeredOS = targetProjects.reduce((s, p) => s + (p.registeredOS || 0), 0);
+    const unregisteredOS = targetProjects.reduce((s, p) => s + (p.unregisteredOS || 0), 0);
+
+    const ageing = {
+      '0-30': targetProjects.reduce((s, p) => s + (p.ageing?.['0-30'] || 0), 0),
+      '31-60': targetProjects.reduce((s, p) => s + (p.ageing?.['31-60'] || 0), 0),
+      '61-90': targetProjects.reduce((s, p) => s + (p.ageing?.['61-90'] || 0), 0),
+      '91-120': targetProjects.reduce((s, p) => s + (p.ageing?.['91-120'] || 0), 0),
+      'gt120': targetProjects.reduce((s, p) => s + (p.ageing?.['gt120'] || 0), 0),
+    };
+    ageing.total = ageing['0-30'] + ageing['31-60'] + ageing['61-90'] + ageing['91-120'] + ageing['gt120'];
+
+    const constTarget = targetProjects.reduce((s, p) => s + (p.construction?.target || 0), 0);
+    const constAchieved = targetProjects.reduce((s, p) => s + (p.construction?.achieved || 0), 0);
+    const constVariance = constAchieved - constTarget;
+    const constEff = constTarget > 0 ? (constAchieved / constTarget) * 100 : 0;
+    const constComp = constTarget > 0 ? Math.min(100, Math.round((constAchieved / constTarget) * 100)) : 0;
+
+    const landOwner = targetProjects.reduce((s, p) => s + (p.funnel?.landOwner || 0), 0);
+    const premium = targetProjects.reduce((s, p) => s + (p.funnel?.premium || 0), 0);
+    const forSale = targetProjects.reduce((s, p) => s + (p.funnel?.forSale || 0), 0);
+    const sold = targetProjects.reduce((s, p) => s + (p.funnel?.sold || 0), 0);
+    const unsold = targetProjects.reduce((s, p) => s + (p.funnel?.unsold || 0), 0);
+
+    const buildings = targetProjects.flatMap(p => p.buildings || []);
+
+    return {
+      name: `Consolidated Portfolio (${targetProjects.length} Projects)`,
+      isConsolidated: true,
+      type: 'CONSOLIDATED',
+      totalUnits,
+      soldToDate,
+      balance,
+      soldMar31,
+      unsoldApr1,
+      monthSold,
+      periodSold,
+      budgetUnits,
+      salesEff,
+      varianceUnits,
+      budgetRate,
+      actualRate,
+      rateEff,
+      budgetArea,
+      actualArea,
+      areaEff,
+      budgetValCr: sumBudgetValueCr,
+      actualValCr: sumActualValueCr,
+      budgetCollection,
+      actualCollection,
+      collectionEff,
+      registeredUnits,
+      unregisteredUnits,
+      dueMilestone,
+      outstanding,
+      registeredOS,
+      unregisteredOS,
+      ageing,
+      construction: {
+        target: constTarget,
+        achieved: constAchieved,
+        variance: constVariance,
+        eff: constEff,
+        completion: constComp
+      },
+      funnel: {
+        landOwner,
+        premium,
+        forSale,
+        sold,
+        unsold
+      },
+      buildings
+    };
+  }, [viewingName, selectedNames, processedProjects]);
 
   if (processedProjects.length === 0) {
     return (
@@ -89,10 +214,12 @@ export default function Dashboard3() {
 
   // Build the list of buildings
   const buildingsText = displayProject
-    ? (displayProject.buildings || [])
+    ? (displayProject.isConsolidated
+      ? `${displayProject.buildings.length} wings/towers across selected projects`
+      : (displayProject.buildings || [])
         .map(b => b?.name ? b.name.replace(/\(.*\)/g, '').trim() : '')
         .filter(Boolean)
-        .join(', ')
+        .join(', '))
     : '';
 
   // Project Portfolio highlights based on displayProject
@@ -106,7 +233,9 @@ export default function Dashboard3() {
   const portfolioPoints = displayProject ? [
     {
       title: "Portfolio Configuration & Capacity",
-      text: `${displayProject.name} is configured as a ${displayProject.type === 'L' ? 'Luxury (3BHK, 4BHK, Villas)' : displayProject.type === 'C' ? 'Commercial (Shops & Corporate Offices)' : 'Residential (2BHK, 3BHK)'} development consisting of ${displayProject.buildings?.length || 3} structural blocks with ${(displayProject.totalUnits || 0).toLocaleString('en-IN')} total inventory units.`,
+      text: displayProject.isConsolidated
+        ? `The consolidated selection is a mixed development consisting of a total of ${displayProject.buildings?.length || 0} structural blocks with ${(displayProject.totalUnits || 0).toLocaleString('en-IN')} total inventory units.`
+        : `${displayProject.name} is configured as a ${displayProject.type === 'L' ? 'Luxury (3BHK, 4BHK, Villas)' : displayProject.type === 'C' ? 'Commercial (Shops & Corporate Offices)' : 'Residential (2BHK, 3BHK)'} development consisting of ${displayProject.buildings?.length || 3} structural blocks with ${(displayProject.totalUnits || 0).toLocaleString('en-IN')} total inventory units.`,
       status: 'info'
     },
     {
@@ -116,7 +245,9 @@ export default function Dashboard3() {
     },
     {
       title: "RERA Delivery Schedule & Timeline",
-      text: `The project has a RERA compliance completion target of 31-Dec-2026. With ${deliveryLeft} months remaining, engineering milestone timelines are currently aligned and on-track.`,
+      text: displayProject.isConsolidated
+        ? `The selected projects have RERA compliance completion targets. Engineering milestone timelines are actively monitored across all sites.`
+        : `The project has a RERA compliance completion target of 31-Dec-2026. With ${deliveryLeft} months remaining, engineering milestone timelines are currently aligned and on-track.`,
       status: deliveryLeft > 6 ? 'success' : 'warning'
     },
     {
@@ -135,7 +266,9 @@ export default function Dashboard3() {
     {
       type: 'success',
       subject: 'RERA Milestone Alignment',
-      text: `Time left to RERA delivery for ${displayProject.name} is ${deliveryLeft} months. Continue current engineering velocity to prevent statutory penalty risks.`
+      text: displayProject.isConsolidated
+        ? `Consolidated timeline check: Engineering schedules are aligned across selected projects. Keep tracking monthly milestones.`
+        : `Time left to RERA delivery for ${displayProject.name} is ${deliveryLeft} months. Continue current engineering velocity to prevent statutory penalty risks.`
     },
     {
       type: 'info',
@@ -178,6 +311,13 @@ export default function Dashboard3() {
     const safePct = Math.min(100, Math.max(0, pct || 0));
     return regCircumference - (safePct / 100) * regCircumference;
   };
+
+  const regPct = displayProject && displayProject.soldToDate > 0
+    ? Math.round((displayProject.registeredUnits / displayProject.soldToDate) * 100)
+    : 75; // fallback
+  const unregPct = displayProject && displayProject.soldToDate > 0
+    ? Math.max(0, 100 - regPct)
+    : 25; // fallback
 
   // Registration Aging Chart Data
   const ageingChartData = [
@@ -244,7 +384,11 @@ export default function Dashboard3() {
                       onClick={() => {
                         const all = processedProjects.map(p => p.name);
                         setSelectedNames(all);
-                        if (all.length > 0) { setViewingName(all[0]); setActiveProjectName(all[0]); }
+                        if (all.length > 0) {
+                          const defaultView = all.length > 1 ? 'Consolidated' : all[0];
+                          setViewingName(defaultView);
+                          setActiveProjectName(all.length > 1 ? '' : all[0]);
+                        }
                       }}
                       className="font-bold text-nyati-orange"
                     >Select All</button>
@@ -278,6 +422,21 @@ export default function Dashboard3() {
         {/* Selected project tabs */}
         {selectedNames.length > 0 && (
           <div className="flex flex-wrap gap-2">
+            {selectedNames.length > 1 && (
+              <div
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                  viewingName === 'Consolidated'
+                    ? 'bg-nyati-orange text-white border-nyati-orange shadow-sm'
+                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-nyati-navy'
+                }`}
+                onClick={() => handleTabClick('Consolidated')}
+              >
+                <span>Consolidated View</span>
+                <span className="text-[9px] font-black px-1 py-0.5 rounded bg-white/20 text-white">
+                  ALL
+                </span>
+              </div>
+            )}
             {selectedNames.map(name => {
               const proj = processedProjects.find(p => p.name === name);
               const isViewing = name === viewingName;
@@ -551,12 +710,12 @@ export default function Dashboard3() {
                           cx="40" cy="40" r={regRadius} stroke="#38A169" strokeWidth={regStrokeWidth} fill="transparent"
                           strokeDasharray={regCircumference}
                           initial={{ strokeDashoffset: regCircumference }}
-                          animate={{ strokeDashoffset: getRegStrokeOffset(displayProject ? 75 : 0) }}
+                          animate={{ strokeDashoffset: getRegStrokeOffset(displayProject ? regPct : 0) }}
                           transition={{ duration: 1.2, ease: 'easeOut' }}
                         />
                       </svg>
                       <span className="absolute inset-0 flex items-center justify-center text-[13px] font-extrabold text-nyati-success">
-                        {displayProject ? '75%' : '-'}
+                        {displayProject ? `${regPct}%` : '-'}
                       </span>
                     </div>
                     <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block">Registered</span>
@@ -574,12 +733,12 @@ export default function Dashboard3() {
                           cx="40" cy="40" r={regRadius} stroke="#E53E3E" strokeWidth={regStrokeWidth} fill="transparent"
                           strokeDasharray={regCircumference}
                           initial={{ strokeDashoffset: regCircumference }}
-                          animate={{ strokeDashoffset: getRegStrokeOffset(displayProject ? 25 : 0) }}
+                          animate={{ strokeDashoffset: getRegStrokeOffset(displayProject ? unregPct : 0) }}
                           transition={{ duration: 1.2, ease: 'easeOut' }}
                         />
                       </svg>
                       <span className="absolute inset-0 flex items-center justify-center text-[13px] font-extrabold text-nyati-danger">
-                        {displayProject ? '25%' : '-'}
+                        {displayProject ? `${unregPct}%` : '-'}
                       </span>
                     </div>
                     <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block">Unreg.</span>

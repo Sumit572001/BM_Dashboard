@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useMemo } from 'react';
-import { processRawData, filterData, getConstructionMonthlyData } from '../utils/dataHelpers';
+import { processRawData, filterData, getConstructionMonthlyData, getPortfolioKpiOverrides } from '../utils/dataHelpers';
 
 const DataContext = createContext();
 
@@ -48,6 +48,12 @@ export const DataProvider = ({ children }) => {
     return getConstructionMonthlyData(rawData, filteredProjects);
   }, [rawData, filteredProjects]);
 
+  // Extract explicit KPI overrides from the uploaded "Overview" sheet (if present)
+  // This allows values like "In Process = 10" to be read directly from the Excel
+  const portfolioKpiOverrides = useMemo(() => {
+    return getPortfolioKpiOverrides(rawData);
+  }, [rawData]);
+
   // Handle data upload
   const uploadData = (parsedArray, name) => {
     setIsLoading(true);
@@ -91,6 +97,7 @@ export const DataProvider = ({ children }) => {
       activeProjectName,
       setActiveProjectName,
       constructionMonthly,
+      portfolioKpiOverrides,
       filters,
       updateFilters,
       uploadData,

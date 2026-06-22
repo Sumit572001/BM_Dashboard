@@ -3,7 +3,7 @@ import { useData } from '../context/DataContext';
 import { calculateGrandTotals } from '../utils/dataHelpers';
 import AnimatedNumber from '../components/AnimatedNumber';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid, Treemap } from 'recharts';
-import { ChevronDown, Calendar, Percent, Landmark, HelpCircle, X, CheckCircle, Layers, AlertTriangle, PieChart } from 'lucide-react';
+import { ChevronDown, Calendar, Percent, Landmark, HelpCircle, X, CheckCircle, Layers, AlertTriangle, PieChart, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Dashboard2() {
@@ -12,6 +12,51 @@ export default function Dashboard2() {
   const [activeMetric, setActiveMetric] = useState('value'); // 'unit' | 'value' | 'collection' | 'registration'
   const [ageingView, setAgeingView] = useState('treemap'); // 'table' | 'treemap'
   const [showTreemap, setShowTreemap] = useState(true);
+
+  // Sorting state for Consolidated Project Outstanding table
+  const [sortColumn, setSortColumn] = useState('name');
+  const [sortDirection, setSortDirection] = useState('asc');
+
+  const handleSort = (columnKey) => {
+    if (sortColumn === columnKey) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(columnKey);
+      setSortDirection('asc');
+    }
+  };
+
+  const renderSortIcon = (columnKey) => {
+    if (sortColumn !== columnKey) {
+      return <ArrowUpDown className="w-3 h-3 text-slate-400 shrink-0 select-none opacity-40 hover:opacity-100" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="w-3.5 h-3.5 text-nyati-orange shrink-0 select-none" />
+      : <ArrowDown className="w-3.5 h-3.5 text-nyati-orange shrink-0 select-none" />;
+  };
+
+  // Sort projects dynamically before rendering rows
+  const sortedProjects = React.useMemo(() => {
+    const projects = [...filteredProjects];
+    if (!sortColumn) return projects;
+
+    projects.sort((a, b) => {
+      let valA = sortColumn === 'name' ? a.name : (a[sortColumn] || 0);
+      let valB = sortColumn === 'name' ? b.name : (b[sortColumn] || 0);
+
+      if (typeof valA === 'string') {
+        return sortDirection === 'asc' 
+          ? valA.localeCompare(valB) 
+          : valB.localeCompare(valA);
+      } else {
+        return sortDirection === 'asc' 
+          ? valA - valB 
+          : valB - valA;
+      }
+    });
+
+    return projects;
+  }, [filteredProjects, sortColumn, sortDirection]);
 
   useEffect(() => {
     setShowTreemap(ageingView === 'treemap');
@@ -344,17 +389,52 @@ export default function Dashboard2() {
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100 shadow-sm">
-                <th className="px-6 py-4">Project</th>
-                <th className="px-4 py-4 text-right">Sold Value (₹ Cr)</th>
-                <th className="px-4 py-4 text-right">Due as per Milestone (₹ Cr)</th>
-                <th className="px-4 py-4 text-right">Total Collection (₹ Cr)</th>
-                <th className="px-4 py-4 text-center">Total Outstanding (₹ Cr)</th>
-                <th className="px-4 py-4 text-right">Registered O/S</th>
-                <th className="px-6 py-4 text-right">Unregistered O/S</th>
+                <th className="px-6 py-4 cursor-pointer select-none hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('name')}>
+                  <div className="flex items-center gap-1.5">
+                    <span>Project</span>
+                    {renderSortIcon('name')}
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('actualValCr')}>
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span>Sold Value (₹ Cr)</span>
+                    {renderSortIcon('actualValCr')}
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('dueMilestone')}>
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span>Due as per Milestone (₹ Cr)</span>
+                    {renderSortIcon('dueMilestone')}
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('actualCollection')}>
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span>Total Collection (₹ Cr)</span>
+                    {renderSortIcon('actualCollection')}
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-center cursor-pointer select-none hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('outstanding')}>
+                  <div className="flex items-center justify-center gap-1.5">
+                    <span>Total Outstanding (₹ Cr)</span>
+                    {renderSortIcon('outstanding')}
+                  </div>
+                </th>
+                <th className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('registeredOS')}>
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span>Registered O/S</span>
+                    {renderSortIcon('registeredOS')}
+                  </div>
+                </th>
+                <th className="px-6 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('unregisteredOS')}>
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span>Unregistered O/S</span>
+                    {renderSortIcon('unregisteredOS')}
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 font-medium text-slate-600">
-              {filteredProjects.map((p, index) => (
+              {sortedProjects.map((p, index) => (
                 <tr key={p.name} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-3.5 font-bold text-slate-700">{p.name}</td>
                   <td className="px-4 py-3.5 text-right">₹{p.actualValCr.toFixed(2)}</td>

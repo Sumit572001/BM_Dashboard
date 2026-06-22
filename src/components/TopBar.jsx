@@ -15,6 +15,10 @@ export default function TopBar({ toggleSidebar }) {
     // 1. Calculate totals for Overview sheet
     const totals = calculateGrandTotals(filteredProjects);
     const avgCompletion = filteredProjects.reduce((s, p) => s + (p.construction?.completion || 0), 0) / (filteredProjects.length || 1);
+    // Project status breakdown by construction completion %
+    const newlyStartedCount     = filteredProjects.filter(p => (p.construction?.completion || 0) < 25).length;
+    const inProcessCount        = filteredProjects.filter(p => (p.construction?.completion || 0) >= 25 && (p.construction?.completion || 0) <= 70).length;
+    const nearingCompletionCount = filteredProjects.filter(p => (p.construction?.completion || 0) > 70).length;
 
     const overviewData = [
       { 'Dashboard Section': 'Sales & Collection', 'Key KPI Metric': 'Units Sold', 'Target/Budget': totals.budgetUnits, 'Actual/Achieved': totals.soldToDate, 'Efficiency %': `${(totals.budgetUnits > 0 ? (totals.soldToDate / totals.budgetUnits) * 100 : 0).toFixed(1)}%` },
@@ -35,7 +39,10 @@ export default function TopBar({ toggleSidebar }) {
       { 'Dashboard Section': 'Project Portfolio', 'Key KPI Metric': 'Active Projects', 'Target/Budget': '-', 'Actual/Achieved': filteredProjects.length, 'Efficiency %': 'On Target' },
       { 'Dashboard Section': 'Project Portfolio', 'Key KPI Metric': 'Total Inventory', 'Target/Budget': '-', 'Actual/Achieved': totals.totalUnits, 'Efficiency %': 'Progressing' },
       { 'Dashboard Section': 'Project Portfolio', 'Key KPI Metric': 'Unsold Balance', 'Target/Budget': '-', 'Actual/Achieved': totals.balance, 'Efficiency %': 'Progressing' },
-      { 'Dashboard Section': 'Project Portfolio', 'Key KPI Metric': 'Avg Completion', 'Target/Budget': '-', 'Actual/Achieved': `${avgCompletion.toFixed(1)}%`, 'Efficiency %': 'Progressing' }
+      { 'Dashboard Section': 'Project Portfolio', 'Key KPI Metric': 'Avg Completion', 'Target/Budget': '-', 'Actual/Achieved': `${avgCompletion.toFixed(1)}%`, 'Efficiency %': 'Progressing' },
+      { 'Dashboard Section': 'Project Portfolio', 'Key KPI Metric': 'In Process', 'Target/Budget': '-', 'Actual/Achieved': inProcessCount, 'Efficiency %': `${inProcessCount} projects` },
+      { 'Dashboard Section': 'Project Portfolio', 'Key KPI Metric': 'Nearing Completion', 'Target/Budget': '-', 'Actual/Achieved': nearingCompletionCount, 'Efficiency %': `${nearingCompletionCount} projects` },
+      { 'Dashboard Section': 'Project Portfolio', 'Key KPI Metric': 'Newly Started', 'Target/Budget': '-', 'Actual/Achieved': newlyStartedCount, 'Efficiency %': `${newlyStartedCount} projects` }
     ];
 
     // 2. Sales & Collection Sheet

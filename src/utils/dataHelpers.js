@@ -53,7 +53,58 @@ export function cleanProjName(name) {
   return name.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').replace(/\s*\([RLC]\)\s*/g, '').trim().toLowerCase();
 }
 
+/**
+ * Reads the "Overview" sheet (if present) from the uploaded Excel workbook and
+ * returns explicit Project Portfolio KPI values.
+ * This is used so that when the user uploads their own Excel with exact counts
+ * (e.g. "In Process = 10"), those values are shown on the dashboard as-is,
+ * rather than being re-computed from construction.completion thresholds.
+ *
+ * Returns an object like:
+ *   { activeProjects: number|null, inProcess: number|null, nearingCompletion: number|null, newlyStarted: number|null }
+ * Any field is null if not found in the sheet.
+ */
+export function getPortfolioKpiOverrides(rawData) {
+  const defaults = { activeProjects: null, inProcess: null, nearingCompletion: null, newlyStarted: null };
+  if (!rawData || Array.isArray(rawData)) return defaults;
+
+  // Look for a sheet named "Overview" (case-insensitive)
+  const overviewKey = Object.keys(rawData).find(k => k.trim().toLowerCase() === 'overview');
+  if (!overviewKey) return defaults;
+
+  const overviewRows = rawData[overviewKey];
+  if (!Array.isArray(overviewRows) || overviewRows.length === 0) return defaults;
+
+  const result = { ...defaults };
+
+  overviewRows.forEach(row => {
+    // Determine the dashboard section and metric name from the row
+    const sectionKey = Object.keys(row).find(k => k.trim().replace(/\s+/g, ' ').toLowerCase() === 'dashboard section');
+    const metricKey  = Object.keys(row).find(k => k.trim().replace(/\s+/g, ' ').toLowerCase() === 'key kpi metric');
+    const valueKey   = Object.keys(row).find(k => k.trim().replace(/\s+/g, ' ').toLowerCase() === 'actual/achieved');
+
+    if (!sectionKey || !metricKey || !valueKey) return;
+
+    const section = (row[sectionKey] || '').toString().trim().toLowerCase();
+    const metric  = (row[metricKey]  || '').toString().trim().toLowerCase();
+    const rawVal  = row[valueKey];
+
+    if (section !== 'project portfolio') return;
+
+    const numVal = rawVal !== null && rawVal !== '' ? parseFloat(String(rawVal).replace(/,/g, '')) : NaN;
+    if (isNaN(numVal)) return;
+
+    if (metric === 'active projects') result.activeProjects = numVal;
+    else if (metric === 'in process') result.inProcess = numVal;
+    else if (metric === 'nearing completion') result.nearingCompletion = numVal;
+    else if (metric === 'newly started') result.newlyStarted = numVal;
+  });
+
+  return result;
+}
+
 let lastRawData = null;
+
 
 // Process raw array of objects or multi-sheet workbook into structured project data
 export function processRawData(rawData) {
@@ -887,6 +938,7 @@ export function getConstructionMonthlyData(rawData, processedProjects) {
             
             const newProj = {
               name: pName,
+              type: getProjectType(pName),
               planned: {},
               actual: {},
               efficiency: {}
@@ -953,10 +1005,11 @@ export function getConstructionMonthlyData(rawData, processedProjects) {
     const efficiency = {};
 
     months.forEach((m, idx) => {
-      // Planned distribution: bell curve-ish
+      // Planned distribution: bell curve-ish, summing to exactly 1.00
       let factor = 0.08;
-      if (idx >= 3 && idx <= 8) factor = 0.10; // Peak months
-      if (idx === 11 || idx === 0) factor = 0.06; // Start/End
+      if (idx === 0 || idx === 11) factor = 0.06;
+      else if (idx === 3 || idx === 4 || idx === 7 || idx === 8) factor = 0.09;
+      else if (idx === 5 || idx === 6) factor = 0.10;
       const planVal = parseFloat((targetTotal * factor).toFixed(2));
       planned[m] = planVal;
 
@@ -975,6 +1028,7 @@ export function getConstructionMonthlyData(rawData, processedProjects) {
 
     return {
       name: p.name,
+      type: p.type,
       planned,
       actual,
       efficiency

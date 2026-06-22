@@ -7,7 +7,8 @@ import {
   LayoutDashboard, BarChart3, Layers,
   TrendingUp, TrendingDown, AlertTriangle, CheckCircle,
   IndianRupee, ClipboardList, Maximize, CreditCard,
-  ArrowRight, Activity, Landmark, Hammer
+  ArrowRight, Activity, Landmark, Hammer,
+  Zap, Clock, Target, Play
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, Tooltip, XAxis, YAxis, ReferenceLine, LineChart, Line, CartesianGrid, AreaChart, Area, Legend } from 'recharts';
@@ -326,17 +327,19 @@ const ConstructionRowChart = ({ target, achieved, variance, efficiency }) => {
   );
 };
 
-// Project Portfolio Pie chart representing all 4 KPIs (with inside percentage labels and right-aligned legend matching user mockup)
-const PortfolioPieChart = ({ activeProjects, totalInventory, totalUnsold, avgCompletion }) => {
-  const data = [
-    { name: 'Active Projects', value: activeProjects, display: `${activeProjects} Projects`, fill: '#1f77b4' }, // D3 Blue
-    { name: 'Total Inventory', value: totalInventory, display: `${totalInventory.toLocaleString('en-IN')} Units`, fill: '#cbd5e1' }, // Default gray (or we can use Red: #d62728, but let's use red)
-    { name: 'Unsold Balance', value: totalUnsold, display: `${totalUnsold.toLocaleString('en-IN')} Units`, fill: '#ff7f0e' }, // D3 Orange
-    { name: 'Avg Completion', value: parseFloat(avgCompletion.toFixed(1)), display: `${avgCompletion.toFixed(1)}%`, fill: '#2ca02c' } // D3 Green
+// Project Portfolio Pie chart — now shows project status breakdown (Newly Started / In Process / Nearing Completion)
+const PortfolioPieChart = ({ activeProjects, newlyStarted, inProcess, nearingCompletion, totalInventory, totalUnsold, avgCompletion }) => {
+  // Show project status breakdown in the pie chart
+  const statusData = [
+    { name: 'Newly Started', value: newlyStarted, display: `${newlyStarted} Projects`, fill: '#6366f1' },
+    { name: 'In Process', value: inProcess, display: `${inProcess} Projects`, fill: '#f97316' },
+    { name: 'Nearing Completion', value: nearingCompletion, display: `${nearingCompletion} Projects`, fill: '#14b8a6' },
   ];
-
-  // Adjust Total Inventory color to Red to match D3 style
-  data[1].fill = '#d62728';
+  const data = statusData.filter(d => d.value > 0);
+  // If no projects have status, fall back to showing activeProjects as a single segment
+  if (data.length === 0 && activeProjects > 0) {
+    data.push({ name: 'Active Projects', value: activeProjects, display: `${activeProjects} Projects`, fill: '#1f77b4' });
+  }
 
   const RADIAN = Math.PI / 180;
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
@@ -411,7 +414,7 @@ const PortfolioPieChart = ({ activeProjects, totalInventory, totalUnsold, avgCom
 };
 
 export default function Overview() {
-  const { filteredProjects } = useData();
+  const { filteredProjects, portfolioKpiOverrides } = useData();
   const navigate = useNavigate();
   const totals = calculateGrandTotals(filteredProjects);
 
@@ -439,6 +442,19 @@ export default function Overview() {
   const avgCompletion = filteredProjects.length > 0
     ? filteredProjects.reduce((s, p) => s + (p.construction.completion || 0), 0) / filteredProjects.length
     : 0;
+
+  // --- Project status breakdown ---
+  // First compute from construction.completion thresholds as a fallback
+  const newlyStartedCount_computed  = filteredProjects.filter(p => (p.construction.completion || 0) < 25).length;
+  const inProcessCount_computed     = filteredProjects.filter(p => (p.construction.completion || 0) >= 25 && (p.construction.completion || 0) <= 70).length;
+  const nearingCompletionCount_computed = filteredProjects.filter(p => (p.construction.completion || 0) > 70).length;
+
+  // If the uploaded Excel "Overview" sheet has explicit values, prefer those (they reflect what the user entered)
+  const inProcessCount        = portfolioKpiOverrides?.inProcess        != null ? portfolioKpiOverrides.inProcess        : inProcessCount_computed;
+  const nearingCompletionCount = portfolioKpiOverrides?.nearingCompletion != null ? portfolioKpiOverrides.nearingCompletion : nearingCompletionCount_computed;
+  const newlyStartedCount     = portfolioKpiOverrides?.newlyStarted      != null ? portfolioKpiOverrides.newlyStarted      : newlyStartedCount_computed;
+  // Active Projects: use override if available, else total count of filteredProjects
+  const activeProjectsCount   = portfolioKpiOverrides?.activeProjects     != null ? portfolioKpiOverrides.activeProjects     : filteredProjects.length;
 
   const getEffColor = (eff) => {
     if (eff >= 100) return 'text-emerald-600';
@@ -740,45 +756,51 @@ export default function Overview() {
           </div>
 
           <div className="flex-1 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100 p-4 gap-4 min-h-0 items-center justify-between">
-            {/* Left Side: Stacking list of 4 metric rows */}
-            <div className="w-full md:w-[280px] xl:w-[320px] flex-shrink-0 flex flex-col gap-1.5 justify-center">
+            {/* Left Side: Stacking list of metric rows — core KPIs + status breakdown */}
+            <div className="w-full md:w-[280px] xl:w-[320px] flex-shrink-0 flex flex-col gap-1 justify-center">
+              {/* Core KPIs */}
               <OverviewMetricRow 
                 label="Active Projects" 
-                actual={filteredProjects.length} 
+                actual={activeProjectsCount} 
                 decimals={0} 
                 status="On Target" 
                 icon={Activity} 
               />
+              {/* Project Status Breakdown */}
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-1 pt-0.5 select-none"></p>
               <OverviewMetricRow 
-                label="Total Inventory" 
-                actual={totalInventory} 
-                suffix=" units" 
+                label="In Process" 
+                actual={inProcessCount} 
+                suffix=" projects" 
                 decimals={0} 
-                status="Progressing" 
-                icon={ClipboardList} 
+                status={inProcessCount > 0 ? 'Progressing' : 'On Target'} 
+                icon={Clock} 
               />
               <OverviewMetricRow 
-                label="Unsold Balance" 
-                actual={totalUnsold} 
-                suffix=" units" 
+                label="Nearing Completion" 
+                actual={nearingCompletionCount} 
+                suffix=" projects" 
                 decimals={0} 
-                status="Progressing" 
-                icon={TrendingDown} 
+                status={nearingCompletionCount > 0 ? 'On Target' : 'Progressing'} 
+                icon={Target} 
               />
               <OverviewMetricRow 
-                label="Avg Completion" 
-                actual={avgCompletion} 
-                suffix="%" 
-                decimals={1} 
-                status={avgCompletion >= 90 ? 'On Target' : avgCompletion >= 60 ? 'Progressing' : 'Critical'} 
-                icon={CheckCircle} 
+                label="Newly Started" 
+                actual={newlyStartedCount} 
+                suffix=" projects" 
+                decimals={0} 
+                status={newlyStartedCount > 0 ? 'Progressing' : 'On Target'} 
+                icon={Play} 
               />
             </div>
 
-            {/* Right Side: Portfolio Pie Chart */}
+            {/* Right Side: Portfolio Pie Chart — project status breakdown */}
             <div className="flex-1 w-full h-full min-h-0 md:pl-4">
               <PortfolioPieChart 
-                activeProjects={filteredProjects.length} 
+                activeProjects={activeProjectsCount} 
+                newlyStarted={newlyStartedCount}
+                inProcess={inProcessCount}
+                nearingCompletion={nearingCompletionCount}
                 totalInventory={totalInventory} 
                 totalUnsold={totalUnsold} 
                 avgCompletion={avgCompletion} 
