@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { parseCSV } from '../utils/parseCSV';
 import { parseExcel } from '../utils/parseExcel';
@@ -7,6 +8,7 @@ import { Upload, FileSpreadsheet, Download, RefreshCw, AlertCircle } from 'lucid
 
 export default function UploadZone() {
   const { uploadData, isLoading, setIsLoading } = useData();
+  const navigate = useNavigate();
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
@@ -33,21 +35,41 @@ export default function UploadZone() {
         throw new Error('The file appears to be empty.');
       }
 
+      const keys = !Array.isArray(parsedData) ? Object.keys(parsedData) : [];
+      const hasSalesSheet = keys.some(k => k.toLowerCase().includes('sales'));
+      const hasOutstandingSheet = keys.some(k => k.toLowerCase().includes('outstanding'));
+      const hasBudgetSheet = keys.some(k => k.toLowerCase().includes('budget') || k.toLowerCase().includes('construction'));
+      const hasPortfolioSheet = keys.some(k => k.toLowerCase().includes('portfolio') || k.toLowerCase().includes('building'));
+
       const isMultiSheet = !Array.isArray(parsedData) && (
-        parsedData['Sales & Collection'] || 
-        parsedData['Outstanding'] || 
-        parsedData['Construction Budget'] || 
-        parsedData['Project Portfolio Details']
+        hasSalesSheet || hasOutstandingSheet || hasBudgetSheet || hasPortfolioSheet
       );
 
       if (isMultiSheet) {
-        const checkSheet = parsedData['Sales & Collection'] || parsedData['Project Portfolio Details'] || [];
+        const salesKey = keys.find(k => k.toLowerCase().includes('sales'));
+        const portfolioKey = keys.find(k => k.toLowerCase().includes('portfolio') || k.toLowerCase().includes('building'));
+        const checkSheet = parsedData[salesKey] || parsedData[portfolioKey] || [];
         if (checkSheet.length === 0) {
           throw new Error('Multi-sheet file does not contain expected data.');
         }
-        const hasProjectColumn = Object.keys(checkSheet[0] || {}).some(k => 
-          k.toLowerCase().includes('project') || k.toLowerCase().includes('building')
-        );
+        
+        const firstRow = checkSheet[0] || {};
+        let hasProjectColumn = false;
+        if (Array.isArray(firstRow)) {
+          hasProjectColumn = firstRow.some(cell => 
+            cell && (String(cell).toLowerCase().includes('project') || String(cell).toLowerCase().includes('building') || String(cell).toLowerCase().includes('sr. no.'))
+          );
+          if (!hasProjectColumn && checkSheet[1] && Array.isArray(checkSheet[1])) {
+            hasProjectColumn = checkSheet[1].some(cell => 
+              cell && (String(cell).toLowerCase().includes('project') || String(cell).toLowerCase().includes('building') || String(cell).toLowerCase().includes('sr. no.'))
+            );
+          }
+        } else {
+          hasProjectColumn = Object.keys(firstRow).some(k => 
+            k.toLowerCase().includes('project') || k.toLowerCase().includes('building')
+          );
+        }
+
         if (!hasProjectColumn) {
           throw new Error('File columns do not match expected Nyati MIS format.');
         }
@@ -66,6 +88,7 @@ export default function UploadZone() {
       }
 
       uploadData(parsedData, file.name);
+      navigate('/');
     } catch (err) {
       console.error(err);
       setError(err.message || 'An error occurred while parsing the file.');
@@ -108,6 +131,7 @@ export default function UploadZone() {
     try {
       const data = await parseCSV(sampleCSVData);
       uploadData(data, 'nyati_sample_mis_internal.csv');
+      navigate('/');
     } catch (err) {
       setError('Failed to load sample data.');
     } finally {

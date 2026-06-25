@@ -1,14 +1,13 @@
 import React, { useRef } from 'react';
 import { useData } from '../context/DataContext';
-import { cleanProjName } from '../utils/dataHelpers';
+import { cleanProjName, getQuarterFromMonth } from '../utils/dataHelpers';
 import { Hammer, AlertTriangle, PieChart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
   ResponsiveContainer,
-  BarChart,
+  ComposedChart,
   Bar,
-  AreaChart,
-  Area,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -301,9 +300,9 @@ export default function ConstructionBudget() {
     'Oct-26', 'Nov-26', 'Dec-26', 'Jan-27', 'Feb-27', 'Mar-27'
   ];
 
-  // 3.5 Filter months list based on date filters
+  // 3.5 Filter months list based on date filters and quarter filters
   const activeMonths = React.useMemo(() => {
-    if (!filters || (!filters.dateFrom && !filters.dateTo)) return months;
+    if (!filters) return months;
 
     const startLimit = filters.dateFrom ? new Date(filters.dateFrom) : new Date('2000-01-01');
     const endLimit = filters.dateTo ? new Date(filters.dateTo) : new Date('2099-12-31');
@@ -314,12 +313,25 @@ export default function ConstructionBudget() {
     };
 
     const filtered = months.filter(mStr => {
+      // 1. Date range filter
       const [mon, yrStr] = mStr.split('-');
       const yr = 2000 + parseInt(yrStr, 10);
       const monthIdx = monthsMap[mon];
       const monthStart = new Date(yr, monthIdx, 1);
       const monthEnd = new Date(yr, monthIdx + 1, 0, 23, 59, 59, 999);
-      return monthStart <= endLimit && monthEnd >= startLimit;
+      const inDateRange = monthStart <= endLimit && monthEnd >= startLimit;
+
+      if (!inDateRange) return false;
+
+      // 2. Quarter filter
+      if (filters.selectedQuarters && filters.selectedQuarters.length > 0) {
+        const q = getQuarterFromMonth(mStr);
+        if (q && !filters.selectedQuarters.includes(q)) {
+          return false;
+        }
+      }
+
+      return true;
     });
 
     return filtered.length > 0 ? filtered : months;
@@ -444,17 +456,16 @@ export default function ConstructionBudget() {
     const reportingIndex = months.indexOf(latestMonthWithActual);
     return monthIndex > reportingIndex;
   };
-
   const isReportingMonth = (monthStr) => monthStr === latestMonthWithActual;
 
-  const hasDateFilter = !!(filters?.dateFrom || filters?.dateTo);
+  const hasRangeFilter = !!(filters?.dateFrom || filters?.dateTo || (filters?.selectedQuarters && filters.selectedQuarters.length < 4));
 
-  const card1Title = hasDateFilter ? "Planned in Range (₹ Cr)" : "FY Planned (₹ Cr)";
-  const card1Subtitle = hasDateFilter
+  const card1Title = hasRangeFilter ? "Planned in Range (₹ Cr)" : "FY Planned (₹ Cr)";
+  const card1Subtitle = hasRangeFilter
     ? `${activeMonths[0]} to ${activeMonths[activeMonths.length - 1]}`
     : `${months[0]} to ${months[months.length - 1]}`;
 
-  const card2Title = hasDateFilter ? "Actual in Range (₹ Cr)" : "Actual to Date (₹ Cr)";
+  const card2Title = hasRangeFilter ? "Actual in Range (₹ Cr)" : "Actual to Date (₹ Cr)";
 
   const latestActiveActualMonth = React.useMemo(() => {
     const reportingIndex = months.indexOf(latestMonthWithActual);
@@ -467,14 +478,13 @@ export default function ConstructionBudget() {
   }, [activeMonths, months, latestMonthWithActual]);
 
   const card2Subtitle = React.useMemo(() => {
-    if (!hasDateFilter) return `Through ${latestMonthWithActual}`;
+    if (!hasRangeFilter) return `Through ${latestMonthWithActual}`;
     if (!latestActiveActualMonth) return "No actual data in selected range";
     const firstActiveMonth = activeMonths[0];
     if (firstActiveMonth === latestActiveActualMonth) return `For ${firstActiveMonth}`;
     return `${firstActiveMonth} to ${latestActiveActualMonth}`;
-  }, [hasDateFilter, activeMonths, latestMonthWithActual, latestActiveActualMonth]);
+  }, [hasRangeFilter, activeMonths, latestMonthWithActual, latestActiveActualMonth]);
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     show: { opacity: 1, transition: { staggerChildren: 0.1 } }
@@ -528,62 +538,36 @@ export default function ConstructionBudget() {
           </div>
         </div>
 
-        {/* Right Column: Charts */}
-        <div className="xl:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Chart 1: Monthly Progress */}
-          <div className="bg-white rounded-3xl p-6 shadow-premium border border-slate-100 flex flex-col justify-between h-[400px]">
-            <div className="mb-4">
-              <h4 className="font-extrabold text-nyati-navy text-sm">Monthly Progress — Plan vs Actual (₹ Cr)</h4>
-            </div>
-            <div className="w-full flex-1">
-              <MountedResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 10, right: 5, left: -25, bottom: 35 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" interval={0} angle={-45} textAnchor="end" height={60}
-                    tick={{ fill: '#94a3b8', fontSize: 8, fontWeight: 500 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 500 }} axisLine={false} tickLine={false} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend verticalAlign="top" height={36} iconType="rect" iconSize={12} tick={{ fontSize: 11, fontWeight: 600 }} />
-                  <Bar dataKey="Planned" name="Planned" fill="#5570f2" radius={[4, 4, 0, 0]} maxBarSize={24} />
-                  <Bar dataKey="Actual" name="Actual" fill="#0d9488" radius={[4, 4, 0, 0]} maxBarSize={24} />
-                </BarChart>
-              </MountedResponsiveContainer>
-            </div>
+        {/* Right Column: Merged Chart */}
+        <div className="xl:col-span-3 bg-white rounded-3xl p-6 shadow-premium border border-slate-100 flex flex-col justify-between h-[400px]">
+          <div className="mb-4">
+            <h4 className="font-extrabold text-nyati-navy text-sm">Monthly & Cumulative Progress — Plan vs Actual (₹ Cr)</h4>
+            <p className="text-[10px] text-slate-400 font-bold mt-0.5">Bars: Monthly (Left Axis) | Lines: Cumulative (Right Axis)</p>
           </div>
-
-          {/* Chart 2: Cumulative Progress */}
-          <div className="bg-white rounded-3xl p-6 shadow-premium border border-slate-100 flex flex-col justify-between h-[400px]">
-            <div className="mb-4">
-              <h4 className="font-extrabold text-nyati-navy text-sm">Cumulative Progress — Plan vs Actual (₹ Cr)</h4>
-            </div>
-            <div className="w-full flex-1">
-              <MountedResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 10, right: 5, left: -20, bottom: 35 }}>
-                  <defs>
-                    <linearGradient id="colorPlanned" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.08} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
-                    </linearGradient>
-                    <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.08} />
-                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0.0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" interval={0} angle={-45} textAnchor="end" height={60}
-                    tick={{ fill: '#94a3b8', fontSize: 8, fontWeight: 500 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 500 }} axisLine={false} tickLine={false} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend verticalAlign="top" height={36} iconType="rect" iconSize={12} tick={{ fontSize: 11, fontWeight: 600 }} />
-                  <Area type="monotone" dataKey="Cumulative Planned" name="Cumulative Planned"
-                    stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorPlanned)"
-                    dot={{ r: 3, strokeWidth: 1 }} activeDot={{ r: 5 }} />
-                  <Area type="monotone" dataKey="Cumulative Actual" name="Cumulative Actual"
-                    stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#colorActual)"
-                    dot={{ r: 3, strokeWidth: 1 }} activeDot={{ r: 5 }} connectNulls={false} />
-                </AreaChart>
-              </MountedResponsiveContainer>
-            </div>
+          <div className="w-full flex-1">
+            <MountedResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" interval={0} angle={-45} textAnchor="end" height={60}
+                  tick={{ fill: '#1e293b', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                
+                {/* Left Y-Axis for Monthly */}
+                <YAxis yAxisId="left" tick={{ fill: '#1e293b', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                
+                {/* Right Y-Axis for Cumulative */}
+                <YAxis yAxisId="right" orientation="right" tick={{ fill: '#1e293b', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />                
+                <Tooltip content={<CustomTooltip />} />
+                <Legend verticalAlign="top" height={36} iconType="rect" iconSize={12} tick={{ fontSize: 11, fontWeight: 600 }} />
+                
+                {/* Monthly Bars */}
+                <Bar yAxisId="left" dataKey="Planned" name="Monthly Planned" fill="#5570f2" radius={[4, 4, 0, 0]} maxBarSize={20} />
+                <Bar yAxisId="left" dataKey="Actual" name="Monthly Actual" fill="#0d9488" radius={[4, 4, 0, 0]} maxBarSize={20} />
+                
+                {/* Cumulative Lines */}
+                <Line yAxisId="right" type="monotone" dataKey="Cumulative Planned" name="Cumulative Planned" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 3, strokeWidth: 1 }} activeDot={{ r: 5 }} />
+                <Line yAxisId="right" type="monotone" dataKey="Cumulative Actual" name="Cumulative Actual" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 3, strokeWidth: 1 }} activeDot={{ r: 5 }} connectNulls={false} />
+              </ComposedChart>
+            </MountedResponsiveContainer>
           </div>
         </div>
       </motion.div>

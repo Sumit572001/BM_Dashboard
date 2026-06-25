@@ -10,8 +10,8 @@ export default function Sidebar({ isOpen, toggleSidebar, onHoverChange }) {
 
   const links = [
     { name: 'Overview', path: '/', icon: Home },
-    { name: 'Sales & Collection', path: '/sales-collection', icon: LayoutDashboard },
-    { name: 'Outstanding', path: '/outstanding', icon: BarChart3 },
+    { name: 'Sales', path: '/sales-collection', icon: LayoutDashboard },
+    { name: 'Outstanding & Collection', path: '/outstanding', icon: BarChart3 },
     { name: 'Construction Budget Review', path: '/construction-budget', icon: Hammer },
     { name: 'Project Portfolio', path: '/portfolio', icon: Layers },
   ];

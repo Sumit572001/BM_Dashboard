@@ -147,9 +147,9 @@ export default function TopBar({ toggleSidebar }) {
       case '/':
         return 'Management Information System';
       case '/sales-collection':
-        return 'Sales & Collection Dashboard';
+        return 'Sales';
       case '/outstanding':
-        return 'Outstanding';
+        return 'Outstanding & Collection';
       case '/construction-budget':
         return 'Construction Budget Review';
       case '/portfolio':

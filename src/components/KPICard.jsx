@@ -49,7 +49,7 @@ export default function KPICard({
       {/* Top Header */}
       <div className="flex justify-between items-start mb-2">
         <div>
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{title}</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-700">{title}</span>
           <h2 className="text-xl font-extrabold text-nyati-navy mt-0.5">
             <AnimatedNumber value={actual} prefix={prefix} suffix={suffix} decimals={decimals} />
           </h2>
@@ -62,13 +62,13 @@ export default function KPICard({
       {/* Target Comparison */}
       <div className="grid grid-cols-2 gap-2 mb-2 border-t border-b border-slate-50 py-1.5 text-sm">
         <div>
-          <span className="text-slate-400 block text-xs">Budget Target</span>
+          <span className="text-slate-700 block text-xs">Budget Target</span>
           <span className="font-semibold text-slate-700">
             {prefix}{budget.toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}{suffix}
           </span>
         </div>
         <div>
-          <span className="text-slate-400 block text-xs">Variance</span>
+          <span className="text-slate-700 block text-xs">Variance</span>
           <span className={`font-semibold ${(budget - actual) > 0 ? 'text-nyati-danger' : 'text-nyati-success'}`}>
             {prefix}{(actual - budget).toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}{suffix}
           </span>
@@ -78,7 +78,7 @@ export default function KPICard({
       {/* Progress & Efficiency Indicator */}
       <div className="space-y-2">
         <div className="flex justify-between items-center text-xs">
-          <span className="font-medium text-slate-500">Efficiency Rate</span>
+          <span className="font-medium text-slate-700">Efficiency Rate</span>
           <div className="flex items-center gap-2">
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${statusColor}`}>
               {statusText}
@@ -103,7 +103,7 @@ export default function KPICard({
 
       {/* Extra details (e.g. ERP, area specifications) */}
       {extraInfo && (
-        <div className="mt-2 pt-2 border-t border-dashed border-slate-100 grid grid-cols-2 gap-1 text-[10px] text-slate-400">
+        <div className="mt-2 pt-2 border-t border-dashed border-slate-100 grid grid-cols-2 gap-1 text-xs font-semibold text-slate-700">
           {extraInfo}
         </div>
       )}

@@ -61,6 +61,18 @@ export default function Dashboard1() {
     </>
   );
 
+  // Extra Details for Sales Card
+  const salesExtra = (
+    <>
+      <div>
+        <span>Residential: <strong>₹{filteredProjects.filter(p => p.type === 'R').reduce((s, p) => s + p.actualValCr, 0).toFixed(2)} Cr</strong></span>
+      </div>
+      <div className="text-right">
+        <span>Luxury/Comm: <strong>₹{filteredProjects.filter(p => p.type !== 'R').reduce((s, p) => s + p.actualValCr, 0).toFixed(2)} Cr</strong></span>
+      </div>
+    </>
+  );
+
   // Framer motion variants for stagger
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -192,7 +204,6 @@ export default function Dashboard1() {
           actual={totals.soldToDate}
           eff={totals.budgetUnits > 0 ? (totals.soldToDate / totals.budgetUnits) * 100 : 0}
           icon={ClipboardList}
-          extraInfo={unitsExtra}
           borderStyle="border-l-4 border-nyati-orange"
         />
         
@@ -205,7 +216,6 @@ export default function Dashboard1() {
           suffix="/sf"
           decimals={0}
           icon={IndianRupee}
-          extraInfo={rateExtra}
           borderStyle="border-l-4 border-nyati-navy"
         />
         
@@ -217,21 +227,19 @@ export default function Dashboard1() {
           suffix=" sf"
           decimals={0}
           icon={Maximize}
-          extraInfo={areaExtra}
           borderStyle="border-l-4 border-emerald-600"
         />
 
         <KPICard
-          title="Total Collection"
-          budget={totals.budgetCollection}
-          actual={totals.actualCollection}
-          eff={totals.collectionEff}
+          title="Total Sales"
+          budget={totals.budgetValCr}
+          actual={totals.actualValCr}
+          eff={totals.budgetValCr > 0 ? (totals.actualValCr / totals.budgetValCr) * 100 : 0}
           prefix="₹"
           suffix=" Cr"
           decimals={2}
-          icon={CreditCard}
-          extraInfo={collectionExtra}
-          borderStyle="border-l-4 border-sky-500"
+          icon={ClipboardList}
+          borderStyle="border-l-4 border-nyati-orange"
         />
       </motion.div>
 

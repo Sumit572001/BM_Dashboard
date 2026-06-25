@@ -2,16 +2,34 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { calculateGrandTotals } from '../utils/dataHelpers';
 import AnimatedNumber from '../components/AnimatedNumber';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid, Treemap } from 'recharts';
-import { ChevronDown, Calendar, Percent, Landmark, HelpCircle, X, CheckCircle, Layers, AlertTriangle, PieChart, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import KPICard from '../components/KPICard';
+import { Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
+import { ChevronDown, Calendar, Percent, Landmark, HelpCircle, X, CheckCircle, Layers, AlertTriangle, PieChart, ArrowUp, ArrowDown, ArrowUpDown, ClipboardList, CreditCard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// Custom Tooltip for Ageing Stacked Bar Chart
+const AgeingTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-premium text-xs min-w-[150px]">
+        <p className="font-bold text-slate-800 mb-1.5">{label}</p>
+        <div className="space-y-1">
+          {payload.map((p, idx) => (
+            <p key={idx} className="font-semibold flex justify-between gap-4 font-sans" style={{ color: p.color || p.fill }}>
+              <span>{p.name}:</span>
+              <span className="font-bold">₹{p.value !== null && p.value !== undefined ? p.value.toFixed(2) : '-'} Cr</span>
+            </p>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
 
 export default function Dashboard2() {
   const { filteredProjects } = useData();
-  const [activeMonth, setActiveMonth] = useState('APR 26');
-  const [activeMetric, setActiveMetric] = useState('value'); // 'unit' | 'value' | 'collection' | 'registration'
-  const [ageingView, setAgeingView] = useState('treemap'); // 'table' | 'treemap'
-  const [showTreemap, setShowTreemap] = useState(true);
+  const [ageingView, setAgeingView] = useState('graph'); // 'table' | 'graph'
 
   // Sorting state for Consolidated Project Outstanding table
   const [sortColumn, setSortColumn] = useState('name');
@@ -28,7 +46,7 @@ export default function Dashboard2() {
 
   const renderSortIcon = (columnKey) => {
     if (sortColumn !== columnKey) {
-      return <ArrowUpDown className="w-3 h-3 text-slate-400 shrink-0 select-none opacity-40 hover:opacity-100" />;
+      return <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0 select-none opacity-40 hover:opacity-100" />;
     }
     return sortDirection === 'asc' 
       ? <ArrowUp className="w-3.5 h-3.5 text-nyati-orange shrink-0 select-none" />
@@ -58,9 +76,7 @@ export default function Dashboard2() {
     return projects;
   }, [filteredProjects, sortColumn, sortDirection]);
 
-  useEffect(() => {
-    setShowTreemap(ageingView === 'treemap');
-  }, [ageingView]);
+
 
   // Modal state for ageing drilldown
   const [drilldownData, setDrilldownData] = useState(null);
@@ -71,45 +87,6 @@ export default function Dashboard2() {
   // Derive grand totals
   const totals = calculateGrandTotals(filteredProjects);
 
-  // Month multiplier simulation (modifies values when changing months)
-  const getMonthMultiplier = () => {
-    switch (activeMonth) {
-      case 'MAY 26': return 1.05;
-      case 'JUN 26': return 0.98;
-      case 'JUL 26': return 1.12;
-      default: return 1.0; // APR 26
-    }
-  };
-
-  const multiplier = getMonthMultiplier();
-
-  // Project chart data mapping
-  const chartData = filteredProjects.map(p => {
-    let budget = 0;
-    let actual = 0;
-
-    if (activeMetric === 'unit') {
-      budget = p.budgetUnits;
-      actual = p.soldToDate;
-    } else if (activeMetric === 'value') {
-      budget = p.budgetValCr;
-      actual = p.actualValCr;
-    } else if (activeMetric === 'collection') {
-      budget = p.budgetCollection;
-      actual = p.actualCollection;
-    } else if (activeMetric === 'registration') {
-      budget = Math.round(p.budgetUnits * 0.75);
-      actual = p.registeredUnits;
-    }
-
-    // Apply month multiplier to actual data for visual interaction
-    return {
-      name: p.name,
-      'Budget/Planned': parseFloat((budget * (activeMetric === 'unit' || activeMetric === 'registration' ? 1 : multiplier)).toFixed(1)),
-      'Actual': parseFloat((actual * multiplier).toFixed(1))
-    };
-  });
-
   // Calculate Consolidated Grand Totals
   const grandTotalSoldVal = filteredProjects.reduce((s, p) => s + p.actualValCr, 0);
   const grandTotalDueMilestone = filteredProjects.reduce((s, p) => s + p.dueMilestone, 0);
@@ -117,6 +94,60 @@ export default function Dashboard2() {
   const grandTotalOutstanding = grandTotalDueMilestone - grandTotalCollection;
   const grandTotalRegOS = filteredProjects.reduce((s, p) => s + p.registeredOS, 0);
   const grandTotalUnregOS = filteredProjects.reduce((s, p) => s + p.unregisteredOS, 0);
+
+  // Budget calculations for Outstanding KPI Cards
+  const grandTotalBudgetVal = filteredProjects.reduce((s, p) => s + p.budgetValCr, 0);
+  const grandTotalBudgetDue = filteredProjects.reduce((s, p) => s + (p.budgetValCr * 0.85), 0);
+  const grandTotalBudgetCollection = filteredProjects.reduce((s, p) => s + p.budgetCollection, 0);
+  const grandTotalBudgetOS = grandTotalBudgetDue - grandTotalBudgetCollection;
+
+  // Extra Details for Sales Card
+  const salesExtra = (
+    <>
+      <div>
+        <span>Residential: <strong>₹{filteredProjects.filter(p => p.type === 'R').reduce((s, p) => s + p.actualValCr, 0).toFixed(2)} Cr</strong></span>
+      </div>
+      <div className="text-right">
+        <span>Luxury/Comm: <strong>₹{filteredProjects.filter(p => p.type !== 'R').reduce((s, p) => s + p.actualValCr, 0).toFixed(2)} Cr</strong></span>
+      </div>
+    </>
+  );
+
+  // Extra Details for Due Card
+  const dueExtra = (
+    <>
+      <div>
+        <span>Milestone Dues: <strong>₹{grandTotalDueMilestone.toFixed(2)} Cr</strong></span>
+      </div>
+      <div className="text-right">
+        <span>Collection Target: <strong>₹{grandTotalBudgetCollection.toFixed(2)} Cr</strong></span>
+      </div>
+    </>
+  );
+
+  // Extra Details for Collection Card
+  const collectionExtra = (
+    <>
+      <div>
+        <span>Excel: <strong>₹{grandTotalCollection.toFixed(2)} Cr</strong></span>
+      </div>
+      <div className="text-right">
+        <span>ERP: <strong>₹{(grandTotalCollection * 0.96).toFixed(2)} Cr</strong></span>
+      </div>
+    </>
+  );
+
+  // Extra Details for Balance Card
+  const balanceExtra = (
+    <>
+      <div>
+        <span>Registered O/S: <strong>₹{grandTotalRegOS.toFixed(2)} Cr</strong></span>
+      </div>
+      <div className="text-right">
+        <span>Unregistered O/S: <strong>₹{grandTotalUnregOS.toFixed(2)} Cr</strong></span>
+      </div>
+    </>
+  );
 
   // Ageing columns Grand Totals
   const grandAgeing0_30 = filteredProjects.reduce((s, p) => s + p.ageing['0-30'], 0);
@@ -126,79 +157,26 @@ export default function Dashboard2() {
   const grandAgeingGt120 = filteredProjects.reduce((s, p) => s + p.ageing['gt120'], 0);
   const grandAgeingTotal = grandAgeing0_30 + grandAgeing31_60 + grandAgeing61_90 + grandAgeing91_120 + grandAgeingGt120;
 
-  // Map ageing data to nested tree list for Treemap
-  // Order: red (>120d) first → green (0-30d) last so heatmap shows critical dues at top
-  const treemapData = [
-    {
-      name: 'Aging Dues',
-      children: filteredProjects.flatMap(p => {
-        return [
-          { name: `${p.name} (>120D)`,   projectName: p.name, bucket: '>120',   value: p.ageing['gt120'],   color: '#b91c1c' },
-          { name: `${p.name} (91-120D)`, projectName: p.name, bucket: '91-120', value: p.ageing['91-120'], color: '#ef4444' },
-          { name: `${p.name} (61-90D)`,  projectName: p.name, bucket: '61-90',  value: p.ageing['61-90'],  color: '#f97316' },
-          { name: `${p.name} (31-60D)`,  projectName: p.name, bucket: '31-60',  value: p.ageing['31-60'],  color: '#f59e0b' },
-          { name: `${p.name} (0-30D)`,   projectName: p.name, bucket: '0-30',   value: p.ageing['0-30'],   color: '#10b981' },
-        ].filter(item => item.value > 0);
-      })
-    }
-  ];
+  // Map ageing data to project-wise buckets for Bar Chart
+  const chartData = React.useMemo(() => {
+    return filteredProjects.map(p => ({
+      name: p.name,
+      '0-30d': p.ageing['0-30'] || 0,
+      '31-60d': p.ageing['31-60'] || 0,
+      '61-90d': p.ageing['61-90'] || 0,
+      '91-120d': p.ageing['91-120'] || 0,
+      '>120d': p.ageing['gt120'] || 0,
+    }));
+  }, [filteredProjects]);
 
-  // Custom Treemap SVG node renderer
-  const renderTreemapContent = (props) => {
-    const { x, y, width, height, payload, name, value, color } = props;
-    
-    // Fallback if payload is not present
-    const projectName = payload?.projectName || name || '';
-    const itemValue = payload?.value || value || 0;
-    const bucket = payload?.bucket || '';
-    const itemColor = payload?.color || color || '#94a3b8';
-
-    const valueLabel = `₹${itemValue.toFixed(2)} Cr`;
-    const bucketLabel = bucket ? `${bucket} Days` : '';
-
-    return (
-      <g 
-        className="cursor-pointer"
-        onClick={() => handleAgeCellClick(projectName, bucket, itemValue)}
-      >
-        <rect
-          x={x}
-          y={y}
-          width={width}
-          height={height}
-          style={{
-            fill: itemColor,
-            stroke: '#ffffff',
-            strokeWidth: 2,
-          }}
-          className="transition-all duration-200 hover:opacity-95"
-        />
-        {width > 45 && height > 22 && (
-          <text
-            x={x + 6}
-            y={y + 14}
-            fill="#ffffff"
-            fontSize={9}
-            fontWeight="normal"
-            className="font-sans select-none"
-          >
-            {projectName.length > 20 ? projectName.substring(0, 18) + '…' : projectName}
-          </text>
-        )}
-        {width > 45 && height > 34 && (
-          <text
-            x={x + 6}
-            y={y + 26}
-            fill="#ffffff"
-            fontSize={8.5}
-            fontWeight="normal"
-            className="font-sans select-none opacity-90"
-          >
-            {valueLabel}
-          </text>
-        )}
-      </g>
-    );
+  const handleBarClick = (data, bucket) => {
+    if (!data) return;
+    const payload = data.payload || data;
+    if (!payload || !payload.name) return;
+    const projectName = payload.name;
+    const key = bucket === 'gt120' ? '>120d' : `${bucket}d`;
+    const value = payload[key] || 0;
+    handleAgeCellClick(projectName, bucket, value);
   };
 
   // Outstanding Highlights Calculations
@@ -312,72 +290,55 @@ export default function Dashboard2() {
 
 
 
-      {/* SECTION A: Project Summary Bar Chart */}
-      <div className="bg-white rounded-3xl p-6 shadow-premium border border-slate-100 space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h3 className="font-bold text-nyati-navy text-lg">Project Planned vs Actual Comparisons</h3>
-            <p className="text-slate-400 text-xs mt-0.5">Visualize sales metrics side by side on project-level distributions.</p>
-          </div>
+      {/* SECTION A: KPI Cards Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <KPICard
+          title="Total Sales"
+          budget={totals.budgetValCr}
+          actual={totals.actualValCr}
+          eff={totals.budgetValCr > 0 ? (totals.actualValCr / totals.budgetValCr) * 100 : 0}
+          prefix="₹"
+          suffix=" Cr"
+          decimals={2}
+          icon={ClipboardList}
+          borderStyle="border-l-4 border-nyati-orange"
+        />
+        
+        <KPICard
+          title="Total Due"
+          budget={grandTotalBudgetDue}
+          actual={grandTotalDueMilestone}
+          eff={grandTotalBudgetDue > 0 ? (grandTotalDueMilestone / grandTotalBudgetDue) * 100 : 0}
+          prefix="₹"
+          suffix=" Cr"
+          decimals={2}
+          icon={Landmark}
+          borderStyle="border-l-4 border-nyati-navy"
+        />
+        
+        <KPICard
+          title="Total Collection"
+          budget={grandTotalBudgetCollection}
+          actual={grandTotalCollection}
+          eff={grandTotalBudgetCollection > 0 ? (grandTotalCollection / grandTotalBudgetCollection) * 100 : 0}
+          prefix="₹"
+          suffix=" Cr"
+          decimals={2}
+          icon={CreditCard}
+          borderStyle="border-l-4 border-emerald-600"
+        />
 
-          {/* Tab Filters */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Metric Switcher */}
-            <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold">
-              {[
-                { label: 'Units', value: 'unit' },
-                { label: 'Value (Cr)', value: 'value' },
-                { label: 'Collection (Cr)', value: 'collection' },
-                { label: 'Registration', value: 'registration' }
-              ].map((m) => (
-                <button
-                  key={m.value}
-                  onClick={() => setActiveMetric(m.value)}
-                  className={`px-3 py-1.5 rounded-lg transition-all ${activeMetric === m.value ? 'bg-white text-nyati-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Month Tabs */}
-            <div className="flex border border-slate-200 rounded-xl bg-white text-xs overflow-hidden">
-              {['APR 26', 'MAY 26', 'JUN 26', 'JUL 26'].map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setActiveMonth(m)}
-                  className={`px-3 py-2 border-r border-slate-100 last:border-r-0 font-semibold transition-all ${activeMonth === m ? 'bg-nyati-orange text-white' : 'text-slate-500 hover:bg-slate-50'
-                    }`}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Chart Window */}
-        <div className="h-80 w-full">
-          {chartData.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-slate-400">No project data to display.</div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" tickFormatter={(val) => val.length > 15 ? val.substring(0, 12) + '...' : val} stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                <Tooltip
-                  cursor={{ fill: '#f8fafc' }}
-                  contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', borderColor: '#e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
-                />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                <Bar dataKey="Budget/Planned" fill="#004080" radius={[4, 4, 0, 0]} barSize={14} />
-                <Bar dataKey="Actual" fill="#E76F2E" radius={[4, 4, 0, 0]} barSize={14} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
+        <KPICard
+          title="Total Balance"
+          budget={grandTotalBudgetOS}
+          actual={grandTotalOutstanding}
+          eff={grandTotalOutstanding > 0 ? (grandTotalBudgetOS / grandTotalOutstanding) * 100 : 100}
+          prefix="₹"
+          suffix=" Cr"
+          decimals={2}
+          icon={AlertTriangle}
+          borderStyle="border-l-4 border-sky-500"
+        />
       </div>
 
       {/* SECTION B: CONSOLIDATED PROJECT OUTSTANDING Table */}
@@ -388,7 +349,7 @@ export default function Dashboard2() {
         <div className="lg:overflow-x-visible overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100 shadow-sm">
+              <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-700 uppercase tracking-wider font-bold border-b border-slate-100 shadow-sm">
                 <th className="px-6 py-4 cursor-pointer select-none hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('name')}>
                   <div className="flex items-center gap-1.5">
                     <span>Project</span>
@@ -468,21 +429,55 @@ export default function Dashboard2() {
         </div>
       </div>
 
-      {/* SECTION C: AGEING OUTSTANDING Table / Treemap */}
+      {/* SECTION C: AGEING OUTSTANDING Table / Graph */}
       <div ref={sectionCRef} className="bg-white rounded-3xl shadow-premium border border-slate-100">
         <div className="sticky top-0 z-10 bg-white rounded-t-3xl border-b border-slate-100 px-6 py-5 shadow-sm flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h3 className="font-bold text-nyati-navy text-lg">Ageing Outstanding Matrix</h3>
-            <p className="text-slate-400 text-xs mt-0.5">Click cells or blocks to drill down to flat details. Heatmap displays critical delays (&gt;90 days).</p>
+            <h3 className="font-bold text-nyati-navy text-lg">
+              {ageingView === 'graph' ? "Ageing — Project x Bucket" : "Ageing Outstanding Matrix"}
+            </h3>
+            <p className="text-slate-400 text-xs mt-0.5">
+              {ageingView === 'graph'
+                ? "Stacked exposure in ₹ Cr - red dominant where >120d concentrates"
+                : "Click cells to drill down to flat details. Heatmap displays critical delays (>90 days)."
+              }
+            </p>
           </div>
           
-          {/* View switcher — Heatmap is default, Table is secondary */}
+          {/* Legend for Table View */}
+          {ageingView === 'table' && (
+            <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold text-slate-600 bg-slate-50/80 px-4 py-2 rounded-2xl border border-slate-100">
+              <span className="text-[9px] uppercase tracking-wider text-slate-400 font-extrabold mr-1">Legend:</span>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#38A169]" />
+                <span>&lt; ₹1 Cr</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#D69E2E]" />
+                <span>₹1 – ₹3 Cr</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#E76F2E]" />
+                <span>₹3 – ₹6 Cr</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#E53E3E]" />
+                <span>₹6 – ₹10 Cr</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#b91c1c]" />
+                <span>&gt; ₹10 Cr</span>
+              </div>
+            </div>
+          )}
+
+          {/* View switcher — Graph is default, Table is secondary */}
           <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold">
             <button
-              onClick={() => setAgeingView('treemap')}
-              className={`px-3 py-1.5 rounded-lg transition-all ${ageingView === 'treemap' ? 'bg-white text-nyati-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+              onClick={() => setAgeingView('graph')}
+              className={`px-3 py-1.5 rounded-lg transition-all ${ageingView === 'graph' ? 'bg-white text-nyati-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             >
-              Heatmap View
+              Graph View
             </button>
             <button
               onClick={() => setAgeingView('table')}
@@ -497,7 +492,7 @@ export default function Dashboard2() {
           <div className="lg:overflow-x-visible overflow-x-auto">
             <table className="w-full text-center text-xs">
               <thead>
-                <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-100 text-left shadow-sm">
+                <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-700 uppercase tracking-wider font-bold border-b border-slate-100 text-left shadow-sm">
                   <th className="px-6 py-4 text-left">Project</th>
                   <th className="px-4 py-4 text-center">0–30 Days (₹ Cr)</th>
                   <th className="px-4 py-4 text-center">31–60 Days (₹ Cr)</th>
@@ -545,67 +540,79 @@ export default function Dashboard2() {
           </div>
         ) : (
           <div className="p-6">
-            {!showTreemap ? (
-              <div className="h-96 w-full bg-slate-50/50 rounded-2xl animate-pulse flex items-center justify-center text-slate-400 font-semibold">
-                Initializing Ageing Treemap...
-              </div>
-            ) : (!treemapData[0] || treemapData[0].children.length === 0) ? (
+            {filteredProjects.length === 0 ? (
               <div className="h-96 flex items-center justify-center text-slate-400">No project aging data to display.</div>
             ) : (
               <div className="h-96 w-full relative">
                 <ResponsiveContainer width="100%" height="100%">
-                  <Treemap
-                    data={treemapData}
-                    dataKey="value"
-                    stroke="#fff"
-                    fill="#8884d8"
-                    isAnimationActive={false}
-                    content={renderTreemapContent}
+                  <BarChart
+                    data={chartData}
+                    margin={{ top: 15, right: 10, left: -20, bottom: 10 }}
                   >
-                    <Tooltip
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const item = payload[0].payload;
-                          return (
-                            <div className="bg-slate-900/95 text-white px-3.5 py-2 rounded-xl text-xs shadow-xl border border-slate-800 space-y-1">
-                              <p className="font-extrabold text-slate-300 uppercase tracking-wider">{item.projectName}</p>
-                              <p className="font-semibold text-slate-200">Ageing: <span className="font-bold text-white">{item.bucket} Days</span></p>
-                              <p className="font-black text-sm text-nyati-orange">Outstanding: ₹{item.value.toFixed(2)} Cr</p>
-                              <p className="text-[10px] text-slate-400 font-medium italic mt-1">Click block to view flat details</p>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fill: '#1e293b', fontSize: 11, fontWeight: 700 }}
+                      axisLine={false}
+                      tickLine={false}
                     />
-                  </Treemap>
+                    <YAxis
+                      tick={{ fill: '#1e293b', fontSize: 11, fontWeight: 700 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip content={<AgeingTooltip />} cursor={{ fill: '#f8fafc' }} />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      iconType="rect"
+                      iconSize={10}
+                      formatter={(value) => <span className="text-[11px] font-bold text-slate-600 font-sans">{value}</span>}
+                    />
+                    <Bar
+                      dataKey="0-30d"
+                      name="0-30d"
+                      stackId="a"
+                      fill="#10b981"
+                      className="cursor-pointer"
+                      onClick={(data) => handleBarClick(data, '0-30')}
+                    />
+                    <Bar
+                      dataKey="31-60d"
+                      name="31-60d"
+                      stackId="a"
+                      fill="#0ea5e9"
+                      className="cursor-pointer"
+                      onClick={(data) => handleBarClick(data, '31-60')}
+                    />
+                    <Bar
+                      dataKey="61-90d"
+                      name="61-90d"
+                      stackId="a"
+                      fill="#f59e0b"
+                      className="cursor-pointer"
+                      onClick={(data) => handleBarClick(data, '61-90')}
+                    />
+                    <Bar
+                      dataKey="91-120d"
+                      name="91-120d"
+                      stackId="a"
+                      fill="#ef4444"
+                      className="cursor-pointer"
+                      onClick={(data) => handleBarClick(data, '91-120')}
+                    />
+                    <Bar
+                      dataKey=">120d"
+                      name=">120d"
+                      stackId="a"
+                      fill="#b91c1c"
+                      className="cursor-pointer"
+                      onClick={(data) => handleBarClick(data, 'gt120')}
+                    />
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             )}
-            
-            {/* Custom Legend */}
-            <div className="flex flex-wrap items-center justify-center gap-6 mt-6 pt-4 border-t border-slate-100 text-[11px] font-bold text-slate-600">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-[#10b981]" />
-                <span>0–30 days</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-[#f59e0b]" />
-                <span>31–60 days</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-[#f97316]" />
-                <span>61–90 days</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-[#ef4444]" />
-                <span>91–120 days</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-[#b91c1c]" />
-                <span>&gt;120 days</span>
-              </div>
-            </div>
           </div>
         )}
       </div>

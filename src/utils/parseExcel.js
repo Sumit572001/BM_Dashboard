@@ -17,7 +17,13 @@ export function parseExcel(file) {
         if (workbook.SheetNames.length === 1) {
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
-          if (sheetName === 'Construction Budget' || sheetName === 'sheet1') {
+          const nameLower = sheetName.toLowerCase().trim();
+          if (
+            nameLower === 'construction budget' ||
+            nameLower === 'sheet1' ||
+            (nameLower.includes('sales') && nameLower.includes('collection')) ||
+            nameLower === 'sales'
+          ) {
             resolve({ [sheetName]: XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null }) });
           } else {
             resolve(XLSX.utils.sheet_to_json(worksheet, { defval: '' }));
@@ -29,7 +35,13 @@ export function parseExcel(file) {
         const result = {};
         workbook.SheetNames.forEach(sheetName => {
           const worksheet = workbook.Sheets[sheetName];
-          if (sheetName === 'Construction Budget' || sheetName === 'sheet1') {
+          const nameLower = sheetName.toLowerCase().trim();
+          if (
+            nameLower === 'construction budget' ||
+            nameLower === 'sheet1' ||
+            (nameLower.includes('sales') && nameLower.includes('collection')) ||
+            nameLower === 'sales'
+          ) {
             result[sheetName] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
           } else {
             result[sheetName] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });

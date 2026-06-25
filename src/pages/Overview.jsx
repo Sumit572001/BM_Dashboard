@@ -510,7 +510,7 @@ export default function Overview() {
                 <LayoutDashboard className="w-4 h-4 text-nyati-orange" />
               </div>
               <div>
-                <h3 className="font-bold text-nyati-navy text-sm">Sales & Collection</h3>
+                <h3 className="font-bold text-nyati-navy text-sm">Sales</h3>
                 <p className="text-slate-600 text-[10px] mt-0.5">FY actuals vs budget targets</p>
               </div>
             </div>
@@ -590,7 +590,7 @@ export default function Overview() {
                 <BarChart3 className="w-4 h-4 text-sky-500" />
               </div>
               <div>
-                <h3 className="font-bold text-nyati-navy text-sm">Outstanding</h3>
+                <h3 className="font-bold text-nyati-navy text-sm">Outstanding & Collection</h3>
                 <p className="text-slate-600 text-[10px] mt-0.5">Consolidated dues, collections, and ageing matrix</p>
               </div>
             </div>

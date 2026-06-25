@@ -11,6 +11,15 @@ export function getVal(row, candidates, fallback = 0) {
   return fallback;
 }
 
+export function getSheetDataCaseInsensitive(rawData, candidates) {
+  if (!rawData || Array.isArray(rawData)) return [];
+  for (const c of candidates) {
+    const key = Object.keys(rawData).find(k => k.trim().toLowerCase() === c.trim().toLowerCase());
+    if (key) return rawData[key];
+  }
+  return [];
+}
+
 // Helper to safely get string values
 export function getStringVal(row, candidates, fallback = '') {
   for (const c of candidates) {
@@ -20,6 +29,152 @@ export function getStringVal(row, candidates, fallback = '') {
     }
   }
   return fallback;
+}
+
+export function formatExcelHeader(val) {
+  if (typeof val === 'number') {
+    const jsDate = new Date((val - 25569) * 86400 * 1000);
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const m = monthNames[jsDate.getUTCMonth()];
+    const y = String(jsDate.getUTCFullYear()).slice(-2);
+    return `${m}-${y}`;
+  }
+  if (typeof val === 'string') {
+    // If it looks like a number string, try to parse it
+    if (/^\d+(\.\d+)?$/.test(val)) {
+      const num = parseFloat(val);
+      const jsDate = new Date((num - 25569) * 86400 * 1000);
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const m = monthNames[jsDate.getUTCMonth()];
+      const y = String(jsDate.getUTCFullYear()).slice(-2);
+      return `${m}-${y}`;
+    }
+    return val.trim();
+  }
+  return '';
+}
+
+export function getQuarterFromMonth(monthStr) {
+  if (!monthStr) return null;
+  const m = monthStr.toLowerCase();
+  if (m.includes('apr') || m.includes('may') || m.includes('jun')) return 'Q1';
+  if (m.includes('jul') || m.includes('aug') || m.includes('sep')) return 'Q2';
+  if (m.includes('oct') || m.includes('nov') || m.includes('dec')) return 'Q3';
+  if (m.includes('jan') || m.includes('feb') || m.includes('mar')) return 'Q4';
+  return null;
+}
+
+export function parseMonthYearToDate(monthStr) {
+  if (!monthStr) return null;
+  const clean = monthStr.replace(/-/g, ' ').trim();
+  const parts = clean.split(/\s+/);
+  if (parts.length < 2) return null;
+  const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  const mIndex = monthNames.indexOf(parts[0].toLowerCase().substring(0, 3));
+  if (mIndex === -1) return null;
+  let year = parseInt(parts[1]);
+  if (isNaN(year)) return null;
+  if (year < 100) year += 2000;
+  return new Date(year, mIndex, 15);
+}
+
+export function aggregateMonthlyFields(p, filters) {
+  if (!p.monthlyData) return p;
+
+  let sumUnitsTarget = 0;
+  let sumUnitsActual = 0;
+  let sumAreaTarget = 0;
+  let sumAreaActual = 0;
+  let sumSalesValTarget = 0;
+  let sumSalesValActual = 0;
+  let sumCollectionTarget = 0;
+  let sumCollectionActual = 0;
+  let hasData = false;
+
+  Object.keys(p.monthlyData).forEach(monthKey => {
+    const q = getQuarterFromMonth(monthKey);
+    if (filters.selectedQuarters && !filters.selectedQuarters.includes(q)) return;
+
+    const mDate = parseMonthYearToDate(monthKey);
+    if (mDate) {
+      if (filters.dateFrom && mDate < new Date(filters.dateFrom)) return;
+      if (filters.dateTo && mDate > new Date(filters.dateTo)) return;
+    }
+
+    const data = p.monthlyData[monthKey];
+    sumUnitsTarget += data.unitsTarget || 0;
+    sumUnitsActual += data.unitsActual || 0;
+    sumAreaTarget += data.areaTarget || 0;
+    sumAreaActual += data.areaActual || 0;
+    sumSalesValTarget += data.salesValueTarget || 0;
+    sumSalesValActual += data.salesValueActual || 0;
+    sumCollectionTarget += data.collectionTarget || 0;
+    sumCollectionActual += data.collectionActual || 0;
+    hasData = true;
+  });
+
+  if (!hasData) {
+    return {
+      ...p,
+      budgetUnits: 0,
+      soldToDate: 0,
+      varianceUnits: 0,
+      budgetArea: 0,
+      actualArea: 0,
+      budgetValCr: 0,
+      actualValCr: 0,
+      aggAmount: 0,
+      aggArea: 0,
+      budgetCollection: 0,
+      actualCollection: 0,
+      budgetRate: 0,
+      actualRate: 0,
+      salesEff: 0,
+      rateEff: 0,
+      areaEff: 0,
+      collectionEff: 0
+    };
+  }
+
+  const budgetUnits = sumUnitsTarget;
+  const soldToDate = sumUnitsActual;
+  const varianceUnits = budgetUnits - soldToDate;
+  const budgetArea = sumAreaTarget;
+  const actualArea = sumAreaActual;
+  
+  const budgetValCr = parseFloat((sumSalesValTarget / 10000000).toFixed(2));
+  const actualValCr = parseFloat((sumSalesValActual / 10000000).toFixed(2));
+  const budgetCollection = parseFloat((sumCollectionTarget / 10000000).toFixed(2));
+  const actualCollection = parseFloat((sumCollectionActual / 10000000).toFixed(2));
+
+  const budgetRate = budgetArea > 0 ? (budgetValCr * 10000000) / budgetArea : 0;
+  const actualRate = actualArea > 0 ? (actualValCr * 10000000) / actualArea : 0;
+
+  const salesEff = budgetUnits > 0 ? (soldToDate / budgetUnits) * 100 : 0;
+  const rateEff = budgetRate > 0 ? (actualRate / budgetRate) * 100 : 0;
+  const areaEff = budgetArea > 0 ? (actualArea / budgetArea) * 100 : 0;
+  const collectionEff = budgetCollection > 0 ? (actualCollection / budgetCollection) * 100 : 0;
+
+  return {
+    ...p,
+    budgetUnits,
+    soldToDate,
+    varianceUnits,
+    budgetArea,
+    actualArea,
+    budgetValCr,
+    actualValCr,
+    aggAmount: actualValCr * 10000000,
+    aggArea: actualArea,
+    budgetCollection,
+    actualCollection,
+    budgetRate,
+    actualRate,
+    salesEff,
+    rateEff,
+    areaEff,
+    collectionEff
+  };
 }
 
 // Classify project types: Residential (R), Luxury (L), Commercial (C)
@@ -50,7 +205,22 @@ export function getProjectType(projectName) {
 // Helper to normalize project names for mapping across sheets
 export function cleanProjName(name) {
   if (!name) return '';
-  return name.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').replace(/\s*\([RLC]\)\s*/g, '').trim().toLowerCase();
+  let clean = name.toLowerCase().trim();
+  // Strip leading "nyati" prefix (plus optional spaces, hyphens, etc.)
+  clean = clean.replace(/^nyati\s*[-_]?\s*/g, '');
+  // Normalize dashes, underscores, spaces
+  clean = clean.replace(/[-_]/g, ' ').replace(/\s+/g, ' ');
+  // Strip R/L/C tags like (R), (L), (C)
+  clean = clean.replace(/\s*\([rlc]\)\s*/g, '');
+  // Normalize specific word mismatches
+  clean = clean.replace(/\bdefence enclave\b/g, 'defence');
+  
+  // Custom merge for Enthral and Plaza
+  if (clean === 'enthral i' || clean === 'plaza' || clean === 'enthral & plaza' || clean === 'enthral & nyati plaza') {
+    return 'enthral & plaza';
+  }
+  
+  return clean.trim();
 }
 
 /**
@@ -111,23 +281,26 @@ export function processRawData(rawData) {
   if (!rawData) return [];
   lastRawData = rawData;
 
+  const keys = !Array.isArray(rawData) ? Object.keys(rawData) : [];
+  const hasSalesSheet = keys.some(k => k.toLowerCase().includes('sales'));
+  const hasOutstandingSheet = keys.some(k => k.toLowerCase().includes('outstanding'));
+  const hasBudgetSheet = keys.some(k => k.toLowerCase().includes('budget') || k.toLowerCase().includes('construction'));
+  const hasPortfolioSheet = keys.some(k => k.toLowerCase().includes('portfolio') || k.toLowerCase().includes('building'));
+
   // Check if rawData is a multi-sheet object containing our standard dashboard sheets
   const isMultiSheet = !Array.isArray(rawData) && (
-    rawData['Sales & Collection'] || 
-    rawData['Outstanding'] || 
-    rawData['Construction Budget'] || 
-    rawData['Project Portfolio Details']
+    hasSalesSheet || hasOutstandingSheet || hasBudgetSheet || hasPortfolioSheet
   );
 
   if (isMultiSheet) {
-    const salesCollection = rawData['Sales & Collection'] || [];
-    const outstanding = rawData['Outstanding'] || [];
-    const construction = rawData['Construction Budget'] || [];
-    const portfolio = rawData['Project Portfolio Details'] || [];
+    const salesCollection = getSheetDataCaseInsensitive(rawData, ['Sales & Collection', 'Sales', 'Sales_Collection', 'SalesCollection']);
+    const outstanding = getSheetDataCaseInsensitive(rawData, ['Outstanding', 'Outstanding & Collection', 'Outstanding_Collection', 'OutstandingCollection']);
+    const construction = getSheetDataCaseInsensitive(rawData, ['Construction Budget', 'Construction', 'ConstructionBudget']);
+    const portfolio = getSheetDataCaseInsensitive(rawData, ['Project Portfolio Details', 'Portfolio', 'Portfolio Details', 'Project Portfolio', 'ProjectPortfolioDetails']);
 
     // Pre-calculate monthly project totals if construction sheet is monthly (2D array)
     const monthlyProjectTotals = {};
-    const sheet2D = rawData['Construction Budget'] || rawData['sheet1'];
+    const sheet2D = construction || getSheetDataCaseInsensitive(rawData, ['sheet1']);
     if (Array.isArray(sheet2D) && sheet2D.length > 2) {
       let headerRowIndex = -1;
       for (let i = 0; i < sheet2D.length; i++) {
@@ -180,41 +353,298 @@ export function processRawData(rawData) {
     rawData._monthlyProjectTotals = monthlyProjectTotals;
     rawData._cleanProjName = cleanProjName;
 
-    // Find all unique project names across all sheets
-    const allProjectNames = Array.from(new Set([
-      ...salesCollection.map(r => getStringVal(r, ['Project Name', 'Project'])),
-      ...outstanding.map(r => getStringVal(r, ['Project Name', 'Project'])),
-      ...Object.keys(monthlyProjectTotals).map(k => {
-        // Find matching original casing name from other sheets if possible, otherwise use uppercase
-        const matched = salesCollection.find(r => cleanProjName(getStringVal(r, ['Project Name', 'Project'])) === k);
-        return matched ? getStringVal(matched, ['Project Name', 'Project']) : k.toUpperCase();
-      }),
-      ...portfolio.map(r => getStringVal(r, ['Project Name', 'Project']))
-    ].filter(Boolean)));
+    let salesProjNames = [];
+    let isSalesCollection2D = Array.isArray(salesCollection) && salesCollection.length > 1 && Array.isArray(salesCollection[0]);
+    let headerRowIndex = -1;
+    let colMapping = [];
+
+    if (isSalesCollection2D) {
+      for (let i = 0; i < salesCollection.length; i++) {
+        const row = salesCollection[i];
+        if (row && row[1] && String(row[1]).trim().toLowerCase().startsWith('project')) {
+          headerRowIndex = i;
+          break;
+        }
+      }
+      if (headerRowIndex !== -1) {
+        // Build colMapping
+        const monthRow = salesCollection[headerRowIndex - 1] || [];
+        const typeRow = salesCollection[headerRowIndex] || [];
+        let currentMonth = '';
+        for (let c = 2; c < typeRow.length; c++) {
+          if (monthRow[c] !== null && monthRow[c] !== undefined && monthRow[c] !== '') {
+            currentMonth = formatExcelHeader(monthRow[c]);
+          }
+          if (typeRow[c] !== null && typeRow[c] !== undefined && typeRow[c] !== '') {
+            colMapping[c] = {
+              month: currentMonth,
+              type: String(typeRow[c]).trim().toLowerCase().replace(/\s+/g, ' ')
+            };
+          }
+        }
+
+        // Get project names
+        for (let i = headerRowIndex + 1; i < salesCollection.length; i++) {
+          const row = salesCollection[i];
+          if (row && row[1]) {
+            const pName = String(row[1]).trim();
+            if (pName && !pName.toLowerCase().includes('total') && !pName.toLowerCase().includes('grand')) {
+              salesProjNames.push(pName);
+            }
+          }
+        }
+      }
+    } else {
+      salesProjNames = salesCollection.map(r => getStringVal(r, ['Project Name', 'Project']));
+    }
+
+    // Find all unique project names across all sheets and group them by clean name
+    const canonicalNameMap = {};
+    const addName = (rawName) => {
+      if (!rawName) return;
+      const clean = cleanProjName(rawName);
+      if (!clean) return;
+      const current = canonicalNameMap[clean];
+      if (!current) {
+        canonicalNameMap[clean] = rawName;
+      } else {
+        const currentLower = current.toLowerCase();
+        const rawLower = rawName.toLowerCase();
+        const currentHasNyati = currentLower.includes('nyati');
+        const rawHasNyati = rawLower.includes('nyati');
+        if (rawHasNyati && !currentHasNyati) {
+          canonicalNameMap[clean] = rawName;
+        } else if (rawHasNyati === currentHasNyati) {
+          if (rawName.length > current.length) {
+            canonicalNameMap[clean] = rawName;
+          }
+        }
+      }
+    };
+
+    salesProjNames.forEach(addName);
+    outstanding.forEach(r => addName(getStringVal(r, ['Project Name', 'Project'])));
+    Object.keys(monthlyProjectTotals).forEach(k => {
+      const matched = salesProjNames.find(name => cleanProjName(name) === k);
+      addName(matched || k.toUpperCase());
+    });
+    portfolio.forEach(r => addName(getStringVal(r, ['Project Name', 'Project'])));
+
+    const allProjectNames = Object.values(canonicalNameMap);
 
     return allProjectNames.map((projectName, idx) => {
       const cleanName = projectName.replace(/\s*\([RLC]\)\s*/g, '');
       const type = getProjectType(cleanName);
+      const targetClean = cleanProjName(projectName);
 
       // Find matching rows in each sheet
-      const pSales = salesCollection.find(r => getStringVal(r, ['Project Name', 'Project']) === projectName) || {};
-      const pOutstanding = outstanding.find(r => getStringVal(r, ['Project Name', 'Project']) === projectName) || {};
-      const pConstruction = construction.find(r => getStringVal(r, ['Project Name', 'Project']) === projectName) || {};
-      const pPortfolioRows = portfolio.filter(r => getStringVal(r, ['Project Name', 'Project']) === projectName);
+      const pSales = !isSalesCollection2D ? (salesCollection.find(r => cleanProjName(getStringVal(r, ['Project Name', 'Project'])) === targetClean) || {}) : {};
+      
+      const pOutstanding = {
+        totalCollection: 0,
+        milestoneDues: 0,
+        totalOutstanding: 0,
+        registeredOS: 0,
+        unregisteredOS: 0,
+        ageing0_30: 0,
+        ageing31_60: 0,
+        ageing61_90: 0,
+        ageing91_120: 0,
+        ageingGt120: 0
+      };
+      
+      const pOutstandingRows = outstanding.filter(r => cleanProjName(getStringVal(r, ['Project Name', 'Project'])) === targetClean);
+      if (pOutstandingRows.length > 0) {
+        pOutstandingRows.forEach(r => {
+          pOutstanding.totalCollection += getVal(r, ['Total Collection (₹ Cr)', 'Actual Collection (₹ Cr)']);
+          pOutstanding.milestoneDues += getVal(r, ['Milestone Dues (₹ Cr)', 'Due Milestone (₹ Cr)']);
+          pOutstanding.totalOutstanding += getVal(r, ['Total Outstanding (₹ Cr)', 'Outstanding (₹ Cr)']);
+          pOutstanding.registeredOS += getVal(r, ['Registered Outstanding (₹ Cr)']);
+          pOutstanding.unregisteredOS += getVal(r, ['Unregistered Outstanding (₹ Cr)']);
+          pOutstanding.ageing0_30 += getVal(r, ['0-30 Days (₹ Cr)', '0-30 Days']);
+          pOutstanding.ageing31_60 += getVal(r, ['31-60 Days (₹ Cr)', '31-60 Days']);
+          pOutstanding.ageing61_90 += getVal(r, ['61-90 Days (₹ Cr)', '61-90 Days']);
+          pOutstanding.ageing91_120 += getVal(r, ['91-120 Days (₹ Cr)', '91-120 Days']);
+          pOutstanding.ageingGt120 += getVal(r, ['>120 Days (₹ Cr)', '>120 Days']);
+        });
+      }
+
+      const pConstructionRows = construction.filter(r => cleanProjName(getStringVal(r, ['Project Name', 'Project'])) === targetClean);
+      
+      const pPortfolioRows = portfolio.filter(r => cleanProjName(getStringVal(r, ['Project Name', 'Project'])) === targetClean);
 
       // 1. Portfolio & building breakdown
-      const summaryRow = pPortfolioRows.find(r => {
+      const summaryRows = pPortfolioRows.filter(r => {
         const bName = getStringVal(r, ['Building Name', 'Building', 'Bldg Name']).toUpperCase();
         return bName.includes('TOTAL') || bName.includes('BTOTAL');
-      }) || {};
+      });
 
-      const totalUnits = getVal(summaryRow, ['Total Units', 'Units'], getVal(pSales, ['Target Units', 'Budget Units', 'Total Units'], 100));
-      const soldToDate = getVal(summaryRow, ['Total Units Sold as on Date', 'Units Sold as on Date', 'Cumulative Sold'], getVal(pSales, ['Units Sold', 'soldToDate'], 75));
-      const balance = getVal(summaryRow, ['Balance as on Date', 'Balance', 'Unsold Balance'], totalUnits - soldToDate);
-      const soldMar31 = getVal(summaryRow, ['Units Sold up to Mar 31 2024', 'Sold up to Mar 31 2024']);
-      const unsoldApr1 = getVal(summaryRow, ['Unsold as on Apr 1 2024', 'Unsold Apr 1 2024']);
-      const monthSold = getVal(summaryRow, ['For the month Sold', 'Month Sold']);
-      const periodSold = getVal(summaryRow, ['For the Period Sold', 'Period Sold']);
+      let totalUnits = 0;
+      let soldToDate = 0;
+      let balance = 0;
+      let soldMar31 = 0;
+      let unsoldApr1 = 0;
+      let monthSold = 0;
+      let periodSold = 0;
+
+      if (summaryRows.length > 0) {
+        summaryRows.forEach(r => {
+          totalUnits += getVal(r, ['Total Units', 'Units']);
+          soldToDate += getVal(r, ['Total Units Sold as on Date', 'Units Sold as on Date', 'Cumulative Sold']);
+          balance += getVal(r, ['Balance as on Date', 'Balance', 'Unsold Balance']);
+          soldMar31 += getVal(r, ['Units Sold up to Mar 31 2024', 'Sold up to Mar 31 2024']);
+          unsoldApr1 += getVal(r, ['Unsold as on Apr 1 2024', 'Unsold Apr 1 2024']);
+          monthSold += getVal(r, ['For the month Sold', 'Month Sold']);
+          periodSold += getVal(r, ['For the Period Sold', 'Period Sold']);
+        });
+      } else {
+        totalUnits = getVal(pSales, ['Target Units', 'Budget Units', 'Total Units'], 100);
+        soldToDate = getVal(pSales, ['Units Sold', 'soldToDate'], 75);
+        balance = totalUnits - soldToDate;
+      }
+      
+      // Lookup row in 2D array if sales is 2D
+      let projectSalesRows = [];
+      let monthlyData = null;
+      if (isSalesCollection2D && headerRowIndex !== -1) {
+        projectSalesRows = salesCollection.slice(headerRowIndex + 1).filter(r => {
+          if (!r || !r[1]) return false;
+          return cleanProjName(String(r[1]).trim()) === targetClean;
+        });
+
+        if (projectSalesRows.length > 0) {
+          monthlyData = {};
+          projectSalesRows.forEach(row => {
+            for (let c = 2; c < row.length; c++) {
+              const mapping = colMapping[c];
+              if (!mapping) continue;
+              const { month, type: metricType } = mapping;
+              if (!month) continue;
+              if (!monthlyData[month]) {
+                monthlyData[month] = {
+                  unitsTarget: 0,
+                  rateTarget: 0,
+                  areaTarget: 0,
+                  salesValueTarget: 0,
+                  collectionTarget: 0,
+                  unitsActual: 0,
+                  rateActual: 0,
+                  areaActual: 0,
+                  salesValueActual: 0,
+                  collectionActual: 0
+                };
+              }
+              const valStr = row[c];
+              let val = 0;
+              if (valStr !== null && valStr !== undefined && valStr !== '') {
+                const cleanVal = valStr.toString().replace(/,/g, '').replace(/[₹%]/g, '').trim();
+                const parsed = parseFloat(cleanVal);
+                if (!isNaN(parsed)) val = parsed;
+              }
+
+              if (metricType.includes('units target') || metricType.replace(/\s/g, '').includes('unitstarget')) {
+                monthlyData[month].unitsTarget += val;
+              } else if (metricType.includes('rate target') || metricType.replace(/\s/g, '').includes('ratetarget')) {
+                monthlyData[month].rateTarget += val;
+              } else if (metricType.includes('area target') || metricType.replace(/\s/g, '').includes('areatarget')) {
+                monthlyData[month].areaTarget += val;
+              } else if (metricType.includes('sales value target') || metricType.includes('value target') || metricType.replace(/\s/g, '').includes('salesvaluetarget')) {
+                monthlyData[month].salesValueTarget += val;
+              } else if (metricType.includes('collection target') || metricType.replace(/\s/g, '').includes('collectiontarget')) {
+                monthlyData[month].collectionTarget += val;
+              } else if (metricType.includes('units actual') || metricType.includes('actual units') || metricType.replace(/\s/g, '').includes('unitsactual')) {
+                monthlyData[month].unitsActual += val;
+              } else if (metricType.includes('rate actual') || metricType.includes('actual rate') || metricType.replace(/\s/g, '').includes('rateactual')) {
+                monthlyData[month].rateActual += val;
+              } else if (metricType.includes('area actual') || metricType.includes('actual area') || metricType.replace(/\s/g, '').includes('areaactual')) {
+                monthlyData[month].areaActual += val;
+              } else if (metricType.includes('sales value actual') || metricType.includes('value actual') || metricType.includes('actual sales value') || metricType.replace(/\s/g, '').includes('salesvalueactual')) {
+                monthlyData[month].salesValueActual += val;
+              } else if (metricType.includes('collection actual') || metricType.includes('actual collection') || metricType.replace(/\s/g, '').includes('collectionactual')) {
+                monthlyData[month].collectionActual += val;
+              }
+            }
+          });
+
+          // Correct rates if multiple rows were summed
+          if (projectSalesRows.length > 1) {
+            Object.keys(monthlyData).forEach(month => {
+              const d = monthlyData[month];
+              d.rateTarget = d.areaTarget > 0 ? (d.salesValueTarget) / d.areaTarget : (d.rateTarget / projectSalesRows.length);
+              d.rateActual = d.areaActual > 0 ? (d.salesValueActual) / d.areaActual : (d.rateActual / projectSalesRows.length);
+            });
+          }
+        }
+      }
+
+      // Aggregate initial values (all months)
+      let budgetUnits = 0;
+      soldToDate = 0; // Reset before monthlyData accumulation
+      let budgetArea = 0;
+      let actualArea = 0;
+      let budgetValCr = 0;
+      let actualValCr = 0;
+      let budgetCollection = 0;
+      let actualCollection = 0;
+      let budgetRate = 0;
+      let actualRate = 0;
+
+      if (monthlyData) {
+        let sumSalesValueTarget = 0;
+        let sumSalesValueActual = 0;
+        Object.keys(monthlyData).forEach(m => {
+          const d = monthlyData[m];
+          budgetUnits += d.unitsTarget;
+          soldToDate += d.unitsActual;
+          budgetArea += d.areaTarget;
+          actualArea += d.areaActual;
+          sumSalesValueTarget += d.salesValueTarget;
+          sumSalesValueActual += d.salesValueActual;
+          budgetCollection += d.collectionTarget;
+          actualCollection += d.collectionActual;
+        });
+
+        // Convert to Cr
+        budgetValCr = parseFloat((sumSalesValueTarget / 10000000).toFixed(2));
+        actualValCr = parseFloat((sumSalesValueActual / 10000000).toFixed(2));
+        budgetCollection = parseFloat((budgetCollection / 10000000).toFixed(2));
+        actualCollection = parseFloat((actualCollection / 10000000).toFixed(2));
+
+        budgetRate = budgetArea > 0 ? (budgetValCr * 10000000) / budgetArea : 0;
+        actualRate = actualArea > 0 ? (actualValCr * 10000000) / actualArea : 0;
+      } else {
+        budgetUnits = getVal(pSales, ['Target Units', 'Budget Units'], Math.round(totalUnits * 0.85));
+        if (summaryRows.length === 0) {
+          soldToDate = getVal(pSales, ['Units Sold', 'soldToDate'], 75);
+        } else {
+          // Re-populate from portfolio sums
+          soldToDate = summaryRows.reduce((sum, r) => sum + getVal(r, ['Total Units Sold as on Date', 'Units Sold as on Date', 'Cumulative Sold']), 0);
+        }
+        
+        const baseRate = 6000 + (projectName.charCodeAt(0) % 5) * 1200 + (type === 'L' ? 3000 : type === 'C' ? 1500 : 0);
+        budgetRate = getVal(pSales, ['Budget Rate (₹/sf)', 'Budget Rate', 'Rate Budget'], baseRate);
+        actualRate = getVal(pSales, ['Avg Rate (₹/sf)', 'Avg Rate', 'Actual Rate', 'Rate Actual'], baseRate + (projectName.charCodeAt(1) % 3) * 250 - 200);
+
+        const avgUnitSize = type === 'L' ? 2200 : type === 'C' ? 800 : 1200;
+        budgetArea = getVal(pSales, ['Budget Area (sf)', 'Budget Area'], budgetUnits * avgUnitSize);
+        actualArea = getVal(pSales, ['Saleable Area (sf)', 'Saleable Area', 'Actual Area'], soldToDate * avgUnitSize);
+
+        actualValCr = getVal(pSales, ['Total Value (₹ Cr)', 'Actual Value (₹ Cr)'], parseFloat(((actualArea * actualRate) / 10000000).toFixed(2)));
+        budgetValCr = getVal(pSales, ['Budget Value (₹ Cr)'], parseFloat(((budgetArea * budgetRate) / 10000000).toFixed(2)));
+
+        budgetCollection = getVal(pSales, ['Collection Target (₹ Cr)'], parseFloat((budgetValCr * 0.75).toFixed(2)));
+        if (pOutstandingRows.length > 0) {
+          actualCollection = pOutstanding.totalCollection;
+        } else {
+          actualCollection = getVal(pSales, ['Actual Collection (₹ Cr)'], parseFloat((actualValCr * 0.68).toFixed(2)));
+        }
+      }
+
+      balance = getVal(summaryRows[0] || {}, ['Balance as on Date', 'Balance', 'Unsold Balance'], totalUnits - soldToDate);
+      soldMar31 = summaryRows.reduce((sum, r) => sum + getVal(r, ['Units Sold up to Mar 31 2024', 'Sold up to Mar 31 2024']), 0);
+      unsoldApr1 = summaryRows.reduce((sum, r) => sum + getVal(r, ['Unsold as on Apr 1 2024', 'Unsold Apr 1 2024']), 0);
+      monthSold = summaryRows.reduce((sum, r) => sum + getVal(r, ['For the month Sold', 'Month Sold']), 0);
+      periodSold = summaryRows.reduce((sum, r) => sum + getVal(r, ['For the Period Sold', 'Period Sold']), 0);
 
       const bldgs = pPortfolioRows
         .filter(r => {
@@ -233,39 +663,43 @@ export function processRawData(rawData) {
         { name: 'WING B', totalUnits: totalUnits - Math.round(totalUnits * 0.6), soldToDate: soldToDate - Math.round(soldToDate * 0.6), balance: balance - Math.round(balance * 0.6) }
       ];
 
-      // 2. Sales and rates
-      const budgetUnits = getVal(pSales, ['Target Units', 'Budget Units'], Math.round(totalUnits * 0.85));
       const salesEff = budgetUnits > 0 ? (soldToDate / budgetUnits) * 100 : 0;
       const varianceUnits = budgetUnits - soldToDate;
-
-      const baseRate = 6000 + (projectName.charCodeAt(0) % 5) * 1200 + (type === 'L' ? 3000 : type === 'C' ? 1500 : 0);
-      const budgetRate = getVal(pSales, ['Budget Rate (₹/sf)', 'Budget Rate', 'Rate Budget'], baseRate);
-      const actualRate = getVal(pSales, ['Avg Rate (₹/sf)', 'Avg Rate', 'Actual Rate', 'Rate Actual'], baseRate + (projectName.charCodeAt(1) % 3) * 250 - 200);
       const rateEff = budgetRate > 0 ? (actualRate / budgetRate) * 100 : 0;
-
-      const avgUnitSize = type === 'L' ? 2200 : type === 'C' ? 800 : 1200;
-      const budgetArea = getVal(pSales, ['Budget Area (sf)', 'Budget Area'], budgetUnits * avgUnitSize);
-      const actualArea = getVal(pSales, ['Saleable Area (sf)', 'Saleable Area', 'Actual Area'], soldToDate * avgUnitSize);
       const areaEff = budgetArea > 0 ? (actualArea / budgetArea) * 100 : 0;
-
-      const actualValCr = getVal(pSales, ['Total Value (₹ Cr)', 'Actual Value (₹ Cr)'], parseFloat(((actualArea * actualRate) / 10000000).toFixed(2)));
-      const budgetValCr = getVal(pSales, ['Budget Value (₹ Cr)'], parseFloat(((budgetArea * budgetRate) / 10000000).toFixed(2)));
-
-      const budgetCollection = getVal(pSales, ['Collection Target (₹ Cr)'], parseFloat((budgetValCr * 0.75).toFixed(2)));
-      const actualCollection = getVal(pOutstanding, ['Total Collection (₹ Cr)', 'Actual Collection (₹ Cr)'], getVal(pSales, ['Actual Collection (₹ Cr)'], parseFloat((actualValCr * 0.68).toFixed(2))));
       const collectionEff = budgetCollection > 0 ? (actualCollection / budgetCollection) * 100 : 0;
 
       // 3. Outstanding & Ageing
-      const dueMilestone = getVal(pOutstanding, ['Milestone Dues (₹ Cr)', 'Due Milestone (₹ Cr)'], parseFloat((actualValCr * 0.85).toFixed(2)));
-      const outstandingVal = getVal(pOutstanding, ['Total Outstanding (₹ Cr)', 'Outstanding (₹ Cr)'], parseFloat((dueMilestone - actualCollection).toFixed(2)));
-      const registeredOS = getVal(pOutstanding, ['Registered Outstanding (₹ Cr)'], parseFloat((outstandingVal * 0.65).toFixed(2)));
-      const unregisteredOS = getVal(pOutstanding, ['Unregistered Outstanding (₹ Cr)'], parseFloat((outstandingVal * 0.35).toFixed(2)));
-
-      const ageing0_30 = getVal(pOutstanding, ['0-30 Days (₹ Cr)', '0-30 Days'], parseFloat((outstandingVal * 0.35).toFixed(2)));
-      const ageing31_60 = getVal(pOutstanding, ['31-60 Days (₹ Cr)', '31-60 Days'], parseFloat((outstandingVal * 0.25).toFixed(2)));
-      const ageing61_90 = getVal(pOutstanding, ['61-90 Days (₹ Cr)', '61-90 Days'], parseFloat((outstandingVal * 0.18).toFixed(2)));
-      const ageing91_120 = getVal(pOutstanding, ['91-120 Days (₹ Cr)', '91-120 Days'], parseFloat((outstandingVal * 0.12).toFixed(2)));
-      const ageingGt120 = getVal(pOutstanding, ['>120 Days (₹ Cr)', '>120 Days'], parseFloat((outstandingVal * 0.10).toFixed(2)));
+      let dueMilestone = 0;
+      let outstandingVal = 0;
+      let registeredOS = 0;
+      let unregisteredOS = 0;
+      let ageing0_30 = 0, ageing31_60 = 0, ageing61_90 = 0, ageing91_120 = 0, ageingGt120 = 0;
+      
+      if (pOutstandingRows.length > 0) {
+        dueMilestone = pOutstanding.milestoneDues || parseFloat((actualValCr * 0.85).toFixed(2));
+        outstandingVal = pOutstanding.totalOutstanding || parseFloat((dueMilestone - actualCollection).toFixed(2));
+        registeredOS = pOutstanding.registeredOS || parseFloat((outstandingVal * 0.65).toFixed(2));
+        unregisteredOS = pOutstanding.unregisteredOS || parseFloat((outstandingVal * 0.35).toFixed(2));
+        
+        ageing0_30 = pOutstanding.ageing0_30 || parseFloat((outstandingVal * 0.35).toFixed(2));
+        ageing31_60 = pOutstanding.ageing31_60 || parseFloat((outstandingVal * 0.25).toFixed(2));
+        ageing61_90 = pOutstanding.ageing61_90 || parseFloat((outstandingVal * 0.18).toFixed(2));
+        ageing91_120 = pOutstanding.ageing91_120 || parseFloat((outstandingVal * 0.12).toFixed(2));
+        ageingGt120 = pOutstanding.ageingGt120 || parseFloat((outstandingVal * 0.10).toFixed(2));
+      } else {
+        dueMilestone = parseFloat((actualValCr * 0.85).toFixed(2));
+        outstandingVal = parseFloat((dueMilestone - actualCollection).toFixed(2));
+        registeredOS = parseFloat((outstandingVal * 0.65).toFixed(2));
+        unregisteredOS = parseFloat((outstandingVal * 0.35).toFixed(2));
+        
+        ageing0_30 = parseFloat((outstandingVal * 0.35).toFixed(2));
+        ageing31_60 = parseFloat((outstandingVal * 0.25).toFixed(2));
+        ageing61_90 = parseFloat((outstandingVal * 0.18).toFixed(2));
+        ageing91_120 = parseFloat((outstandingVal * 0.12).toFixed(2));
+        ageingGt120 = parseFloat((outstandingVal * 0.10).toFixed(2));
+      }
+      
       const ageingTotal = parseFloat((ageing0_30 + ageing31_60 + ageing61_90 + ageing91_120 + ageingGt120).toFixed(2));
 
       // 4. Registrations
@@ -273,8 +707,17 @@ export function processRawData(rawData) {
       const unregisteredUnits = soldToDate - registeredUnits;
 
       // 5. Construction
-      let constTarget = getVal(pConstruction, ['Target Planned (₹ Cr)'], parseFloat((budgetValCr * 0.55).toFixed(2)));
-      let constAchieved = getVal(pConstruction, ['Achieved Value (₹ Cr)'], parseFloat((actualValCr * 0.50).toFixed(2)));
+      let constTarget = 0;
+      let constAchieved = 0;
+      if (pConstructionRows.length > 0) {
+        pConstructionRows.forEach(r => {
+          constTarget += getVal(r, ['Target Planned (₹ Cr)']);
+          constAchieved += getVal(r, ['Achieved Value (₹ Cr)']);
+        });
+      } else {
+        constTarget = parseFloat((budgetValCr * 0.55).toFixed(2));
+        constAchieved = parseFloat((actualValCr * 0.50).toFixed(2));
+      }
 
       const normKey = cleanProjName(projectName);
       if (monthlyProjectTotals && monthlyProjectTotals[normKey]) {
@@ -284,7 +727,9 @@ export function processRawData(rawData) {
 
       const constVariance = parseFloat((constAchieved - constTarget).toFixed(2));
       const constEff = constTarget > 0 ? (constAchieved / constTarget) * 100 : 0;
-      const constComp = getVal(pConstruction, ['Overall Completion (%)', 'Completion (%)'], Math.min(100, Math.round((constAchieved / constTarget) * 100)) || 65);
+      const constComp = pConstructionRows.length > 0 
+        ? Math.round(pConstructionRows.reduce((sum, r) => sum + getVal(r, ['Overall Completion (%)', 'Completion (%)']), 0) / pConstructionRows.length)
+        : (Math.min(100, Math.round((constAchieved / constTarget) * 100)) || 65);
 
       // Funnel Breakdown
       const landOwnerUnits = Math.round(totalUnits * 0.08);
@@ -297,8 +742,9 @@ export function processRawData(rawData) {
         id: cleanName.toLowerCase().replace(/\s+/g, '-'),
         name: cleanName,
         type,
-        originalRow: summaryRow,
+        originalRow: summaryRows[0] || {},
         buildings: finalBldgs,
+        monthlyData, // Store detailed monthly breakdown
 
         totalUnits,
         soldToDate,
@@ -715,19 +1161,58 @@ export function calculateGrandTotals(projects) {
 
   // If Overview sheet exists in uploaded lastRawData and filters are not active
   if (lastRawData && !Array.isArray(lastRawData) && lastRawData['Overview']) {
-    const salesCollection = lastRawData['Sales & Collection'] || [];
-    const outstanding = lastRawData['Outstanding'] || [];
+    const salesCollection = lastRawData['Sales & Collection'] || lastRawData['Sales'] || [];
+    const outstanding = lastRawData['Outstanding'] || lastRawData['Outstanding & Collection'] || [];
     const construction = lastRawData['Construction Budget'] || [];
-    const portfolio = lastRawData['Project Portfolio Details'] || [];
-    const allProjectNames = Array.from(new Set([
-      ...salesCollection.map(r => getStringVal(r, ['Project Name', 'Project'])),
-      ...outstanding.map(r => getStringVal(r, ['Project Name', 'Project'])),
-      ...construction.map(r => getStringVal(r, ['Project Name', 'Project'])),
-      ...portfolio.map(r => getStringVal(r, ['Project Name', 'Project']))
-    ].filter(Boolean)));
+    const portfolio = lastRawData['Project Portfolio Details'] || lastRawData['Project Portfolio'] || [];
+    
+    const uniqueCleanNames = new Set();
+    const addClean = (name) => {
+      const c = cleanProjName(name);
+      if (c) uniqueCleanNames.add(c);
+    };
+    
+    // Parse sales list
+    const isSalesCollection2D = Array.isArray(salesCollection) && salesCollection.length > 1 && Array.isArray(salesCollection[0]);
+    if (isSalesCollection2D) {
+      let headerRowIndex = -1;
+      for (let i = 0; i < salesCollection.length; i++) {
+        const row = salesCollection[i];
+        if (row && row[1] && String(row[1]).trim().toLowerCase().startsWith('project')) {
+          headerRowIndex = i;
+          break;
+        }
+      }
+      if (headerRowIndex !== -1) {
+        for (let i = headerRowIndex + 1; i < salesCollection.length; i++) {
+          const row = salesCollection[i];
+          if (row && row[1]) {
+            const pName = String(row[1]).trim();
+            if (pName && !pName.toLowerCase().includes('total') && !pName.toLowerCase().includes('grand')) {
+              addClean(pName);
+            }
+          }
+        }
+      }
+    } else if (Array.isArray(salesCollection)) {
+      salesCollection.forEach(r => addClean(getStringVal(r, ['Project Name', 'Project'])));
+    }
+    
+    if (Array.isArray(outstanding)) {
+      outstanding.forEach(r => addClean(getStringVal(r, ['Project Name', 'Project'])));
+    }
+    
+    // Parse construction names from monthlyTotals
+    if (lastRawData._monthlyProjectTotals) {
+      Object.keys(lastRawData._monthlyProjectTotals).forEach(k => uniqueCleanNames.add(k));
+    }
+    
+    if (Array.isArray(portfolio)) {
+      portfolio.forEach(r => addClean(getStringVal(r, ['Project Name', 'Project'])));
+    }
     
     // Only use the Overview sheet if no filters are applied
-    if (projects.length >= allProjectNames.length) {
+    if (projects.length >= uniqueCleanNames.size) {
       return parseTotalsFromOverviewSheet(lastRawData['Overview'], projects);
     }
   }
@@ -811,6 +1296,10 @@ export function filterData(processedProjects, filters) {
     // Here, we apply a fractional multiplier based on active filters to simulate numbers updating dynamically.
     return true;
   }).map(p => {
+    if (p.monthlyData) {
+      return aggregateMonthlyFields(p, filters);
+    }
+
     // Let's compute scale factors based on date range or selected quarters to show reactive data updates!
     let multiplier = 1.0;
 
@@ -869,29 +1358,7 @@ export function filterData(processedProjects, filters) {
 export function getConstructionMonthlyData(rawData, processedProjects) {
   const months = ['Apr-26', 'May-26', 'Jun-26', 'Jul-26', 'Aug-26', 'Sep-26', 'Oct-26', 'Nov-26', 'Dec-26', 'Jan-27', 'Feb-27', 'Mar-27'];
   
-  // Helper to format month
-  const formatExcelHeader = (val) => {
-    if (typeof val === 'number') {
-      const jsDate = new Date((val - 25569) * 86400 * 1000);
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const m = monthNames[jsDate.getUTCMonth()];
-      const y = String(jsDate.getUTCFullYear()).slice(-2);
-      return `${m}-${y}`;
-    }
-    if (typeof val === 'string') {
-      // If it looks like a number string, try to parse it
-      if (/^\d+(\.\d+)?$/.test(val)) {
-        const num = parseFloat(val);
-        const jsDate = new Date((num - 25569) * 86400 * 1000);
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const m = monthNames[jsDate.getUTCMonth()];
-        const y = String(jsDate.getUTCFullYear()).slice(-2);
-        return `${m}-${y}`;
-      }
-      return val.trim();
-    }
-    return '';
-  };
+
 
   const sheet2D = rawData && (rawData['Construction Budget'] || rawData['sheet1']);
 
@@ -935,50 +1402,56 @@ export function getConstructionMonthlyData(rawData, processedProjects) {
             // First row or row with name
             const isFirstRowEmptyName = !cell0 && i === headerRowIndex + 1;
             const pName = isFirstRowEmptyName ? 'Portfolio Total' : cell0;
-            
-            const newProj = {
-              name: pName,
-              type: getProjectType(pName),
-              planned: {},
-              actual: {},
-              efficiency: {}
-            };
+            const cleanKey = cleanProjName(pName);
 
             if (pName.toLowerCase().includes('total')) {
-              portfolioTotal = newProj;
+              if (!portfolioTotal) {
+                portfolioTotal = {
+                  name: pName,
+                  type: getProjectType(pName),
+                  planned: {},
+                  actual: {},
+                  efficiency: {}
+                };
+              }
+              currentProject = portfolioTotal;
             } else {
-              parsedProjects.push(newProj);
+              let existingProj = parsedProjects.find(p => cleanProjName(p.name) === cleanKey);
+              if (!existingProj) {
+                existingProj = {
+                  name: pName,
+                  type: getProjectType(pName),
+                  planned: {},
+                  actual: {},
+                  efficiency: {}
+                };
+                parsedProjects.push(existingProj);
+              }
+              currentProject = existingProj;
             }
-            currentProject = newProj;
           }
 
           if (!currentProject) continue;
 
           foundMonths.forEach(m => {
             const val = row[m.colIndex];
-            const numericVal = val !== null && val !== undefined && val !== '' ? parseFloat(val) : null;
+            const numericVal = val !== null && val !== undefined && val !== '' ? parseFloat(val) : 0;
             
             if (typeLabel.toLowerCase().includes('planned')) {
-              currentProject.planned[m.formatted] = numericVal;
+              currentProject.planned[m.formatted] = (currentProject.planned[m.formatted] || 0) + numericVal;
             } else if (typeLabel.toLowerCase().includes('actual')) {
-              currentProject.actual[m.formatted] = numericVal;
-            } else if (typeLabel.toLowerCase().includes('effi')) {
-              // Convert ratio (e.g. 0.53) to percentage (53)
-              const pctVal = numericVal !== null ? Math.round(numericVal * (numericVal <= 2 ? 100 : 1)) : null;
-              currentProject.efficiency[m.formatted] = pctVal;
+              currentProject.actual[m.formatted] = (currentProject.actual[m.formatted] || 0) + numericVal;
             }
           });
         }
 
-        // Post-process: calculate efficiencies if not populated in sheet
+        // Post-process: calculate efficiencies on merged data
         const sanitizeProj = (p) => {
           foundMonths.forEach(m => {
             const f = m.formatted;
             const plan = p.planned[f] || 0;
             const act = p.actual[f] || 0;
-            if (p.efficiency[f] === undefined || p.efficiency[f] === null) {
-              p.efficiency[f] = plan > 0 ? Math.round((act / plan) * 100) : 0;
-            }
+            p.efficiency[f] = plan > 0 ? Math.round((act / plan) * 100) : 0;
           });
         };
 
