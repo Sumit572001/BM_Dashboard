@@ -69,16 +69,16 @@ export default function FilterBar() {
     <div className="bg-white border-b border-slate-100 px-6 py-3 sticky top-[73px] z-20 shadow-sm flex flex-wrap gap-4 items-center justify-between">
       
       {/* Filters Form Container */}
-      <div className="flex flex-wrap items-center gap-4 text-xs">
+      <div className="flex flex-wrap items-center gap-4 text-[13px]">
         
         {/* Project Multi-Select Dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setProjectDropdownOpen(!projectDropdownOpen)}
-            className={`flex items-center gap-2 px-3 py-2 border rounded-xl font-medium transition-all duration-200 focus:outline-none ${
+            className={`flex items-center gap-2 px-3 py-2 border rounded-xl font-semibold transition-all duration-200 focus:outline-none ${
               filters.selectedProjects.length > 0
-                ? 'border-nyati-orange bg-nyati-orange/5 text-nyati-orange'
-                : 'border-slate-200 hover:border-slate-300 text-slate-600 bg-white'
+                ? 'border-nyati-orange bg-nyati-orange/5 text-nyati-orange font-bold'
+                : 'border-slate-200 hover:border-slate-300 text-slate-800 bg-white hover:text-slate-950 shadow-sm'
             }`}
           >
             <Filter className="w-3.5 h-3.5" />
@@ -111,7 +111,7 @@ export default function FilterBar() {
               <div className="flex justify-between items-center mb-2 px-1 pb-2 border-b border-slate-50 text-[10px]">
                 <button
                   onClick={() => updateFilters({ selectedProjects: [] })}
-                  className="font-bold text-slate-400 hover:text-nyati-navy"
+                  className="font-extrabold text-slate-600 hover:text-nyati-navy"
                 >
                   Clear All
                 </button>
@@ -126,7 +126,7 @@ export default function FilterBar() {
               {/* Checklist Items */}
               <div className="max-h-56 overflow-y-auto space-y-0.5">
                 {filteredProjectNames.length === 0 ? (
-                  <div className="text-center py-4 text-slate-400 text-[11px]">No projects found</div>
+                  <div className="text-center py-4 text-slate-700 font-semibold text-xs">No projects found</div>
                 ) : (
                   filteredProjectNames.map((name) => {
                     const isSelected = filters.selectedProjects.includes(name);
@@ -135,7 +135,7 @@ export default function FilterBar() {
                         key={name}
                         onClick={() => handleToggleProject(name)}
                         className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-left hover:bg-slate-50 transition-colors ${
-                          isSelected ? 'font-semibold text-nyati-navy bg-nyati-navy/5' : 'text-slate-600'
+                          isSelected ? 'font-bold text-nyati-navy bg-nyati-navy/5' : 'text-slate-750 font-semibold'
                         }`}
                       >
                         <span className="truncate">{name}</span>
@@ -150,21 +150,21 @@ export default function FilterBar() {
         </div>
 
         {/* Date Ranges */}
-        <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-1">
-          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1">
+          <Calendar className="w-3.5 h-3.5 text-slate-700" />
           <div className="flex items-center gap-1.5">
             <input
               type="date"
               value={filters.dateFrom}
               onChange={(e) => updateFilters({ dateFrom: e.target.value })}
-              className="bg-transparent border-0 py-1 text-slate-600 focus:ring-0 focus:outline-none w-28 text-[11px]"
+              className="bg-transparent border-0 py-1 text-slate-800 font-bold focus:ring-0 focus:outline-none w-28 text-xs"
             />
-            <span className="text-slate-400">to</span>
+            <span className="text-slate-700 font-bold text-xs">to</span>
             <input
               type="date"
               value={filters.dateTo}
               onChange={(e) => updateFilters({ dateTo: e.target.value })}
-              className="bg-transparent border-0 py-1 text-slate-600 focus:ring-0 focus:outline-none w-28 text-[11px]"
+              className="bg-transparent border-0 py-1 text-slate-800 font-bold focus:ring-0 focus:outline-none w-28 text-xs"
             />
           </div>
         </div>
@@ -177,10 +177,10 @@ export default function FilterBar() {
               <button
                 key={q}
                 onClick={() => handleToggleQuarter(q)}
-                className={`px-3.5 py-2 font-semibold border-r border-slate-100 last:border-r-0 transition-all duration-200 ${
+                className={`px-3.5 py-2 font-bold border-r border-slate-100 last:border-r-0 transition-all duration-200 ${
                   isSelected
                     ? 'bg-nyati-navy text-white'
-                    : 'text-slate-500 hover:bg-slate-50'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
                 }`}
               >
                 {q}
@@ -202,10 +202,10 @@ export default function FilterBar() {
               <button
                 key={item.value}
                 onClick={() => updateFilters({ selectedType: item.value })}
-                className={`px-3 py-1.5 rounded-lg font-semibold transition-all duration-200 ${
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all duration-200 ${
                   isSelected
-                    ? 'bg-white text-nyati-orange shadow-sm font-bold'
-                    : 'text-slate-500 hover:text-slate-800'
+                    ? 'bg-white text-nyati-orange shadow-sm font-extrabold'
+                    : 'text-slate-700 hover:text-slate-950'
                 }`}
               >
                 {item.label}
@@ -219,9 +219,9 @@ export default function FilterBar() {
       {/* Reset Button */}
       <button
         onClick={handleResetFilters}
-        className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-nyati-orange py-2 px-3 hover:bg-nyati-orange/5 rounded-xl transition-all duration-200 border border-transparent hover:border-nyati-orange/10 focus:outline-none"
+        className="flex items-center gap-1.5 text-xs font-extrabold text-slate-700 hover:text-nyati-orange py-2 px-3 hover:bg-nyati-orange/5 rounded-xl transition-all duration-200 border border-transparent hover:border-nyati-orange/10 focus:outline-none"
       >
-        <RotateCcw className="w-3.5 h-3.5" />
+        <RotateCcw className="w-3.5 h-3.5 text-slate-700 shrink-0" />
         Reset Filters
       </button>
 

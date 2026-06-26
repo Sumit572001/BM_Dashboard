@@ -98,6 +98,108 @@ const ProjectCard = ({ project, onViewDetail }) => {
   );
 };
 
+const PROJECT_DATES = {
+  'emerald': { start: '01-Jan-2024', engg: '31-May-2028', rera: '31-Aug-2028' },
+  'equinox': { start: '01-Oct-2022', engg: '31-Jul-2026', rera: '31-Aug-2026' },
+  'evoque': { start: '01-Apr-2023', engg: '31-Dec-2026', rera: '31-Mar-2027' },
+  'evania': { start: '01-Jan-2023', engg: '30-Jun-2026', rera: '30-Sep-2026' },
+  'elenor': { start: '01-Jun-2024', engg: '31-Dec-2027', rera: '31-Mar-2028' },
+  'emblem': { start: '01-Oct-2023', engg: '31-Dec-2026', rera: '31-Mar-2027' },
+  'empress': { start: '01-Jan-2024', engg: '30-Sep-2026', rera: '31-Dec-2026' },
+  'enthral': { start: '01-Jul-2023', engg: '31-Dec-2026', rera: '31-Mar-2027' },
+  'plaza': { start: '01-Jul-2023', engg: '31-Dec-2026', rera: '31-Mar-2027' },
+  'esteban': { start: '01-Jan-2023', engg: '30-Jun-2026', rera: '30-Sep-2026' },
+  'exuberance': { start: '01-Jul-2024', engg: '31-Dec-2027', rera: '31-Mar-2028' },
+  'defence': { start: '01-Jan-2022', engg: '30-Apr-2025', rera: '30-Jun-2025' },
+  'elan': { start: '01-Jan-2023', engg: '31-Dec-2025', rera: '31-Mar-2026' },
+  'elite': { start: '01-Jan-2022', engg: '31-Dec-2024', rera: '31-Mar-2025' },
+  'era': { start: '01-Oct-2023', engg: '30-Sep-2026', rera: '31-Dec-2026' },
+  'victoria': { start: '01-Jan-2022', engg: '31-Dec-2024', rera: '31-Mar-2025' },
+  'quantum': { start: '01-Jul-2024', engg: '31-Dec-2027', rera: '31-Mar-2028' },
+  'unitree': { start: '01-Jan-2024', engg: '31-Dec-2026', rera: '31-Mar-2027' },
+  'ethos': { start: '01-Jan-2023', engg: '30-Jun-2026', rera: '30-Sep-2026' }
+};
+
+const getProjectTimelineDates = (projectName) => {
+  const defaultDates = { start: '01-Apr-2024', engg: '31-Oct-2026', rera: '31-Dec-2026' };
+  if (!projectName) return defaultDates;
+  const clean = projectName.toLowerCase();
+  for (const [key, val] of Object.entries(PROJECT_DATES)) {
+    if (clean.includes(key)) {
+      return val;
+    }
+  }
+  return defaultDates;
+};
+
+const getTimelineForSelected = (names) => {
+  const defaultTimeline = { start: '01-Apr-2024', engg: '31-Oct-2026', rera: '31-Dec-2026', balanceMonths: 7 };
+  if (!names || names.length === 0) {
+    return defaultTimeline;
+  }
+
+  const parseDateStr = (str) => {
+    const parts = str.split('-');
+    if (parts.length !== 3) return new Date();
+    const day = parseInt(parts[0]);
+    const monthStr = parts[1].toLowerCase().substring(0, 3);
+    const year = parseInt(parts[2]);
+    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    const mIdx = months.indexOf(monthStr);
+    return new Date(year, mIdx !== -1 ? mIdx : 0, day);
+  };
+
+  const today = new Date();
+
+  if (names.length === 1) {
+    const dates = getProjectTimelineDates(names[0]);
+    const reraDate = parseDateStr(dates.rera);
+    const diffTime = reraDate - today;
+    const diffMonths = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30.4));
+    return {
+      start: dates.start,
+      engg: dates.engg,
+      rera: dates.rera,
+      balanceMonths: diffMonths > 0 ? diffMonths : 0
+    };
+  }
+
+  let earliestStart = null;
+  let latestEngg = null;
+  let latestRera = null;
+
+  names.forEach(name => {
+    const dates = getProjectTimelineDates(name);
+    const startDate = parseDateStr(dates.start);
+    const enggDate = parseDateStr(dates.engg);
+    const reraDate = parseDateStr(dates.rera);
+
+    if (!earliestStart || startDate < earliestStart) earliestStart = startDate;
+    if (!latestEngg || enggDate > latestEngg) latestEngg = enggDate;
+    if (!latestRera || reraDate > latestRera) latestRera = reraDate;
+  });
+
+  const formatDate = (date) => {
+    if (!date) return '-';
+    const day = String(date.getDate()).padStart(2, '0');
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = monthNames[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
+  const reraDate = latestRera || new Date('2026-12-31');
+  const diffTime = reraDate - today;
+  const diffMonths = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30.4));
+
+  return {
+    start: formatDate(earliestStart),
+    engg: formatDate(latestEngg),
+    rera: formatDate(latestRera),
+    balanceMonths: diffMonths > 0 ? diffMonths : 0
+  };
+};
+
 export default function Dashboard3() {
   const { processedProjects, activeProject, setActiveProjectName } = useData();
 
@@ -106,6 +208,7 @@ export default function Dashboard3() {
   const [viewingName, setViewingName] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [portfolioFilter, setPortfolioFilter] = useState('All');
   const dropdownRef = useRef(null);
 
   // Auto-init selected project from context if present on load
@@ -205,6 +308,10 @@ export default function Dashboard3() {
     commercialProjects.reduce((s, p) => s + (p.budgetValCr || 0), 0),
     [commercialProjects]
   );
+
+  const showResidential = (portfolioFilter === 'All' || portfolioFilter === 'R') && residentialProjects.length > 0;
+  const showLuxury = (portfolioFilter === 'All' || portfolioFilter === 'L') && luxuryProjects.length > 0;
+  const showCommercial = (portfolioFilter === 'All' || portfolioFilter === 'C') && commercialProjects.length > 0;
 
   // Project shown in detail panels (aggregated dynamically if viewing Consolidated or multiple selected)
   const displayProject = useMemo(() => {
@@ -336,12 +443,21 @@ export default function Dashboard3() {
     );
   }
 
-  // Balance Months auto-calculation (RERA Dec 31, 2026 - Today)
-  const reraDate = new Date('2026-12-31');
-  const today = new Date();
-  const diffTime = reraDate - today;
-  const diffMonths = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30.4));
-  const balanceMonths = diffMonths > 0 ? diffMonths : 0;
+  // Dynamic project timeline calculation
+  const timelineTargetNames = useMemo(() => {
+    if (viewingName === 'Consolidated') {
+      return selectedNames;
+    } else if (viewingName) {
+      return [viewingName];
+    }
+    return [];
+  }, [viewingName, selectedNames]);
+
+  const timeline = useMemo(() => {
+    return getTimelineForSelected(timelineTargetNames);
+  }, [timelineTargetNames]);
+
+  const balanceMonths = timeline.balanceMonths;
 
   // Build the list of buildings
   const buildingsText = displayProject
@@ -378,7 +494,7 @@ export default function Dashboard3() {
       title: "RERA Delivery Schedule & Timeline",
       text: displayProject.isConsolidated
         ? `The selected projects have RERA compliance completion targets. Engineering milestone timelines are actively monitored across all sites.`
-        : `The project has a RERA compliance completion target of 31-Dec-2026. With ${deliveryLeft} months remaining, engineering milestone timelines are currently aligned and on-track.`,
+        : `The project has a RERA compliance completion target of ${timeline.rera}. With ${deliveryLeft} months remaining, engineering milestone timelines are currently aligned and on-track.`,
       status: deliveryLeft > 6 ? 'success' : 'warning'
     },
     {
@@ -445,10 +561,10 @@ export default function Dashboard3() {
 
   const regPct = displayProject && displayProject.soldToDate > 0
     ? Math.round((displayProject.registeredUnits / displayProject.soldToDate) * 100)
-    : 75; // fallback
+    : 0;
   const unregPct = displayProject && displayProject.soldToDate > 0
     ? Math.max(0, 100 - regPct)
-    : 25; // fallback
+    : 0;
 
   // Registration Aging Chart Data
   const ageingChartData = [
@@ -458,6 +574,27 @@ export default function Dashboard3() {
     { name: '91-120d', value: displayProject?.ageing?.['91-120'] || 0 },
     { name: '>120d', value: displayProject?.ageing?.['gt120'] || 0 }
   ];
+
+  // Construction table metrics
+  const areaTarget = displayProject?.budgetArea || 0;
+  const areaActual = displayProject?.actualArea || 0;
+  const areaVariance = areaActual - areaTarget;
+  const areaEff = areaTarget > 0 ? (areaActual / areaTarget) * 100 : 0;
+
+  const costTarget = displayProject?.construction?.target || 0;
+  const costActual = displayProject?.construction?.achieved || 0;
+  const costVariance = costActual - costTarget;
+  const costEff = costTarget > 0 ? (costActual / costTarget) * 100 : 0;
+
+  const rateTarget = areaTarget > 0 ? Math.round((costTarget * 10000000) / areaTarget) : 0;
+  const rateActual = areaActual > 0 ? Math.round((costActual * 10000000) / areaActual) : 0;
+  const rateVariance = rateActual - rateTarget;
+  const rateEff = rateTarget > 0 ? (rateActual / rateTarget) * 100 : 0;
+
+  const expTarget = costTarget * 0.90;
+  const expActual = costActual;
+  const expVariance = expActual - expTarget;
+  const expEff = expTarget > 0 ? (expActual / expTarget) * 100 : 0;
 
   return (
     <div className="flex flex-col min-h-full">
@@ -633,15 +770,15 @@ export default function Dashboard3() {
                 >
                   <div className="flex flex-col min-h-0 justify-between h-full">
                     <div className="border-b border-slate-100 pb-2 mb-2 shrink-0">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">IDENTITY FILE</span>
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-700 block">IDENTITY FILE</span>
                       <h3 className="font-black text-nyati-navy text-base mt-0.5 truncate">
                         {displayProject ? displayProject.name : 'No Project Selected'}
                       </h3>
                     </div>
 
-                    <div className="space-y-2 text-xs text-slate-600 font-medium overflow-hidden pr-1 flex-1 py-1">
+                    <div className="space-y-2 text-[13px] text-slate-800 font-semibold overflow-hidden pr-1 flex-1 py-1">
                       <div className="flex justify-between py-1 border-b border-slate-50">
-                        <span className="text-slate-400">Configuration</span>
+                        <span className="text-slate-600">Configuration</span>
                         <span className="text-slate-800 font-bold text-right truncate max-w-[150px]">
                           {displayProject
                             ? (displayProject.type === 'L' ? '3BHK, 4BHK, Villas' : displayProject.type === 'C' ? 'Shops & Offices' : '2BHK, 3BHK Residential')
@@ -649,33 +786,33 @@ export default function Dashboard3() {
                         </span>
                       </div>
                       <div className="flex justify-between py-1 border-b border-slate-50">
-                        <span className="text-slate-400">Buildings</span>
+                        <span className="text-slate-600">Buildings</span>
                         <span className="text-slate-800 font-bold max-w-[150px] truncate text-right" title={buildingsText}>
                           {displayProject ? (buildingsText || '-') : '-'}
                         </span>
                       </div>
                       <div className="flex justify-between py-1 border-b border-slate-50">
-                        <span className="text-slate-400">Total Project Units</span>
+                        <span className="text-slate-600">Total Project Units</span>
                         <span className="text-slate-800 font-bold">
                           {displayProject ? `${displayProject.totalUnits.toLocaleString('en-IN')} Units` : '-'}
                         </span>
                       </div>
                       <div className="flex justify-between py-1 border-b border-slate-50">
-                        <span className="text-slate-400">Saleable Area</span>
+                        <span className="text-slate-600">Saleable Area</span>
                         <span className="text-slate-800 font-bold">
                           {displayProject ? `${Math.round(displayProject.totalUnits * 1200).toLocaleString('en-IN')} sq.ft` : '-'}
                         </span>
                       </div>
                       <div className="flex justify-between py-1 border-b border-slate-50">
-                        <span className="text-slate-400">Project Start Date</span>
-                        <span className="text-slate-800 font-bold">{displayProject ? '01-Apr-2024' : '-'}</span>
+                        <span className="text-slate-600">Project Start Date</span>
+                        <span className="text-slate-800 font-bold">{displayProject ? timeline.start : '-'}</span>
                       </div>
                       <div className="flex justify-between py-1 border-b border-slate-50">
-                        <span className="text-slate-400">Engg Finish Target</span>
-                        <span className="text-slate-800 font-bold">{displayProject ? '31-Oct-2026' : '-'}</span>
+                        <span className="text-slate-600">Engg Finish Target</span>
+                        <span className="text-slate-800 font-bold">{displayProject ? timeline.engg : '-'}</span>
                       </div>
                       <div className="flex justify-between py-1 border-b border-slate-50">
-                        <span className="text-slate-400">RERA Registration</span>
+                        <span className="text-slate-600">RERA Registration</span>
                         {displayProject ? (
                           <span className="text-nyati-success font-bold flex items-center gap-1">
                             <CheckCircle className="w-3.5 h-3.5" /> Approved
@@ -685,8 +822,8 @@ export default function Dashboard3() {
                         )}
                       </div>
                       <div className="flex justify-between py-1 border-b border-slate-50">
-                        <span className="text-slate-400">RERA Completion</span>
-                        <span className="text-slate-800 font-bold">{displayProject ? '31-Dec-2026' : '-'}</span>
+                        <span className="text-slate-600">RERA Completion</span>
+                        <span className="text-slate-800 font-bold">{displayProject ? timeline.rera : '-'}</span>
                       </div>
                     </div>
 
@@ -707,16 +844,16 @@ export default function Dashboard3() {
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.1 }}
-                  className="bg-white rounded-2xl p-3 shadow-premium border border-slate-100 flex flex-col justify-between h-full min-h-0"
+                  className="bg-white rounded-2xl p-3 shadow-premium border border-slate-100 flex flex-col h-full min-h-0"
                 >
-                  <div className="flex flex-col min-h-0 justify-between h-full">
+                  <div className="flex flex-col">
                     <div className="border-b border-slate-100 pb-2 mb-2 shrink-0">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">INVENTORY FUNNEL</span>
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-700 block">INVENTORY FUNNEL</span>
                       <h3 className="font-black text-nyati-navy text-base mt-0.5">Unit Allocation tree</h3>
                     </div>
 
                     {/* CSS Connector Tree Funnel */}
-                    <div className="space-y-2 font-semibold text-xs relative pl-4 before:absolute before:left-1 before:top-2 before:bottom-6 before:w-[2px] before:bg-slate-200 flex-1 overflow-hidden py-1 pr-1">
+                    <div className="space-y-1 font-semibold text-xs relative pl-4 before:absolute before:left-1 before:top-2 before:bottom-6 before:w-[2px] before:bg-slate-200 py-1 pr-1">
 
                       {/* Total Units */}
                       <div className="relative py-0.5 before:absolute before:-left-3 before:top-3 before:w-2.5 before:h-[2px] before:bg-slate-200">
@@ -753,7 +890,7 @@ export default function Dashboard3() {
                       </div>
 
                       {/* Grid Funnel Sold/Unsold */}
-                      <div className="relative pl-6 space-y-1.5 before:absolute before:left-2 before:top-2 before:bottom-3 before:w-[2px] before:bg-slate-200">
+                      <div className="relative pl-6 space-y-1 before:absolute before:left-2 before:top-2 before:bottom-3 before:w-[2px] before:bg-slate-200">
 
                         {/* Sold Upto Date */}
                         <div className="relative before:absolute before:-left-4 before:top-2.5 before:w-3.5 before:h-[2px] before:bg-slate-200">
@@ -778,27 +915,27 @@ export default function Dashboard3() {
                   </div>
 
                   {/* Average Rates & Cost Values details */}
-                  <div className="mt-4 border-t border-dashed border-slate-100 pt-3 grid grid-cols-2 gap-2 text-[9px] text-slate-400 font-semibold uppercase shrink-0">
+                  <div className="mt-3 border-t border-dashed border-slate-100 pt-2 grid grid-cols-2 gap-2 text-[10px] text-slate-700 font-semibold uppercase shrink-0">
                     <div className="bg-slate-50 p-1.5 rounded-xl border border-slate-100">
-                      <span className="block text-[8px] tracking-wider mb-0.5">Avg Rate Upto Date</span>
+                      <span className="block text-[9px] tracking-wider mb-0.5">Avg Rate Upto Date</span>
                       <span className="text-slate-800 font-bold text-xs">
                         {displayProject ? `₹${Math.round(displayProject.actualRate || 0).toLocaleString('en-IN')}/sf` : '-'}
                       </span>
                     </div>
                     <div className="bg-slate-50 p-1.5 rounded-xl border border-slate-100">
-                      <span className="block text-[8px] tracking-wider mb-0.5">Budget Value Target</span>
+                      <span className="block text-[9px] tracking-wider mb-0.5">Budget Value Target</span>
                       <span className="text-slate-800 font-bold text-xs">
                         {displayProject ? `₹${(displayProject.budgetValCr || 0).toFixed(2)} Cr` : '-'}
                       </span>
                     </div>
                     <div className="bg-slate-50 p-1.5 rounded-xl border border-slate-100">
-                      <span className="block text-[8px] tracking-wider mb-0.5">FY Avg Rate</span>
+                      <span className="block text-[9px] tracking-wider mb-0.5">FY Avg Rate</span>
                       <span className="text-slate-800 font-bold text-xs">
                         {displayProject ? `₹${Math.round(displayProject.budgetRate || 0).toLocaleString('en-IN')}/sf` : '-'}
                       </span>
                     </div>
                     <div className="bg-slate-50 p-1.5 rounded-xl border border-slate-100">
-                      <span className="block text-[8px] tracking-wider mb-0.5">Achieved Value</span>
+                      <span className="block text-[9px] tracking-wider mb-0.5">Achieved Value</span>
                       <span className="text-slate-800 font-bold text-xs">
                         {displayProject ? `₹${(displayProject.actualValCr || 0).toFixed(2)} Cr` : '-'}
                       </span>
@@ -815,7 +952,7 @@ export default function Dashboard3() {
                 >
                   <div className="flex flex-col min-h-0 justify-between h-full">
                     <div className="border-b border-slate-100 pb-2 mb-2 shrink-0">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">REGISTRATION SUMMARY</span>
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-700 block">REGISTRATION SUMMARY</span>
                       <h3 className="font-black text-nyati-navy text-base mt-0.5">Registration status</h3>
                     </div>
 
@@ -841,7 +978,7 @@ export default function Dashboard3() {
                               : '-'}
                           </span>
                         </div>
-                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block">Sold</span>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 block">Sold</span>
                         <span className="text-slate-700 font-extrabold text-[11px]">
                           {displayProject ? `${displayProject.soldToDate} Units` : '-'}
                         </span>
@@ -864,7 +1001,7 @@ export default function Dashboard3() {
                             {displayProject ? `${regPct}%` : '-'}
                           </span>
                         </div>
-                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block">Registered</span>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 block">Registered</span>
                         <span className="text-slate-700 font-extrabold text-[11px]">
                           {displayProject ? `${displayProject.registeredUnits} Units` : '-'}
                         </span>
@@ -887,7 +1024,7 @@ export default function Dashboard3() {
                             {displayProject ? `${unregPct}%` : '-'}
                           </span>
                         </div>
-                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block">Unreg.</span>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 block">Unreg.</span>
                         <span className="text-slate-700 font-extrabold text-[11px]">
                           {displayProject ? `${displayProject.unregisteredUnits} Units` : '-'}
                         </span>
@@ -897,7 +1034,7 @@ export default function Dashboard3() {
 
                     {/* Registration Aging bar chart */}
                     <div className="border-t border-slate-100 pt-3 mt-3 space-y-2 shrink-0">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Registration Ageing (₹ Cr)</span>
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-700 block">Registration Ageing (₹ Cr)</span>
 
                       <div className="h-40 w-full">
                         <ResponsiveContainer width="100%" height="100%">
@@ -931,7 +1068,7 @@ export default function Dashboard3() {
                   <div className="overflow-y-auto flex-1 pr-1 py-1 min-h-0">
                     <table className="w-full text-left text-xs font-semibold">
                       <thead>
-                        <tr className="text-slate-400 uppercase tracking-wider border-b border-slate-50">
+                        <tr className="text-slate-700 uppercase tracking-wider font-extrabold border-b border-slate-100">
                           <th className="py-1">Field Metric</th>
                           <th className="py-1 text-right">FY Target</th>
                           <th className="py-1 text-right">Actual</th>
@@ -944,16 +1081,20 @@ export default function Dashboard3() {
                         <tr>
                           <td className="py-1 text-slate-800">Saleable Area (sq.ft)</td>
                           <td className="py-1 text-right">
-                            {displayProject ? `${(displayProject.budgetArea || 0).toLocaleString('en-IN')} sf` : '-'}
+                            {displayProject ? `${areaTarget.toLocaleString('en-IN')} sf` : '-'}
                           </td>
                           <td className="py-1 text-right">
-                            {displayProject ? `${(displayProject.actualArea || 0).toLocaleString('en-IN')} sf` : '-'}
+                            {displayProject ? `${areaActual.toLocaleString('en-IN')} sf` : '-'}
                           </td>
-                          <td className="py-1 text-right text-nyati-success">
-                            {displayProject ? `+${((displayProject.budgetArea || 0) - (displayProject.actualArea || 0)).toLocaleString('en-IN')} sf` : '-'}
+                          <td className="py-1 text-right">
+                            {displayProject ? (
+                              <span className={areaVariance >= 0 ? 'text-nyati-success' : 'text-nyati-danger'}>
+                                {areaVariance >= 0 ? '+' : ''}{areaVariance.toLocaleString('en-IN')} sf
+                              </span>
+                            ) : '-'}
                           </td>
                           <td className="py-1 text-right text-nyati-navy">
-                            {displayProject ? `${(displayProject.budgetArea ? (displayProject.actualArea / displayProject.budgetArea * 100) : 0).toFixed(0)}%` : '-'}
+                            {displayProject ? `${areaEff.toFixed(0)}%` : '-'}
                           </td>
                         </tr>
 
@@ -961,20 +1102,20 @@ export default function Dashboard3() {
                         <tr>
                           <td className="py-1 text-slate-800">Signed Off Cost (₹ Cr)</td>
                           <td className="py-1 text-right">
-                            {displayProject ? `₹${(displayProject.construction?.target || 0).toFixed(2)} Cr` : '-'}
+                            {displayProject ? `₹${costTarget.toFixed(2)} Cr` : '-'}
                           </td>
                           <td className="py-1 text-right">
-                            {displayProject ? `₹${(displayProject.construction?.achieved || 0).toFixed(2)} Cr` : '-'}
+                            {displayProject ? `₹${costActual.toFixed(2)} Cr` : '-'}
                           </td>
                           <td className="py-1 text-right">
                             {displayProject ? (
-                              <span className={(displayProject.construction?.variance || 0) >= 0 ? 'text-nyati-success' : 'text-nyati-danger'}>
-                                {(displayProject.construction?.variance || 0) >= 0 ? '+' : ''}₹{(displayProject.construction?.variance || 0).toFixed(2)} Cr
+                              <span className={costVariance >= 0 ? 'text-nyati-success' : 'text-nyati-danger'}>
+                                {costVariance >= 0 ? '+' : ''}₹{costVariance.toFixed(2)} Cr
                               </span>
                             ) : '-'}
                           </td>
                           <td className="py-1 text-right text-nyati-navy">
-                            {displayProject ? `${(displayProject.construction?.eff || 0).toFixed(0)}%` : '-'}
+                            {displayProject ? `${costEff.toFixed(0)}%` : '-'}
                           </td>
                         </tr>
 
@@ -982,20 +1123,20 @@ export default function Dashboard3() {
                         <tr>
                           <td className="py-1 text-slate-800">Rate (₹/sq.ft / Sign Cost)</td>
                           <td className="py-1 text-right">
-                            {displayProject ? `₹${displayProject.budgetArea ? Math.round(((displayProject.construction?.target || 0) * 10000000) / displayProject.budgetArea) : 0}/sf` : '-'}
+                            {displayProject ? `₹${rateTarget.toLocaleString('en-IN')}/sf` : '-'}
                           </td>
                           <td className="py-1 text-right">
-                            {displayProject ? `₹${displayProject.actualArea ? Math.round(((displayProject.construction?.achieved || 0) * 10000000) / displayProject.actualArea) : 0}/sf` : '-'}
+                            {displayProject ? `₹${rateActual.toLocaleString('en-IN')}/sf` : '-'}
                           </td>
                           <td className="py-1 text-right">
                             {displayProject ? (
-                              <span className="text-nyati-danger">
-                                -₹{displayProject.budgetArea && displayProject.actualArea ? Math.round(Math.abs((((displayProject.construction?.target || 0) * 10000000) / displayProject.budgetArea) - (((displayProject.construction?.achieved || 0) * 10000000) / displayProject.actualArea))) : 0}/sf
+                              <span className={rateVariance >= 0 ? 'text-nyati-success' : 'text-nyati-danger'}>
+                                {rateVariance >= 0 ? '+' : ''}₹{rateVariance.toLocaleString('en-IN')}/sf
                               </span>
                             ) : '-'}
                           </td>
                           <td className="py-1 text-right text-nyati-navy">
-                            {displayProject ? '100%' : '-'}
+                            {displayProject ? `${rateEff.toFixed(0)}%` : '-'}
                           </td>
                         </tr>
 
@@ -1003,20 +1144,20 @@ export default function Dashboard3() {
                         <tr>
                           <td className="py-1 text-slate-800">Actual Expenses (₹ Cr)</td>
                           <td className="py-1 text-right">
-                            {displayProject ? `₹${(displayProject.construction?.target ? displayProject.construction.target * 0.90 : 0).toFixed(2)} Cr` : '-'}
+                            {displayProject ? `₹${expTarget.toFixed(2)} Cr` : '-'}
                           </td>
                           <td className="py-1 text-right">
-                            {displayProject ? `₹${(displayProject.construction?.achieved || 0).toFixed(2)} Cr` : '-'}
+                            {displayProject ? `₹${expActual.toFixed(2)} Cr` : '-'}
                           </td>
                           <td className="py-1 text-right">
                             {displayProject ? (
-                              <span className="text-nyati-danger">
-                                -₹{displayProject.construction?.achieved && displayProject.construction?.target ? (displayProject.construction.achieved - (displayProject.construction.target * 0.90)).toFixed(2) : 0} Cr
+                              <span className={expVariance >= 0 ? 'text-nyati-success' : 'text-nyati-danger'}>
+                                {expVariance >= 0 ? '+' : ''}₹{expVariance.toFixed(2)} Cr
                               </span>
                             ) : '-'}
                           </td>
                           <td className="py-1 text-right text-nyati-navy">
-                            {displayProject ? `${(displayProject.construction?.target && displayProject.construction?.achieved ? ((displayProject.construction.achieved / (displayProject.construction.target * 0.90)) * 100).toFixed(0) : 0)}%` : '-'}
+                            {displayProject ? `${expEff.toFixed(0)}%` : '-'}
                           </td>
                         </tr>
                       </tbody>
@@ -1026,7 +1167,7 @@ export default function Dashboard3() {
 
                 {/* Circular Animated Completion Gauge */}
                 <div className="flex flex-col items-center justify-center text-center p-3 border border-slate-100 rounded-3xl bg-slate-50/50 min-h-0 h-full">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2 block shrink-0">Overall Progress</span>
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-700 mb-2 block shrink-0">Overall Progress</span>
 
                   <div className="relative w-28 h-28 mb-3 shrink-0">
                     <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
@@ -1045,12 +1186,12 @@ export default function Dashboard3() {
                           <AnimatedNumber value={displayProject.construction?.completion || 0} suffix="%" />
                         ) : '-'}
                       </span>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Completion</span>
+                      <span className="text-xs font-bold text-slate-700 uppercase tracking-widest mt-0.5">Completion</span>
                     </div>
                   </div>
 
-                  <div className="text-[11px] font-semibold text-slate-500 leading-normal shrink-0">
-                    Structure & engineering is {displayProject ? <strong className="text-nyati-navy">on schedule</strong> : <strong className="text-slate-400">-</strong>}.
+                  <div className="text-[12px] font-semibold text-slate-700 leading-normal shrink-0">
+                    Structure & engineering is {displayProject ? <strong className="text-nyati-navy">on schedule</strong> : <strong className="text-slate-700">-</strong>}.
                   </div>
                 </div>
 
@@ -1078,7 +1219,7 @@ export default function Dashboard3() {
                           <h4 className="font-bold text-slate-800 text-sm flex items-center gap-1">
                             {p.title}
                           </h4>
-                          <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                          <p className="text-[13px] text-slate-700 leading-relaxed font-medium">
                             {p.text}
                           </p>
                         </div>
@@ -1143,37 +1284,65 @@ export default function Dashboard3() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
               <div>
                 <h2 className="text-2xl font-black text-nyati-navy">Project Portfolio</h2>
-                <p className="text-slate-400 text-xs mt-1">Overview of all active projects, sales performance, collection rates, and health indicators.</p>
+                <p className="text-slate-700 text-sm font-semibold mt-1">Overview of all active projects, sales performance, collection rates, and health indicators.</p>
               </div>
               
-              {/* Search bar */}
-              <div className="relative w-full md:w-80">
-                <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search projects by name..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-2xl text-xs font-bold focus:outline-none focus:border-nyati-navy focus:ring-1 focus:ring-nyati-navy transition-all shadow-sm"
-                />
+              {/* Filters & Search Container */}
+              <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                {/* Type pills (All, Residential, Luxury, Commercial) */}
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs">
+                  {[
+                    { label: 'All', value: 'All' },
+                    { label: 'Residential', value: 'R' },
+                    { label: 'Luxury', value: 'L' },
+                    { label: 'Commercial', value: 'C' }
+                  ].map((item) => {
+                    const isSelected = portfolioFilter === item.value;
+                    return (
+                      <button
+                        key={item.value}
+                        onClick={() => setPortfolioFilter(item.value)}
+                        className={`px-3 py-1.5 rounded-lg font-semibold transition-all duration-200 cursor-pointer ${
+                          isSelected
+                            ? 'bg-white text-nyati-orange shadow-sm font-bold'
+                            : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Search bar */}
+                <div className="relative w-full md:w-80">
+                  <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search projects by name..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-2xl text-xs font-bold focus:outline-none focus:border-nyati-navy focus:ring-1 focus:ring-nyati-navy transition-all shadow-sm"
+                  />
+                </div>
               </div>
             </div>
 
             {/* Portfolio Groups */}
             <div className="space-y-10">
-              {residentialProjects.length === 0 && luxuryProjects.length === 0 && commercialProjects.length === 0 ? (
+              {!showResidential && !showLuxury && !showCommercial ? (
                 <div className="flex flex-col items-center justify-center py-20 text-slate-400">
                   <Search className="w-12 h-12 mb-4 text-slate-300" />
-                  <p className="font-bold text-sm">No projects match your search query.</p>
+                  <p className="font-bold text-sm">No projects match your search query or filter.</p>
                 </div>
               ) : (
                 <>
                   {/* Residential Portfolio */}
-                  {residentialProjects.length > 0 && (
+                  {showResidential && (
                     <div className="space-y-4">
                       <div className="flex flex-wrap items-baseline gap-2.5">
-                        <h3 className="text-lg font-black text-nyati-navy">Residential Portfolio</h3>
-                        <span className="text-xs text-slate-400 font-semibold">
+                        <h3 className="text-lg font-black text-nyati-navy">Residential</h3>
+                        <span className="text-sm text-slate-700 font-bold">
                           {resActiveCount} active project{resActiveCount > 1 ? 's' : ''} • combined target ₹{resCombinedTarget.toFixed(2)} Cr
                         </span>
                       </div>
@@ -1186,11 +1355,11 @@ export default function Dashboard3() {
                   )}
 
                   {/* Luxury Portfolio */}
-                  {luxuryProjects.length > 0 && (
+                  {showLuxury && (
                     <div className="space-y-4">
                       <div className="flex flex-wrap items-baseline gap-2.5">
-                        <h3 className="text-lg font-black text-nyati-navy">Luxury Portfolio</h3>
-                        <span className="text-xs text-slate-400 font-semibold">
+                        <h3 className="text-lg font-black text-nyati-navy">Luxury</h3>
+                        <span className="text-sm text-slate-700 font-bold">
                           {luxActiveCount} active project{luxActiveCount > 1 ? 's' : ''} • combined target ₹{luxCombinedTarget.toFixed(2)} Cr
                         </span>
                       </div>
@@ -1203,11 +1372,11 @@ export default function Dashboard3() {
                   )}
 
                   {/* Commercial Portfolio */}
-                  {commercialProjects.length > 0 && (
+                  {showCommercial && (
                     <div className="space-y-4">
                       <div className="flex flex-wrap items-baseline gap-2.5">
-                        <h3 className="text-lg font-black text-nyati-navy">Commercial Portfolio</h3>
-                        <span className="text-xs text-slate-400 font-semibold">
+                        <h3 className="text-lg font-black text-nyati-navy">Commercial</h3>
+                        <span className="text-sm text-slate-700 font-bold">
                           {commActiveCount} active project{commActiveCount > 1 ? 's' : ''} • combined target ₹{commCombinedTarget.toFixed(2)} Cr
                         </span>
                       </div>

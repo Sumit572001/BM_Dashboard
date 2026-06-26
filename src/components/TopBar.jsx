@@ -162,7 +162,7 @@ export default function TopBar({ toggleSidebar }) {
   const getPageSubtitle = () => {
     switch (location.pathname) {
       case '/':
-        return 'Nyati Engineers & Consultants Pvt. Ltd. corporate dashboard';
+        return 'Nyati Groups';
       case '/sales-collection':
         return 'FY sales achievements, rate analysis, and actual vs budget collection rates';
       case '/outstanding':
@@ -172,7 +172,7 @@ export default function TopBar({ toggleSidebar }) {
       case '/portfolio':
         return 'Granular view of buildings inventory funnel, RERA timings, and cost details';
       default:
-        return 'Nyati Engineers & Consultants Pvt. Ltd. corporate dashboard';
+        return 'Nyati Groups';
     }
   };
 
@@ -198,7 +198,7 @@ export default function TopBar({ toggleSidebar }) {
           <h1 className="text-xl font-bold text-nyati-navy leading-snug">
             {getPageTitle()}
           </h1>
-          <p className="text-xs text-slate-400 font-medium hidden md:block mt-0.5">
+          <p className="text-sm text-slate-700 font-semibold hidden md:block mt-0.5">
             {getPageSubtitle()}
           </p>
         </div>
@@ -207,7 +207,7 @@ export default function TopBar({ toggleSidebar }) {
       {/* Right section: Date & File Indicator */}
       <div className="flex items-center gap-4">
         {/* Date Indicator */}
-        <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-500 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-100">
+        <div className="hidden sm:flex items-center gap-2 text-sm font-bold text-slate-700 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-100">
           <Calendar className="w-4 h-4 text-nyati-navy" />
           <span>{formattedDate}</span>
         </div>

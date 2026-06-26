@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
-import { calculateGrandTotals } from '../utils/dataHelpers';
+import { calculateGrandTotals, getQuarterFromMonth, parseMonthYearToDate } from '../utils/dataHelpers';
 import { ArrowUpDown, ArrowRight, Home, ShieldAlert, Award } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function ProjectTable() {
-  const { filteredProjects, setActiveProjectName } = useData();
+  const { filteredProjects, setActiveProjectName, filters } = useData();
   const totals = calculateGrandTotals(filteredProjects);
   const navigate = useNavigate();
   const tableRef = React.useRef(null);
@@ -108,7 +108,7 @@ export default function ProjectTable() {
     }
   };
 
-  // Determine if we have monthly columns
+  // Determine if we have monthly columns, filtered by selected quarters and date range
   const salesMonths = React.useMemo(() => {
     const monthsSet = new Set();
     filteredProjects.forEach(p => {
@@ -116,25 +116,52 @@ export default function ProjectTable() {
         Object.keys(p.monthlyData).forEach(m => monthsSet.add(m));
       }
     });
+
+    const allMonths = Array.from(monthsSet);
+
+    // Filter months list based on date filters and quarter filters
+    const activeMonths = allMonths.filter(mStr => {
+      // 1. Date range filter
+      if (filters) {
+        const startLimit = filters.dateFrom ? new Date(filters.dateFrom) : null;
+        const endLimit = filters.dateTo ? new Date(filters.dateTo) : null;
+        const mDate = parseMonthYearToDate(mStr);
+        if (mDate) {
+          if (startLimit && mDate < startLimit) return false;
+          if (endLimit && mDate > endLimit) return false;
+        }
+      }
+
+      // 2. Quarter filter
+      if (filters && filters.selectedQuarters && filters.selectedQuarters.length > 0) {
+        const q = getQuarterFromMonth(mStr);
+        if (q && !filters.selectedQuarters.includes(q)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
     const firstProjWithData = filteredProjects.find(p => p.monthlyData && Object.keys(p.monthlyData).length > 0);
     if (firstProjWithData) {
-      return Object.keys(firstProjWithData.monthlyData);
+      return Object.keys(firstProjWithData.monthlyData).filter(m => activeMonths.includes(m));
     }
-    return Array.from(monthsSet);
-  }, [filteredProjects]);
+    return activeMonths;
+  }, [filteredProjects, filters]);
 
   const showMonthlyColumns = salesMonths.length > 0;
 
   const metrics = [
     { key: 'unitsTarget', label: 'Units Target', format: 'number' },
-    { key: 'rateTarget', label: 'Rate Target', format: 'rate' },
-    { key: 'areaTarget', label: 'Area Target', format: 'number' },
-    { key: 'salesValueTarget', label: 'Value Target', format: 'currency' },
-    { key: 'collectionTarget', label: 'Coll. Target', format: 'currency' },
     { key: 'unitsActual', label: 'Units Actual', format: 'number' },
+    { key: 'rateTarget', label: 'Rate Target', format: 'rate' },
     { key: 'rateActual', label: 'Rate Actual', format: 'rate' },
+    { key: 'areaTarget', label: 'Area Target', format: 'number' },
     { key: 'areaActual', label: 'Area Actual', format: 'number' },
+    { key: 'salesValueTarget', label: 'Value Target', format: 'currency' },
     { key: 'salesValueActual', label: 'Value Actual', format: 'currency' },
+    { key: 'collectionTarget', label: 'Coll. Target', format: 'currency' },
     { key: 'collectionActual', label: 'Coll. Actual', format: 'currency' }
   ];
 
@@ -199,11 +226,11 @@ export default function ProjectTable() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h3 className="font-bold text-nyati-navy text-lg">Project-Wise Sales Summary</h3>
-            <p className="text-slate-400 text-xs mt-0.5">
+            <p className="text-slate-700 text-sm font-semibold mt-0.5">
               Click headers to sort.
             </p>
           </div>
-          <div className="text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-1.5">
+          <div className="text-sm font-bold text-slate-700 bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-1.5">
             Showing <span className="text-nyati-navy font-bold">{filteredProjects.length}</span> active projects
           </div>
         </div>
@@ -211,11 +238,11 @@ export default function ProjectTable() {
 
       {/* Table Wrapper with horizontal scrolling */}
       <div className="overflow-x-auto w-full max-w-full rounded-b-3xl">
-        <table ref={tableRef} className={`w-full text-left text-xs border-collapse ${showMonthlyColumns ? 'min-w-[4000px]' : ''}`}>
+        <table ref={tableRef} className={`w-full text-left text-[13px] text-slate-800 border-collapse ${showMonthlyColumns ? 'min-w-[4000px]' : ''}`}>
           <thead>
             {!showMonthlyColumns ? (
               // Original Summary View Headers
-              <tr className="sticky top-0 z-20 bg-slate-50 text-slate-900 uppercase tracking-wider font-black border-b border-slate-100 select-none shadow-sm text-[12px]">
+              <tr className="sticky top-0 z-20 bg-slate-50 text-slate-900 uppercase tracking-wider font-black border-b border-slate-100 select-none shadow-sm text-[13px]">
                 <th
                   onClick={() => requestSort('name')}
                   className="bg-slate-50 px-6 py-4 cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[180px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200"
@@ -235,47 +262,20 @@ export default function ProjectTable() {
                   </div>
                 </th>
                 <th
-                  onClick={() => requestSort('budgetRate')}
-                  className="bg-slate-50 px-3 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px]"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    Rate Target
-                    <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => requestSort('budgetArea')}
-                  className="bg-slate-50 px-3 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px]"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    Area Target
-                    <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => requestSort('budgetValCr')}
-                  className="bg-slate-50 px-3 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px]"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    Sales Value Target
-                    <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => requestSort('budgetCollection')}
-                  className="bg-slate-50 px-3 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[110px]"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    Collection Target
-                    <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
-                  </div>
-                </th>
-                <th
                   onClick={() => requestSort('soldToDate')}
                   className="bg-slate-50 px-3 py-4 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[90px]"
                 >
                   <div className="flex items-center justify-center gap-1.5">
                     Units Actual
+                    <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
+                  </div>
+                </th>
+                <th
+                  onClick={() => requestSort('budgetRate')}
+                  className="bg-slate-50 px-3 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px]"
+                >
+                  <div className="flex items-center justify-end gap-1.5">
+                    Rate Target
                     <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
                   </div>
                 </th>
@@ -289,6 +289,15 @@ export default function ProjectTable() {
                   </div>
                 </th>
                 <th
+                  onClick={() => requestSort('budgetArea')}
+                  className="bg-slate-50 px-3 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px]"
+                >
+                  <div className="flex items-center justify-end gap-1.5">
+                    Area Target
+                    <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
+                  </div>
+                </th>
+                <th
                   onClick={() => requestSort('actualArea')}
                   className="bg-slate-50 px-3 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px]"
                 >
@@ -298,11 +307,29 @@ export default function ProjectTable() {
                   </div>
                 </th>
                 <th
+                  onClick={() => requestSort('budgetValCr')}
+                  className="bg-slate-50 px-3 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px]"
+                >
+                  <div className="flex items-center justify-end gap-1.5">
+                    Sales Value Target
+                    <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
+                  </div>
+                </th>
+                <th
                   onClick={() => requestSort('actualValCr')}
                   className="bg-slate-50 px-3 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px]"
                 >
                   <div className="flex items-center justify-end gap-1.5">
                     Sales Value Actual
+                    <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
+                  </div>
+                </th>
+                <th
+                  onClick={() => requestSort('budgetCollection')}
+                  className="bg-slate-50 px-3 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[110px]"
+                >
+                  <div className="flex items-center justify-end gap-1.5">
+                    Collection Target
                     <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
                   </div>
                 </th>
@@ -319,7 +346,7 @@ export default function ProjectTable() {
             ) : (
               // Excel-aligned Month Group Headers
               <>
-                <tr className="bg-slate-50 text-slate-900 uppercase font-black border-b border-slate-100 select-none text-[12px]">
+                <tr className="bg-slate-50 text-slate-900 uppercase font-black border-b border-slate-100 select-none text-[13px]">
                   <th
                     rowSpan={2}
                     onClick={() => requestSort('name')}
@@ -340,7 +367,7 @@ export default function ProjectTable() {
                     </th>
                   ))}
                 </tr>
-                <tr className="bg-slate-50 text-slate-900 uppercase tracking-wider font-black border-b border-slate-200 select-none text-[11px]">
+                <tr className="bg-slate-50 text-slate-900 uppercase tracking-wider font-black border-b border-slate-200 select-none text-[12px]">
                   {salesMonths.flatMap(month =>
                     metrics.map((metric, mIdx) => {
                       const fieldKey = `${month}_${metric.key}`;
@@ -387,43 +414,43 @@ export default function ProjectTable() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.2 }}
-                      className="hover:bg-sky-50/40 group transition-all duration-150 select-none text-[11px]"
+                      className="hover:bg-sky-50/40 group transition-all duration-150 select-none text-[13px]"
                     >
                       <td
                         onClick={() => handleRowClick(p.name)}
-                        className="px-6 py-3.5 font-bold text-slate-700 group-hover:text-nyati-navy flex items-center justify-start min-w-[180px] cursor-pointer"
+                        className="px-6 py-3.5 font-bold text-slate-700 group-hover:text-nyati-navy min-w-[180px] cursor-pointer"
                       >
                         <div className="flex items-center gap-2.5 truncate">
                           <span className="truncate">{p.name}</span>
                           {renderTypeBadge(p.type)}
                         </div>
                       </td>
-                      <td className="px-3 py-3.5 text-center font-semibold text-slate-500">
+                      <td className="px-3 py-3.5 text-center font-semibold text-slate-700">
                         {p.budgetUnits.toLocaleString('en-IN')}
-                      </td>
-                      <td className="px-3 py-3.5 text-right font-semibold text-slate-500">
-                        ₹{Math.round(p.budgetRate).toLocaleString('en-IN')}/sf
-                      </td>
-                      <td className="px-3 py-3.5 text-right font-semibold text-slate-500">
-                        {Math.round(p.budgetArea).toLocaleString('en-IN')}
-                      </td>
-                      <td className="px-3 py-3.5 text-right font-semibold text-slate-500">
-                        ₹{p.budgetValCr.toFixed(2)} Cr
-                      </td>
-                      <td className="px-3 py-3.5 text-right font-semibold text-slate-500">
-                        ₹{p.budgetCollection.toFixed(2)} Cr
                       </td>
                       <td className="px-3 py-3.5 text-center font-bold text-nyati-navy">
                         {p.soldToDate.toLocaleString('en-IN')}
                       </td>
+                      <td className="px-3 py-3.5 text-right font-semibold text-slate-700">
+                        ₹{Math.round(p.budgetRate).toLocaleString('en-IN')}/sf
+                      </td>
                       <td className="px-3 py-3.5 text-right font-bold text-nyati-navy">
                         {p.actualRate > 0 ? `₹${Math.round(p.actualRate).toLocaleString('en-IN')}/sf` : '-'}
+                      </td>
+                      <td className="px-3 py-3.5 text-right font-semibold text-slate-700">
+                        {Math.round(p.budgetArea).toLocaleString('en-IN')}
                       </td>
                       <td className="px-3 py-3.5 text-right font-bold text-slate-700">
                         {Math.round(p.actualArea).toLocaleString('en-IN')}
                       </td>
+                      <td className="px-3 py-3.5 text-right font-semibold text-slate-700">
+                        ₹{p.budgetValCr.toFixed(2)} Cr
+                      </td>
                       <td className="px-3 py-3.5 text-right font-bold text-slate-700">
                         ₹{p.actualValCr.toFixed(2)} Cr
+                      </td>
+                      <td className="px-3 py-3.5 text-right font-semibold text-slate-700">
+                        ₹{p.budgetCollection.toFixed(2)} Cr
                       </td>
                       <td className="px-6 py-3.5 text-right font-bold text-[#0d9488]">
                         ₹{p.actualCollection.toFixed(2)} Cr
@@ -435,13 +462,13 @@ export default function ProjectTable() {
                   sortedProjects.map((p, index) => (
                     <tr
                       key={p.name}
-                      className="hover:bg-sky-50/40 group transition-all duration-150 select-none text-[11px] border-b border-slate-100"
+                      className="hover:bg-sky-50/40 group transition-all duration-150 select-none text-[13px] border-b border-slate-100"
                     >
                       <td
                         onClick={() => handleRowClick(p.name)}
-                        className="px-6 py-3.5 font-bold text-slate-700 group-hover:text-nyati-navy sticky left-0 bg-white group-hover:bg-sky-50/50 z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200 flex items-center justify-between min-w-[220px] cursor-pointer transition-colors"
+                        className="px-6 py-3.5 font-bold text-slate-700 group-hover:text-nyati-navy sticky left-0 bg-white group-hover:bg-sky-50 z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200 min-w-[220px] cursor-pointer transition-colors"
                       >
-                        <div className="flex items-center gap-2.5 truncate">
+                        <div className="flex items-center justify-between gap-2.5 truncate">
                           <span className="truncate">{p.name}</span>
                           {renderTypeBadge(p.type)}
                         </div>
@@ -455,7 +482,7 @@ export default function ProjectTable() {
                           return (
                             <td
                               key={`${month}_${metric.key}`}
-                              className={`px-2 py-3.5 text-center ${isActual ? 'font-bold text-nyati-navy' : 'font-semibold text-slate-500'} ${isLastMetric ? 'border-r-2 border-slate-200 bg-slate-50/5' : 'border-r border-slate-100'}`}
+                              className={`px-2 py-3.5 text-center ${isActual ? 'font-bold text-nyati-navy' : 'font-semibold text-slate-700'} ${isLastMetric ? 'border-r-2 border-slate-200 bg-slate-50/5' : 'border-r border-slate-100'}`}
                             >
                               {formatCellVal(val, metric.format)}
                             </td>
@@ -468,41 +495,41 @@ export default function ProjectTable() {
 
                 {/* Grand Total Row */}
                 {!showMonthlyColumns ? (
-                  <tr className="bg-slate-50 font-bold text-nyati-navy border-t-2 border-slate-200 text-[11px] sticky bottom-0 z-10 shadow-[0_-4px_6px_-2px_rgba(0,0,0,0.05)]">
+                  <tr className="bg-slate-50 font-bold text-nyati-navy border-t-2 border-slate-200 text-[13px] sticky bottom-0 z-10 shadow-[0_-4px_6px_-2px_rgba(0,0,0,0.05)]">
                     <td className="px-6 py-4 bg-slate-50">GRAND TOTAL</td>
                     <td className="px-3 py-4 text-center bg-slate-50">
                       {totals.budgetUnits.toLocaleString('en-IN')}
                     </td>
-                    <td className="px-3 py-4 text-right text-slate-500 bg-slate-50">
-                      ₹{Math.round(totals.budgetRate).toLocaleString('en-IN')}/sf
-                    </td>
-                    <td className="px-3 py-4 text-right text-slate-500 bg-slate-50">
-                      {Math.round(totals.budgetArea).toLocaleString('en-IN')}
-                    </td>
-                    <td className="px-3 py-4 text-right text-slate-500 bg-slate-50">
-                      ₹{totals.budgetValCr.toFixed(2)} Cr
-                    </td>
-                    <td className="px-3 py-4 text-right text-slate-500 bg-slate-50">
-                      ₹{totals.budgetCollection.toFixed(2)} Cr
-                    </td>
                     <td className="px-3 py-4 text-center text-nyati-navy font-extrabold bg-slate-50">
                       {totals.soldToDate.toLocaleString('en-IN')}
+                    </td>
+                    <td className="px-3 py-4 text-right text-slate-700 bg-slate-50">
+                      ₹{Math.round(totals.budgetRate).toLocaleString('en-IN')}/sf
                     </td>
                     <td className="px-3 py-4 text-right text-nyati-navy font-extrabold bg-slate-50">
                       ₹{Math.round(totals.actualRate).toLocaleString('en-IN')}/sf
                     </td>
                     <td className="px-3 py-4 text-right text-slate-700 bg-slate-50">
+                      {Math.round(totals.budgetArea).toLocaleString('en-IN')}
+                    </td>
+                    <td className="px-3 py-4 text-right text-slate-700 bg-slate-50">
                       {Math.round(totals.actualArea).toLocaleString('en-IN')}
                     </td>
                     <td className="px-3 py-4 text-right text-slate-700 bg-slate-50">
+                      ₹{totals.budgetValCr.toFixed(2)} Cr
+                    </td>
+                    <td className="px-3 py-4 text-right text-slate-700 bg-slate-50">
                       ₹{totals.actualValCr.toFixed(2)} Cr
+                    </td>
+                    <td className="px-3 py-4 text-right text-slate-700 bg-slate-50">
+                      ₹{totals.budgetCollection.toFixed(2)} Cr
                     </td>
                     <td className="px-6 py-4 text-right text-[#0d9488] font-extrabold bg-slate-50">
                       ₹{totals.actualCollection.toFixed(2)} Cr
                     </td>
                   </tr>
                 ) : (
-                  <tr className="bg-slate-100 font-extrabold text-nyati-navy border-t-2 border-slate-200 text-[11px] sticky bottom-0 z-20 shadow-[0_-4px_6px_-2px_rgba(0,0,0,0.05)]">
+                  <tr className="bg-slate-100 font-extrabold text-nyati-navy border-t-2 border-slate-200 text-[13px] sticky bottom-0 z-20 shadow-[0_-4px_6px_-2px_rgba(0,0,0,0.05)]">
                     <td className="px-6 py-4 sticky left-0 bg-slate-100 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200">
                       GRAND TOTAL
                     </td>

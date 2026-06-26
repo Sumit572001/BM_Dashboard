@@ -297,7 +297,7 @@ export default function Dashboard1() {
                     <h4 className="font-bold text-slate-800 text-sm flex items-center gap-1">
                       {p.title}
                     </h4>
-                    <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                    <p className="text-[13px] text-slate-700 leading-relaxed font-medium">
                       {p.text}
                     </p>
                   </div>
@@ -335,7 +335,7 @@ export default function Dashboard1() {
                       {rec.subject}
                     </span>
                   </div>
-                  <p className="font-medium text-slate-600 leading-relaxed text-[11px]">
+                  <p className="font-medium text-slate-700 leading-relaxed text-[12px]">
                     {rec.text}
                   </p>
                 </div>

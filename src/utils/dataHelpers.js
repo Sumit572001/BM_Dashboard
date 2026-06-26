@@ -155,6 +155,35 @@ export function aggregateMonthlyFields(p, filters) {
   const areaEff = budgetArea > 0 ? (actualArea / budgetArea) * 100 : 0;
   const collectionEff = budgetCollection > 0 ? (actualCollection / budgetCollection) * 100 : 0;
 
+  // Calculate scaling multiplier for outstanding & ageing to react to quarter/date filters
+  let multiplier = 1.0;
+  if (filters && filters.selectedQuarters && filters.selectedQuarters.length > 0 && filters.selectedQuarters.length < 4) {
+    multiplier *= (filters.selectedQuarters.length / 4);
+  }
+  if (filters && filters.dateFrom && filters.dateTo) {
+    const start = new Date(filters.dateFrom);
+    const end = new Date(filters.dateTo);
+    const diffTime = Math.abs(end - start);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const yearFraction = Math.min(1.0, diffDays / 365.0);
+    multiplier *= yearFraction;
+  }
+
+  const dueMilestone = parseFloat((p.dueMilestone * multiplier).toFixed(2));
+  const outstanding = parseFloat((dueMilestone - actualCollection).toFixed(2));
+  const registeredOS = parseFloat((p.registeredOS * multiplier).toFixed(2));
+  const unregisteredOS = parseFloat((p.unregisteredOS * multiplier).toFixed(2));
+
+  const ageing = {
+    '0-30': parseFloat((p.ageing['0-30'] * multiplier).toFixed(2)),
+    '31-60': parseFloat((p.ageing['31-60'] * multiplier).toFixed(2)),
+    '61-90': parseFloat((p.ageing['61-90'] * multiplier).toFixed(2)),
+    '91-120': parseFloat((p.ageing['91-120'] * multiplier).toFixed(2)),
+    'gt120': parseFloat((p.ageing['gt120'] * multiplier).toFixed(2)),
+    total: 0
+  };
+  ageing.total = parseFloat((ageing['0-30'] + ageing['31-60'] + ageing['61-90'] + ageing['91-120'] + ageing['gt120']).toFixed(2));
+
   return {
     ...p,
     budgetUnits,
@@ -173,7 +202,12 @@ export function aggregateMonthlyFields(p, filters) {
     salesEff,
     rateEff,
     areaEff,
-    collectionEff
+    collectionEff,
+    dueMilestone,
+    outstanding,
+    registeredOS,
+    unregisteredOS,
+    ageing
   };
 }
 
@@ -362,7 +396,13 @@ export function processRawData(rawData) {
       for (let i = 0; i < salesCollection.length; i++) {
         const row = salesCollection[i];
         if (row && row[1] && String(row[1]).trim().toLowerCase().startsWith('project')) {
-          headerRowIndex = i;
+          const nextRow = salesCollection[i + 1];
+          const hasUnitsTarget = nextRow && nextRow.some(cell => cell && String(cell).toLowerCase().includes('units target'));
+          if (hasUnitsTarget) {
+            headerRowIndex = i + 1;
+          } else {
+            headerRowIndex = i;
+          }
           break;
         }
       }
@@ -423,12 +463,6 @@ export function processRawData(rawData) {
     };
 
     salesProjNames.forEach(addName);
-    outstanding.forEach(r => addName(getStringVal(r, ['Project Name', 'Project'])));
-    Object.keys(monthlyProjectTotals).forEach(k => {
-      const matched = salesProjNames.find(name => cleanProjName(name) === k);
-      addName(matched || k.toUpperCase());
-    });
-    portfolio.forEach(r => addName(getStringVal(r, ['Project Name', 'Project'])));
 
     const allProjectNames = Object.values(canonicalNameMap);
 

@@ -46,7 +46,7 @@ export default function Dashboard2() {
 
   const renderSortIcon = (columnKey) => {
     if (sortColumn !== columnKey) {
-      return <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0 select-none opacity-40 hover:opacity-100" />;
+      return <ArrowUpDown className="w-3.5 h-3.5 text-slate-700 shrink-0 select-none opacity-60 hover:opacity-100" />;
     }
     return sortDirection === 'asc' 
       ? <ArrowUp className="w-3.5 h-3.5 text-nyati-orange shrink-0 select-none" />
@@ -226,7 +226,7 @@ export default function Dashboard2() {
       case 'danger':
         return 'bg-rose-50 text-rose-700 border-rose-100';
       default:
-        return 'bg-slate-50 text-slate-600 border-slate-100';
+        return 'bg-slate-50 text-slate-800 border-slate-200 font-bold';
     }
   };
 
@@ -240,7 +240,7 @@ export default function Dashboard2() {
 
   // Get Ageing Class for Heatmap
   const getAgeingHeatClass = (val) => {
-    if (val === 0) return 'text-slate-300';
+    if (val === 0) return 'text-slate-500';
     if (val > 10) return 'heat-gt120';
     if (val >= 6) return 'heat-91-120';
     if (val >= 3) return 'heat-61-90';
@@ -347,9 +347,9 @@ export default function Dashboard2() {
           <h3 className="font-bold text-nyati-navy text-lg">Consolidated Project Outstanding</h3>
         </div>
         <div className="lg:overflow-x-visible overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-[13px] text-slate-800">
             <thead>
-              <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-700 uppercase tracking-wider font-bold border-b border-slate-100 shadow-sm">
+              <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-900 uppercase tracking-wider font-extrabold border-b border-slate-100 shadow-sm text-[13px]">
                 <th className="px-6 py-4 cursor-pointer select-none hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('name')}>
                   <div className="flex items-center gap-1.5">
                     <span>Project</span>
@@ -394,7 +394,7 @@ export default function Dashboard2() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50 font-medium text-slate-600">
+            <tbody className="divide-y divide-slate-50 font-medium text-slate-850">
               {sortedProjects.map((p, index) => (
                 <tr key={p.name} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-3.5 font-bold text-slate-700">{p.name}</td>
@@ -402,22 +402,22 @@ export default function Dashboard2() {
                   <td className="px-4 py-3.5 text-right">₹{p.dueMilestone.toFixed(2)}</td>
                   <td className="px-4 py-3.5 text-right">₹{p.actualCollection.toFixed(2)}</td>
                   <td className="px-4 py-3.5 text-center">
-                    <span className={`px-3 py-1 rounded-lg text-xs ${getOutstandingColor(p.outstanding)}`}>
+                    <span className={`px-3 py-1 rounded-lg text-[13px] ${getOutstandingColor(p.outstanding)}`}>
                       ₹{p.outstanding.toFixed(2)}
                     </span>
                   </td>
-                  <td className="px-4 py-3.5 text-right text-slate-500">₹{p.registeredOS.toFixed(2)}</td>
-                  <td className="px-6 py-3.5 text-right text-slate-500">₹{p.unregisteredOS.toFixed(2)}</td>
+                  <td className="px-4 py-3.5 text-right text-slate-700">₹{p.registeredOS.toFixed(2)}</td>
+                  <td className="px-6 py-3.5 text-right text-slate-700">₹{p.unregisteredOS.toFixed(2)}</td>
                 </tr>
               ))}
               {/* Grand Total Row */}
-              <tr className="bg-slate-50/80 font-bold text-nyati-navy border-t-2 border-slate-200">
+              <tr className="bg-slate-50/80 font-bold text-nyati-navy border-t-2 border-slate-200 text-[13px]">
                 <td className="px-6 py-4">GRAND TOTAL</td>
                 <td className="px-4 py-4 text-right">₹{grandTotalSoldVal.toFixed(2)}</td>
                 <td className="px-4 py-4 text-right">₹{grandTotalDueMilestone.toFixed(2)}</td>
                 <td className="px-4 py-4 text-right">₹{grandTotalCollection.toFixed(2)}</td>
                 <td className="px-4 py-4 text-center">
-                  <span className={`px-4 py-1.5 rounded-lg text-xs border border-nyati-navy/10 ${getOutstandingColor(grandTotalOutstanding)}`}>
+                  <span className={`px-4 py-1.5 rounded-lg text-[13px] border border-nyati-navy/10 ${getOutstandingColor(grandTotalOutstanding)}`}>
                     ₹{grandTotalOutstanding.toFixed(2)}
                   </span>
                 </td>
@@ -436,7 +436,7 @@ export default function Dashboard2() {
             <h3 className="font-bold text-nyati-navy text-lg">
               {ageingView === 'graph' ? "Ageing — Project x Bucket" : "Ageing Outstanding Matrix"}
             </h3>
-            <p className="text-slate-400 text-xs mt-0.5">
+            <p className="text-slate-700 text-[13px] font-semibold mt-0.5">
               {ageingView === 'graph'
                 ? "Stacked exposure in ₹ Cr - red dominant where >120d concentrates"
                 : "Click cells to drill down to flat details. Heatmap displays critical delays (>90 days)."
@@ -446,8 +446,8 @@ export default function Dashboard2() {
           
           {/* Legend for Table View */}
           {ageingView === 'table' && (
-            <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold text-slate-600 bg-slate-50/80 px-4 py-2 rounded-2xl border border-slate-100">
-              <span className="text-[9px] uppercase tracking-wider text-slate-400 font-extrabold mr-1">Legend:</span>
+            <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-800 bg-slate-50/80 px-4 py-2 rounded-2xl border border-slate-100">
+              <span className="text-[10px] uppercase tracking-wider text-slate-700 font-extrabold mr-1">Legend:</span>
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#38A169]" />
                 <span>&lt; ₹1 Cr</span>
@@ -475,13 +475,13 @@ export default function Dashboard2() {
           <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold">
             <button
               onClick={() => setAgeingView('graph')}
-              className={`px-3 py-1.5 rounded-lg transition-all ${ageingView === 'graph' ? 'bg-white text-nyati-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+              className={`px-3 py-1.5 rounded-lg transition-all ${ageingView === 'graph' ? 'bg-white text-nyati-navy shadow-sm font-bold' : 'text-slate-700 hover:text-slate-900 font-bold'}`}
             >
               Graph View
             </button>
             <button
               onClick={() => setAgeingView('table')}
-              className={`px-3 py-1.5 rounded-lg transition-all ${ageingView === 'table' ? 'bg-white text-nyati-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+              className={`px-3 py-1.5 rounded-lg transition-all ${ageingView === 'table' ? 'bg-white text-nyati-navy shadow-sm font-bold' : 'text-slate-700 hover:text-slate-900 font-bold'}`}
             >
               Table View
             </button>
@@ -490,9 +490,9 @@ export default function Dashboard2() {
 
         {ageingView === 'table' ? (
           <div className="lg:overflow-x-visible overflow-x-auto">
-            <table className="w-full text-center text-xs">
+            <table className="w-full text-center text-[13px] text-slate-800">
               <thead>
-                <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-700 uppercase tracking-wider font-bold border-b border-slate-100 text-left shadow-sm">
+                <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-900 uppercase tracking-wider font-extrabold border-b border-slate-100 text-left text-[13px] shadow-sm">
                   <th className="px-6 py-4 text-left">Project</th>
                   <th className="px-4 py-4 text-center">0–30 Days (₹ Cr)</th>
                   <th className="px-4 py-4 text-center">31–60 Days (₹ Cr)</th>
@@ -502,10 +502,10 @@ export default function Dashboard2() {
                   <th className="px-6 py-4 text-center">Total (₹ Cr)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50 font-semibold text-slate-700">
+              <tbody className="divide-y divide-slate-50 font-bold text-slate-800">
                 {filteredProjects.map((p) => (
                   <tr key={p.name} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-3.5 text-left font-bold text-slate-700">{p.name}</td>
+                    <td className="px-6 py-3.5 text-left font-bold text-slate-800">{p.name}</td>
                     {['0-30', '31-60', '61-90', '91-120', 'gt120'].map((bucket) => {
                       const value = p.ageing[bucket];
                       return (
@@ -524,7 +524,7 @@ export default function Dashboard2() {
                   </tr>
                 ))}
                 {/* Grand Total Row */}
-                <tr className="bg-slate-50/80 font-bold text-nyati-navy border-t border-slate-200">
+                <tr className="bg-slate-50/80 font-bold text-nyati-navy border-t-2 border-slate-200 text-[13px]">
                   <td className="px-6 py-4 text-left">GRAND TOTAL</td>
                   <td className="px-4 py-4 text-center">₹{grandAgeing0_30.toFixed(2)}</td>
                   <td className="px-4 py-4 text-center">₹{grandAgeing31_60.toFixed(2)}</td>
@@ -541,7 +541,7 @@ export default function Dashboard2() {
         ) : (
           <div className="p-6">
             {filteredProjects.length === 0 ? (
-              <div className="h-96 flex items-center justify-center text-slate-400">No project aging data to display.</div>
+              <div className="h-96 flex items-center justify-center text-slate-700 font-bold text-sm">No project aging data to display.</div>
             ) : (
               <div className="h-96 w-full relative">
                 <ResponsiveContainer width="100%" height="100%">
@@ -567,7 +567,7 @@ export default function Dashboard2() {
                       height={36}
                       iconType="rect"
                       iconSize={10}
-                      formatter={(value) => <span className="text-[11px] font-bold text-slate-600 font-sans">{value}</span>}
+                      formatter={(value) => <span className="text-xs font-bold text-slate-800 font-sans">{value}</span>}
                     />
                     <Bar
                       dataKey="0-30d"
@@ -637,7 +637,7 @@ export default function Dashboard2() {
                     <h4 className="font-bold text-slate-800 text-sm flex items-center gap-1">
                       {p.title}
                     </h4>
-                    <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                    <p className="text-[13px] text-slate-700 leading-relaxed font-medium">
                       {p.text}
                     </p>
                   </div>
@@ -675,7 +675,7 @@ export default function Dashboard2() {
                       {rec.subject}
                     </span>
                   </div>
-                  <p className="font-medium text-slate-600 leading-relaxed text-[11px]">
+                  <p className="font-semibold text-slate-700 leading-relaxed text-[12px]">
                     {rec.text}
                   </p>
                 </div>
@@ -685,8 +685,8 @@ export default function Dashboard2() {
 
           <div className="mt-6 p-4 bg-nyati-orange/5 rounded-2xl border border-nyati-orange/10 flex items-center justify-between">
             <div className="space-y-0.5">
-              <span className="text-[9px] text-nyati-orange font-bold uppercase tracking-wider">Analysis Accuracy</span>
-              <span className="text-slate-800 font-extrabold text-xs block">100% Data Synchronized</span>
+              <span className="text-[10px] text-nyati-orange font-extrabold uppercase tracking-wider">Analysis Accuracy</span>
+              <span className="text-slate-800 font-extrabold text-sm block">100% Data Synchronized</span>
             </div>
             <PieChart className="w-5 h-5 text-nyati-orange" />
           </div>
@@ -721,19 +721,19 @@ export default function Dashboard2() {
 
               {/* Modal Content */}
               <div className="p-6 space-y-4">
-                <div className="text-xs text-slate-500 font-medium">
+                <div className="text-[13px] text-slate-700 font-semibold">
                   Showing flat-wise booking balance details corresponding to this aging duration:
                 </div>
 
                 <div className="border border-slate-100 rounded-2xl overflow-hidden divide-y divide-slate-100">
                   {drilldownData.flats.map((flat, idx) => (
-                    <div key={idx} className="p-4 bg-slate-50/30 hover:bg-slate-50 flex justify-between items-center text-xs font-semibold">
+                    <div key={idx} className="p-4 bg-slate-50/30 hover:bg-slate-50 flex justify-between items-center text-[13px] font-semibold">
                       <div className="space-y-1">
                         <span className="font-extrabold text-slate-800 text-sm">{flat.flat}</span>
-                        <div className="text-slate-400 font-medium flex items-center gap-1.5">
+                        <div className="text-slate-700 font-semibold flex items-center gap-1.5">
                           <span>Client: {flat.customer}</span>
                           <span>•</span>
-                          <span className="text-nyati-orange font-bold">{flat.age} Days Old</span>
+                          <span className="text-nyati-orange font-extrabold">{flat.age} Days Old</span>
                         </div>
                       </div>
                       <span className="text-nyati-navy text-sm font-black">
@@ -754,7 +754,7 @@ export default function Dashboard2() {
                 <button
                   type="button"
                   onClick={() => setDrilldownData(null)}
-                  className="px-5 py-2 bg-slate-200 text-slate-700 rounded-xl hover:bg-slate-300 font-bold text-xs transition-all duration-200"
+                  className="px-5 py-2 bg-slate-200 text-slate-800 rounded-xl hover:bg-slate-300 font-bold text-[13px] transition-all duration-200"
                 >
                   Close Detail
                 </button>

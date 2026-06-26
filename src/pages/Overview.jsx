@@ -19,32 +19,32 @@ const OverviewMetricRow = ({ label, actual, budget, prefix = '', suffix = '', de
   const isProgressing = status === 'Progressing';
   
   return (
-    <div className="flex items-center justify-between py-1.5 px-3.5 bg-slate-50/50 hover:bg-slate-50/80 rounded-xl border border-slate-100/70 transition-all duration-200">
+    <div className="flex items-center justify-between py-1.5 px-3.5 bg-slate-50/50 hover:bg-slate-50/80 rounded-xl border border-slate-200 transition-all duration-200">
       <div className="flex flex-col gap-0.5 min-w-0">
         <div className="flex items-center gap-2">
-          {Icon && <Icon className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 select-none whitespace-nowrap">
+          {Icon && <Icon className="w-3.5 h-3.5 text-slate-700 shrink-0" />}
+          <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-800 select-none whitespace-nowrap">
             {label}
           </span>
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-[13px] font-black text-nyati-navy whitespace-nowrap">
+          <span className="text-[14px] font-black text-nyati-navy whitespace-nowrap">
             {prefix}<AnimatedNumber value={actual} decimals={decimals} />{suffix}
           </span>
           {budget !== undefined && (
-            <span className="text-[9.5px] text-slate-500 font-semibold whitespace-nowrap select-none">
+            <span className="text-[11px] text-slate-800 font-extrabold whitespace-nowrap select-none">
               Tgt: {prefix}{budget.toLocaleString('en-IN', { maximumFractionDigits: decimals })}{suffix}
             </span>
           )}
         </div>
       </div>
       {status && (
-        <span className={`px-2 py-0.5 text-[9.5px] font-black rounded-full border select-none shrink-0 ${
+        <span className={`px-2.5 py-0.5 text-[11px] font-extrabold rounded-full border select-none shrink-0 ${
           isAchieved 
-            ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
+            ? 'bg-emerald-50 text-emerald-700 border-emerald-155 font-extrabold shadow-sm' 
             : isProgressing
-              ? 'bg-amber-50 text-amber-700 border-amber-100' 
-              : 'bg-red-50 text-red-700 border-red-100'
+              ? 'bg-amber-50 text-amber-700 border-amber-155 font-extrabold shadow-sm' 
+              : 'bg-red-50 text-red-700 border-red-155 font-extrabold shadow-sm'
         }`}>
           {status}
         </span>
@@ -128,12 +128,12 @@ const SalesComboChart = ({ data }) => {
             dataKey="name" 
             axisLine={false} 
             tickLine={false} 
-            tick={{ fontSize: 9, fontWeight: 800, fill: '#475569' }} 
+            tick={{ fontSize: 11, fontWeight: 800, fill: '#1e293b' }} 
           />
           <YAxis 
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 9, fontWeight: 700, fill: '#475569' }}
+            tick={{ fontSize: 11, fontWeight: 800, fill: '#1e293b' }}
             domain={[0, 120]}
             tickFormatter={(val) => `${val}%`}
           />
@@ -146,7 +146,7 @@ const SalesComboChart = ({ data }) => {
                 const prefix = payload[0].payload.prefix || '';
                 const pct = payload[0].payload.value;
                 return (
-                  <div className="bg-slate-900/95 text-white px-3 py-2 rounded-xl text-[10px] shadow-xl border border-slate-800 space-y-1">
+                  <div className="bg-slate-900/95 text-white px-3 py-2 rounded-xl text-xs shadow-xl border border-slate-800 space-y-1">
                     <p className="font-extrabold text-slate-300 uppercase tracking-wider">{payload[0].payload.name}</p>
                     <p className="font-bold flex items-center justify-between gap-4 text-slate-200">
                       <span>Actual:</span>
@@ -214,12 +214,12 @@ const OutstandingLineChart = ({ collection, outstanding, regOS, ageing120 }) => 
             dataKey="name" 
             axisLine={false} 
             tickLine={false} 
-            tick={{ fontSize: 9, fontWeight: 800, fill: '#475569' }} 
+            tick={{ fontSize: 11, fontWeight: 800, fill: '#1e293b' }} 
           />
           <YAxis 
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 9, fontWeight: 700, fill: '#475569' }}
+            tick={{ fontSize: 11, fontWeight: 800, fill: '#1e293b' }}
             domain={[0, 'auto']}
             tickFormatter={(val) => `₹${val.toFixed(0)}Cr`}
           />
@@ -228,7 +228,7 @@ const OutstandingLineChart = ({ collection, outstanding, regOS, ageing120 }) => 
               if (active && payload && payload.length) {
                 const item = payload[0].payload;
                 return (
-                  <div className="bg-slate-900/95 text-white px-3 py-1.5 rounded-xl text-[10px] shadow-xl border border-slate-800">
+                  <div className="bg-slate-900/95 text-white px-3 py-1.5 rounded-xl text-xs shadow-xl border border-slate-800">
                     <span className="font-extrabold text-slate-300 uppercase tracking-wider block mb-0.5">{item.name}</span>
                     <span className="font-black text-sm text-white">{item.display}</span>
                   </div>
@@ -299,15 +299,15 @@ const ConstructionRowChart = ({ target, achieved, variance, efficiency }) => {
             type="category" 
             axisLine={false} 
             tickLine={false} 
-            tick={{ fontSize: 9, fontWeight: 800, fill: '#475569' }}
-            width={95}
+            tick={{ fontSize: 11, fontWeight: 800, fill: '#1e293b' }}
+            width={110}
           />
           <Tooltip 
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
                 const item = payload[0].payload;
                 return (
-                  <div className="bg-slate-900/95 text-white px-3 py-1.5 rounded-xl text-[10px] shadow-xl border border-slate-800">
+                  <div className="bg-slate-900/95 text-white px-3 py-1.5 rounded-xl text-xs shadow-xl border border-slate-800">
                     <span className="font-extrabold text-slate-300 uppercase tracking-wider block mb-0.5">{item.name}</span>
                     <span className="font-black text-sm text-white">{item.display}</span>
                   </div>
@@ -385,9 +385,9 @@ const PortfolioPieChart = ({ activeProjects, newlyStarted, inProcess, nearingCom
               if (active && payload && payload.length) {
                 const entry = payload[0].payload;
                 return (
-                  <div className="bg-slate-900/95 text-white px-3 py-1.5 rounded-xl text-[10px] shadow-xl border border-slate-800 space-y-0.5">
+                  <div className="bg-slate-900/95 text-white px-3 py-1.5 rounded-xl text-xs shadow-xl border border-slate-800 space-y-0.5">
                     <span className="font-extrabold text-slate-300 uppercase tracking-wider block">{entry.name}</span>
-                    <span className="font-black text-[11px] text-white">{entry.display}</span>
+                    <span className="font-black text-[12px] text-white">{entry.display}</span>
                   </div>
                 );
               }
@@ -401,9 +401,9 @@ const PortfolioPieChart = ({ activeProjects, newlyStarted, inProcess, nearingCom
             iconType="square"
             iconSize={11}
             wrapperStyle={{ 
-              fontSize: '13px', 
+              fontSize: '14px', 
               fontWeight: 800, 
-              color: '#334155',
+              color: '#1e293b',
               paddingLeft: '15px'
             }}
           />
@@ -493,7 +493,7 @@ export default function Overview() {
 
       {/* Page Title */}
       <motion.div variants={item} className="flex-shrink-0">
-        <h2 className="text-2xl font-black text-nyati-navy">Dashboard Overview</h2>
+        <h2 className="text-3xl font-black text-nyati-navy">Dashboard Overview</h2>
       </motion.div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 flex-1 min-h-0">
@@ -510,13 +510,13 @@ export default function Overview() {
                 <LayoutDashboard className="w-4 h-4 text-nyati-orange" />
               </div>
               <div>
-                <h3 className="font-bold text-nyati-navy text-sm">Sales</h3>
-                <p className="text-slate-600 text-[10px] mt-0.5">FY actuals vs budget targets</p>
+                <h3 className="font-extrabold text-nyati-navy text-base">Sales</h3>
+                <p className="text-slate-700 text-xs font-semibold mt-0.5">FY actuals vs budget targets</p>
               </div>
             </div>
             <button
               onClick={() => navigate('/sales-collection')}
-              className="flex items-center gap-1.5 text-[11px] font-bold text-nyati-orange hover:text-nyati-navy transition-colors"
+              className="flex items-center gap-1.5 text-[13px] font-extrabold text-nyati-orange hover:text-nyati-navy transition-colors"
             >
               View Full <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -590,13 +590,13 @@ export default function Overview() {
                 <BarChart3 className="w-4 h-4 text-sky-500" />
               </div>
               <div>
-                <h3 className="font-bold text-nyati-navy text-sm">Outstanding & Collection</h3>
-                <p className="text-slate-600 text-[10px] mt-0.5">Consolidated dues, collections, and ageing matrix</p>
+                <h3 className="font-extrabold text-nyati-navy text-base">Outstanding & Collection</h3>
+                <p className="text-slate-700 text-xs font-semibold mt-0.5">Consolidated dues, collections, and ageing matrix</p>
               </div>
             </div>
             <button
               onClick={() => navigate('/outstanding')}
-              className="flex items-center gap-1.5 text-[11px] font-bold text-nyati-orange hover:text-nyati-navy transition-colors"
+              className="flex items-center gap-1.5 text-[13px] font-extrabold text-nyati-orange hover:text-nyati-navy transition-colors"
             >
               View Full <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -667,13 +667,13 @@ export default function Overview() {
                 <Hammer className="w-4 h-4 text-nyati-orange" />
               </div>
               <div>
-                <h3 className="font-bold text-nyati-navy text-sm">Construction Budget</h3>
-                <p className="text-slate-600 text-[10px] mt-0.5">Target planned vs achieved construction costs and progress</p>
+                <h3 className="font-extrabold text-nyati-navy text-base">Construction Budget</h3>
+                <p className="text-slate-700 text-xs font-semibold mt-0.5">Target planned vs achieved construction costs and progress</p>
               </div>
             </div>
             <button
               onClick={() => navigate('/construction-budget')}
-              className="flex items-center gap-1.5 text-[11px] font-bold text-nyati-orange hover:text-nyati-navy transition-colors"
+              className="flex items-center gap-1.5 text-[13px] font-extrabold text-nyati-orange hover:text-nyati-navy transition-colors"
             >
               View Full <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -743,13 +743,13 @@ export default function Overview() {
                 <Layers className="w-4 h-4 text-emerald-600" />
               </div>
               <div>
-                <h3 className="font-bold text-nyati-navy text-sm">Project Portfolio</h3>
-                <p className="text-slate-600 text-[10px] mt-0.5">Inventory funnel & construction completion</p>
+                <h3 className="font-extrabold text-nyati-navy text-base">Project Portfolio</h3>
+                <p className="text-slate-700 text-xs font-semibold mt-0.5">Inventory funnel & construction completion</p>
               </div>
             </div>
             <button
               onClick={() => navigate('/portfolio')}
-              className="flex items-center gap-1.5 text-[11px] font-bold text-nyati-orange hover:text-nyati-navy transition-colors"
+              className="flex items-center gap-1.5 text-[13px] font-extrabold text-nyati-orange hover:text-nyati-navy transition-colors"
             >
               View Full <ArrowRight className="w-3.5 h-3.5" />
             </button>
