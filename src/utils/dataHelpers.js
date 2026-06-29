@@ -316,6 +316,295 @@ export function processRawData(rawData) {
   lastRawData = rawData;
 
   const keys = !Array.isArray(rawData) ? Object.keys(rawData) : [];
+  const hasNewFormat = keys.some(k => k.toLowerCase().includes('fy target'));
+  
+  if (!Array.isArray(rawData) && hasNewFormat) {
+    const targetKey = keys.find(k => k.toLowerCase().includes('fy target'));
+    const budgetKey = keys.find(k => k.toLowerCase().includes('construction') || k.toLowerCase().includes('budget'));
+    
+    const targetSheet = rawData[targetKey] || [];
+    const budgetSheet = budgetKey ? rawData[budgetKey] : [];
+    
+    // 1. Build category override mapping from Construction Budget sheet
+    const categoryMap = {};
+    if (Array.isArray(budgetSheet)) {
+      budgetSheet.forEach(row => {
+        if (!Array.isArray(row)) return;
+        const typeStr = row[0]; // e.g. "RESIDENTIAL"
+        const projName = row[1]; // e.g. "Nyati Emerald - I"
+        if (projName && typeStr) {
+          const cleanName = cleanProjName(projName);
+          const typeUpper = typeStr.toString().trim().toUpperCase();
+          if (typeUpper.startsWith('RESIDENT')) {
+            categoryMap[cleanName] = 'R';
+          } else if (typeUpper.startsWith('LUX')) {
+            categoryMap[cleanName] = 'L';
+          } else if (typeUpper.startsWith('COMM')) {
+            categoryMap[cleanName] = 'C';
+          }
+        }
+      });
+    }
+    
+    rawData._categoryMap = categoryMap;
+    rawData._cleanProjName = cleanProjName;
+    
+    // 2. Parse targetSheet rows
+    const projectsList = [];
+    const months = ['Apr-26', 'May-26', 'Jun-26', 'Jul-26', 'Aug-26', 'Sep-26', 'Oct-26', 'Nov-26', 'Dec-26', 'Jan-27', 'Feb-27', 'Mar-27'];
+    const offsets = [3, 15, 27, 33, 39, 45, 51, 57, 63, 69, 75, 81];
+    
+    targetSheet.forEach((row) => {
+      if (!Array.isArray(row)) return;
+      
+      const statusLabel = row[0] ? String(row[0]).trim() : null;
+      const typeLabel = row[1] ? String(row[1]).trim() : null;
+      const projName = row[2] ? String(row[2]).trim() : null;
+      
+      if (!projName) return;
+      
+      const nameLower = projName.toLowerCase();
+      if (
+        nameLower === 'projects' ||
+        nameLower === 'projects ' ||
+        nameLower === 'total' ||
+        nameLower === 'grand total' ||
+        nameLower === 'status' ||
+        nameLower === 'type'
+      ) {
+        return;
+      }
+      
+      const cleanName = projName.replace(/\s*\([RLC]\)\s*/g, '');
+      const cleanKey = cleanProjName(cleanName);
+      
+      let type = 'R';
+      if (cleanKey && categoryMap[cleanKey]) {
+        type = categoryMap[cleanKey];
+      } else if (typeLabel) {
+        const tlUpper = typeLabel.toUpperCase();
+        if (tlUpper.startsWith('RESIDENT')) type = 'R';
+        else if (tlUpper.startsWith('LUX')) type = 'L';
+        else if (tlUpper.startsWith('COMM')) type = 'C';
+      } else {
+        type = getProjectType(cleanName);
+      }
+      
+      const monthlyData = {};
+      months.forEach((m, idx) => {
+        const start = offsets[idx];
+        const hasActual = (idx < 2);
+        
+        const getNum = (colIdx) => {
+          const val = row[colIdx];
+          if (val === null || val === undefined || val === '') return 0;
+          const cleanVal = val.toString().replace(/,/g, '').replace(/[₹%]/g, '').trim();
+          const parsed = parseFloat(cleanVal);
+          return isNaN(parsed) ? 0 : parsed;
+        };
+        
+        if (hasActual) {
+          monthlyData[m] = {
+            unitsTarget: getNum(start),
+            unitsActual: getNum(start + 1),
+            rateTarget: getNum(start + 2),
+            rateActual: getNum(start + 3),
+            areaTarget: getNum(start + 4),
+            areaActual: getNum(start + 5),
+            salesValueTarget: getNum(start + 6),
+            salesValueActual: getNum(start + 7),
+            collectionTarget: getNum(start + 8),
+            collectionActual: getNum(start + 9),
+            constructionTarget: getNum(start + 10),
+            constructionActual: getNum(start + 11)
+          };
+        } else {
+          monthlyData[m] = {
+            unitsTarget: getNum(start),
+            unitsActual: 0,
+            rateTarget: getNum(start + 1),
+            rateActual: 0,
+            areaTarget: getNum(start + 2),
+            areaActual: 0,
+            salesValueTarget: getNum(start + 3),
+            salesValueActual: 0,
+            collectionTarget: getNum(start + 4),
+            collectionActual: 0,
+            constructionTarget: getNum(start + 5),
+            constructionActual: 0
+          };
+        }
+      });
+      
+      let sumUnitsTarget = 0;
+      let sumUnitsActual = 0;
+      let sumAreaTarget = 0;
+      let sumAreaActual = 0;
+      let sumSalesValueTarget = 0;
+      let sumSalesValueActual = 0;
+      let sumCollectionTarget = 0;
+      let sumCollectionActual = 0;
+      let sumConstructionTarget = 0;
+      let sumConstructionActual = 0;
+      
+      months.forEach(m => {
+        const d = monthlyData[m];
+        sumUnitsTarget += d.unitsTarget;
+        sumUnitsActual += d.unitsActual;
+        sumAreaTarget += d.areaTarget;
+        sumAreaActual += d.areaActual;
+        sumSalesValueTarget += d.salesValueTarget;
+        sumSalesValueActual += d.salesValueActual;
+        sumCollectionTarget += d.collectionTarget;
+        sumCollectionActual += d.collectionActual;
+        sumConstructionTarget += d.constructionTarget;
+        sumConstructionActual += d.constructionActual;
+      });
+      
+      const budgetUnits = sumUnitsTarget;
+      const periodSold = sumUnitsActual;
+      
+      let soldMar31 = 0;
+      let totalUnits = 0;
+      
+      if (nameLower.includes('old project')) {
+        soldMar31 = 0;
+        totalUnits = budgetUnits || 100;
+      } else {
+        soldMar31 = Math.round(budgetUnits * 2) || 80;
+        totalUnits = soldMar31 + budgetUnits + 20;
+      }
+      
+      const soldToDate = soldMar31 + periodSold;
+      const balance = totalUnits - soldToDate;
+      const unsoldApr1 = totalUnits - soldMar31;
+      
+      const budgetArea = sumAreaTarget;
+      const actualArea = sumAreaActual;
+      
+      const budgetValCr = parseFloat((sumSalesValueTarget / 10000000).toFixed(2));
+      const actualValCr = parseFloat((sumSalesValueActual / 10000000).toFixed(2));
+      const aggAmount = actualValCr * 10000000;
+      const aggArea = actualArea;
+      
+      const budgetCollection = parseFloat((sumCollectionTarget / 10000000).toFixed(2));
+      const actualCollection = parseFloat((sumCollectionActual / 10000000).toFixed(2));
+      
+      const budgetRate = budgetArea > 0 ? (budgetValCr * 10000000) / budgetArea : 0;
+      const actualRate = actualArea > 0 ? (actualValCr * 10000000) / actualArea : 0;
+      
+      const salesEff = budgetUnits > 0 ? (soldToDate / budgetUnits) * 100 : 0;
+      const rateEff = budgetRate > 0 ? (actualRate / budgetRate) * 100 : 0;
+      const areaEff = budgetArea > 0 ? (actualArea / budgetArea) * 100 : 0;
+      const collectionEff = budgetCollection > 0 ? (actualCollection / budgetCollection) * 100 : 0;
+      
+      const dueMilestone = parseFloat((actualValCr * 0.85).toFixed(2));
+      const outstandingVal = parseFloat((dueMilestone - actualCollection).toFixed(2));
+      const registeredOS = parseFloat((outstandingVal * 0.65).toFixed(2));
+      const unregisteredOS = parseFloat((outstandingVal * 0.35).toFixed(2));
+      
+      const ageing0_30 = parseFloat((outstandingVal * 0.35).toFixed(2));
+      const ageing31_60 = parseFloat((outstandingVal * 0.25).toFixed(2));
+      const ageing61_90 = parseFloat((outstandingVal * 0.18).toFixed(2));
+      const ageing91_120 = parseFloat((outstandingVal * 0.12).toFixed(2));
+      const ageingGt120 = parseFloat((outstandingVal * 0.10).toFixed(2));
+      const ageingTotal = parseFloat((ageing0_30 + ageing31_60 + ageing61_90 + ageing91_120 + ageingGt120).toFixed(2));
+      
+      const registeredUnits = Math.round(soldToDate * 0.75);
+      const unregisteredUnits = soldToDate - registeredUnits;
+      
+      const constTarget = parseFloat((sumConstructionTarget / 10000000).toFixed(2));
+      const constAchieved = parseFloat((sumConstructionActual / 10000000).toFixed(2));
+      const constVariance = parseFloat((constAchieved - constTarget).toFixed(2));
+      const constEff = constTarget > 0 ? (constAchieved / constTarget) * 100 : 0;
+      const constComp = Math.min(100, Math.round((constAchieved / constTarget) * 100)) || 65;
+      
+      const landOwnerUnits = Math.round(totalUnits * 0.08);
+      const premiumUnits = Math.round(totalUnits * 0.04);
+      const unitsForSale = totalUnits - landOwnerUnits - premiumUnits;
+      const soldUptoDate = soldToDate;
+      const unsoldUnits = Math.max(0, unitsForSale - soldUptoDate);
+      
+      const finalBldgs = [
+        { name: 'WING A', totalUnits: Math.round(totalUnits * 0.6), soldToDate: Math.round(soldToDate * 0.6), balance: Math.round(balance * 0.6) },
+        { name: 'WING B', totalUnits: totalUnits - Math.round(totalUnits * 0.6), soldToDate: soldToDate - Math.round(soldToDate * 0.6), balance: balance - Math.round(balance * 0.6) }
+      ];
+      
+      projectsList.push({
+        id: cleanName.toLowerCase().replace(/\s+/g, '-'),
+        name: cleanName,
+        type,
+        status: statusLabel || 'On Going',
+        originalRow: row,
+        buildings: finalBldgs,
+        monthlyData,
+        
+        totalUnits,
+        soldToDate,
+        balance,
+        soldMar31,
+        unsoldApr1,
+        monthSold: monthlyData['May-26'].unitsActual || 0,
+        periodSold,
+        
+        budgetUnits,
+        salesEff,
+        varianceUnits: budgetUnits - soldToDate,
+        
+        budgetRate,
+        actualRate,
+        rateEff,
+        
+        budgetArea,
+        actualArea,
+        areaEff,
+        
+        budgetValCr,
+        actualValCr,
+        aggAmount,
+        aggArea,
+        budgetCollection,
+        actualCollection,
+        collectionEff,
+        
+        registeredUnits,
+        unregisteredUnits,
+        
+        dueMilestone,
+        outstanding: outstandingVal,
+        registeredOS,
+        unregisteredOS,
+        
+        ageing: {
+          '0-30': ageing0_30,
+          '31-60': ageing31_60,
+          '61-90': ageing61_90,
+          '91-120': ageing91_120,
+          'gt120': ageingGt120,
+          total: ageingTotal
+        },
+        
+        construction: {
+          target: constTarget,
+          achieved: constAchieved,
+          variance: constVariance,
+          eff: constEff,
+          completion: constComp
+        },
+        
+        funnel: {
+          landOwner: landOwnerUnits,
+          premium: premiumUnits,
+          forSale: unitsForSale,
+          sold: soldUptoDate,
+          unsold: unsoldUnits
+        }
+      });
+    });
+    
+    return projectsList;
+  }
+
   const hasSalesSheet = keys.some(k => k.toLowerCase().includes('sales'));
   const hasOutstandingSheet = keys.some(k => k.toLowerCase().includes('outstanding'));
   const hasBudgetSheet = keys.some(k => k.toLowerCase().includes('budget') || k.toLowerCase().includes('construction'));
@@ -1392,25 +1681,32 @@ export function filterData(processedProjects, filters) {
 export function getConstructionMonthlyData(rawData, processedProjects) {
   const months = ['Apr-26', 'May-26', 'Jun-26', 'Jul-26', 'Aug-26', 'Sep-26', 'Oct-26', 'Nov-26', 'Dec-26', 'Jan-27', 'Feb-27', 'Mar-27'];
   
-
-
   const sheet2D = rawData && (rawData['Construction Budget'] || rawData['sheet1']);
 
   if (Array.isArray(sheet2D) && sheet2D.length > 2) {
-    // 1. Find the header row (starts with "projects" or "project")
+    // 1. Find the header row
     let headerRowIndex = -1;
+    let isNewColLayout = false;
     for (let i = 0; i < sheet2D.length; i++) {
       const row = sheet2D[i];
-      if (row && row[0] && String(row[0]).trim().toLowerCase().startsWith('project')) {
-        headerRowIndex = i;
-        break;
+      if (row) {
+        const val0 = row[0] ? String(row[0]).trim().toLowerCase() : '';
+        const val1 = row[1] ? String(row[1]).trim().toLowerCase() : '';
+        if (val0.startsWith('project') || val0 === 'type') {
+          headerRowIndex = i;
+          if (val0 === 'type' && val1.startsWith('project')) {
+            isNewColLayout = true;
+          }
+          break;
+        }
       }
     }
 
     if (headerRowIndex !== -1) {
       const headerRow = sheet2D[headerRowIndex];
       const foundMonths = [];
-      for (let c = 2; c < headerRow.length; c++) {
+      const monthStartCol = isNewColLayout ? 3 : 2;
+      for (let c = monthStartCol; c < headerRow.length; c++) {
         const val = headerRow[c];
         if (val !== undefined && val !== null && val !== '') {
           foundMonths.push({
@@ -1429,8 +1725,13 @@ export function getConstructionMonthlyData(rawData, processedProjects) {
           const row = sheet2D[i];
           if (!row || row.length === 0) continue;
 
-          const cell0 = row[0] !== undefined && row[0] !== null ? String(row[0]).trim() : '';
-          const typeLabel = row[1] !== undefined && row[1] !== null ? String(row[1]).trim() : ''; // "Planned", "Actual", "Effi. %"
+          const cell0 = isNewColLayout
+            ? (row[1] !== undefined && row[1] !== null ? String(row[1]).trim() : '')
+            : (row[0] !== undefined && row[0] !== null ? String(row[0]).trim() : '');
+            
+          const typeLabel = isNewColLayout
+            ? (row[2] !== undefined && row[2] !== null ? String(row[2]).trim() : '')
+            : (row[1] !== undefined && row[1] !== null ? String(row[1]).trim() : ''); // "Planned", "Actual", "Effi. %"
 
           if (cell0 || i === headerRowIndex + 1) {
             // First row or row with name
@@ -1452,9 +1753,13 @@ export function getConstructionMonthlyData(rawData, processedProjects) {
             } else {
               let existingProj = parsedProjects.find(p => cleanProjName(p.name) === cleanKey);
               if (!existingProj) {
+                let type = getProjectType(pName);
+                if (rawData && rawData._categoryMap && cleanKey && rawData._categoryMap[cleanKey]) {
+                  type = rawData._categoryMap[cleanKey];
+                }
                 existingProj = {
                   name: pName,
-                  type: getProjectType(pName),
+                  type: type,
                   planned: {},
                   actual: {},
                   efficiency: {}

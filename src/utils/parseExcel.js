@@ -22,7 +22,8 @@ export function parseExcel(file) {
             nameLower === 'construction budget' ||
             nameLower === 'sheet1' ||
             (nameLower.includes('sales') && nameLower.includes('collection')) ||
-            nameLower === 'sales'
+            nameLower === 'sales' ||
+            nameLower.includes('target')
           ) {
             resolve({ [sheetName]: XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null }) });
           } else {
@@ -40,7 +41,8 @@ export function parseExcel(file) {
             nameLower === 'construction budget' ||
             nameLower === 'sheet1' ||
             (nameLower.includes('sales') && nameLower.includes('collection')) ||
-            nameLower === 'sales'
+            nameLower === 'sales' ||
+            nameLower.includes('target')
           ) {
             result[sheetName] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
           } else {
