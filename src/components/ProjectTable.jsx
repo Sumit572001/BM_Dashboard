@@ -269,7 +269,7 @@ export default function ProjectTable() {
 
       {/* Table Wrapper with horizontal scrolling */}
       <div className="overflow-x-auto w-full max-w-full rounded-b-3xl">
-        <table ref={tableRef} className={`w-full text-left text-[13px] text-slate-800 border-collapse ${showMonthlyColumns ? 'min-w-[1250px]' : ''}`}>
+        <table ref={tableRef} className={`w-full text-left text-[14px] text-slate-800 border-collapse ${showMonthlyColumns ? 'min-w-[1450px]' : ''}`}>
           <thead>
             {!showMonthlyColumns ? (
               // Original Summary View Headers (Grouped like Excel)
@@ -353,39 +353,46 @@ export default function ProjectTable() {
                       <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
                     </div>
                   </th>
-                  {salesMonths.map(month => (
-                    <th
-                      key={month}
-                      colSpan={10}
-                      className="bg-slate-100 text-nyati-navy text-center font-black border-r-2 border-slate-200 py-2.5 border-b border-slate-200 text-[13px] sticky top-0 z-20"
-                    >
-                      {month}
-                    </th>
-                  ))}
+                  {salesMonths.length > 0 && (() => {
+                    const month = salesMonths[selectedMonthIndex];
+                    return (
+                      <th
+                        key={month}
+                        colSpan={10}
+                        className="bg-slate-100 text-nyati-navy text-center font-black border-r-2 border-slate-200 py-3 border-b border-slate-200 text-[15px] sticky top-0 z-20"
+                      >
+                        {month}
+                      </th>
+                    );
+                  })()}
                 </tr>
                 <tr className="bg-slate-50 text-slate-900 uppercase font-black border-b border-slate-100 select-none text-[13px]">
-                  {salesMonths.map(month => (
-                    <React.Fragment key={`groups_${month}`}>
-                      <th colSpan={2} className="bg-[#ffff00] text-slate-900 text-center font-black border-r border-slate-200 py-2 text-[12px] sticky top-[38px] z-20">
-                        Units
-                      </th>
-                      <th colSpan={2} className="bg-[#8db4e2] text-slate-900 text-center font-black border-r border-slate-200 py-2 text-[12px] sticky top-[38px] z-20">
-                        Rate
-                      </th>
-                      <th colSpan={2} className="bg-[#c4d79b] text-slate-900 text-center font-black border-r border-slate-200 py-2 text-[12px] sticky top-[38px] z-20">
-                        Area
-                      </th>
-                      <th colSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black border-r border-slate-200 py-2 text-[12px] sticky top-[38px] z-20">
-                        Sales Value
-                      </th>
-                      <th colSpan={2} className="bg-[#b1a0c7] text-slate-900 text-center font-black border-r-2 border-slate-200 py-2 text-[12px] sticky top-[38px] z-20">
-                        Collection
-                      </th>
-                    </React.Fragment>
-                  ))}
+                  {salesMonths.length > 0 && (() => {
+                    const month = salesMonths[selectedMonthIndex];
+                    return (
+                      <React.Fragment key={`groups_${month}`}>
+                        <th colSpan={2} className="bg-[#ffff00] text-slate-900 text-center font-black border-r border-slate-200 py-2.5 text-[14px] sticky top-[45px] z-20">
+                          Units
+                        </th>
+                        <th colSpan={2} className="bg-[#8db4e2] text-slate-900 text-center font-black border-r border-slate-200 py-2.5 text-[14px] sticky top-[45px] z-20">
+                          Rate
+                        </th>
+                        <th colSpan={2} className="bg-[#c4d79b] text-slate-900 text-center font-black border-r border-slate-200 py-2.5 text-[14px] sticky top-[45px] z-20">
+                          Area
+                        </th>
+                        <th colSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black border-r border-slate-200 py-2.5 text-[14px] sticky top-[45px] z-20">
+                          Sales Value
+                        </th>
+                        <th colSpan={2} className="bg-[#b1a0c7] text-slate-900 text-center font-black border-r-2 border-slate-200 py-2.5 text-[14px] sticky top-[45px] z-20">
+                          Collection
+                        </th>
+                      </React.Fragment>
+                    );
+                  })()}
                 </tr>
                 <tr className="bg-slate-50 text-slate-900 uppercase tracking-wider font-black border-b border-slate-200 select-none text-[12px]">
-                  {salesMonths.flatMap(month => {
+                  {salesMonths.length > 0 && (() => {
+                    const month = salesMonths[selectedMonthIndex];
                     const groupMetrics = [
                       { key: 'unitsTarget', label: 'Target' },
                       { key: 'unitsActual', label: 'Actual' },
@@ -406,7 +413,7 @@ export default function ProjectTable() {
                         <th
                           key={fieldKey}
                           onClick={() => requestSort(fieldKey)}
-                          className={`bg-slate-50 px-2 py-2 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[90px] ${isLastMetric ? 'border-r-2 border-slate-200' : isGroupEnd ? 'border-r-2 border-slate-200' : 'border-r border-slate-100'} sticky top-[72px] z-20`}
+                          className={`bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[115px] ${isLastMetric ? 'border-r-2 border-slate-200' : isGroupEnd ? 'border-r-2 border-slate-200' : 'border-r border-slate-100'} sticky top-[82px] z-20 text-[13px]`}
                         >
                           <div className="flex items-center justify-center gap-1">
                             {metric.label}
@@ -415,13 +422,13 @@ export default function ProjectTable() {
                         </th>
                       );
                     });
-                  })}
+                  })()}
                 </tr>
               </>
             )}
           </thead>
 
-          <tbody className="divide-y divide-slate-100 text-slate-600 font-medium">
+          <tbody className="divide-y divide-slate-100 text-slate-600 font-semibold text-[14px]">
             {sortedProjects.length === 0 ? (
               <tr>
                 <td
