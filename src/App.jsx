@@ -123,7 +123,7 @@ function AppContent() {
 
         {/* Dynamic Page Views wrapped in ErrorBoundary */}
         <main className={`flex-1 overflow-y-auto w-full ${location.pathname === '/portfolio' ? '' :
-          ['/outstanding', '/construction-budget', '/'].includes(location.pathname) ? 'px-6 pb-6 pt-2' :
+          ['/outstanding', '/construction-budget', '/', '/sales-collection'].includes(location.pathname) ? 'px-6 pb-6 pt-2' :
             'p-6'
           }`}>
           <ErrorBoundary>

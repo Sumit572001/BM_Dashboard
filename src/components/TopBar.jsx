@@ -145,24 +145,24 @@ export default function TopBar({ toggleSidebar }) {
   const getPageTitle = () => {
     switch (location.pathname) {
       case '/':
-        return 'Management Information System';
+        return 'MANAGEMENT INFORMATION SYSTEM';
       case '/sales-collection':
-        return 'Sales';
+        return 'SALES';
       case '/outstanding':
-        return 'Outstanding & Collection';
+        return 'OUTSTANDING & COLLECTION';
       case '/construction-budget':
-        return 'Construction Budget Review';
+        return 'CONSTRUCTION BUDGET';
       case '/portfolio':
-        return 'Project Portfolio Details';
+        return 'PROJECT PORTFOLIO';
       default:
-        return 'Management Information System';
+        return 'MANAGEMENT INFORMATION SYSTEM';
     }
   };
 
   const getPageSubtitle = () => {
     switch (location.pathname) {
       case '/':
-        return 'Nyati Groups';
+        return 'NYATI GROUP - REAL ESTATE DIVISION';
       case '/sales-collection':
         return 'FY sales achievements, rate analysis, and actual vs budget collection rates';
       case '/outstanding':
@@ -172,7 +172,7 @@ export default function TopBar({ toggleSidebar }) {
       case '/portfolio':
         return 'Granular view of buildings inventory funnel, RERA timings, and cost details';
       default:
-        return 'Nyati Groups';
+        return 'NYATI GROUP - REAL ESTATE DIVISION';
     }
   };
 
@@ -195,7 +195,7 @@ export default function TopBar({ toggleSidebar }) {
           <Menu className="w-6 h-6 text-nyati-navy" />
         </button>
         <div>
-          <h1 className="text-xl font-bold text-nyati-navy leading-snug">
+          <h1 className="text-3xl font-black text-nyati-navy leading-snug">
             {getPageTitle()}
           </h1>
           <p className="text-sm text-slate-700 font-semibold hidden md:block mt-0.5">

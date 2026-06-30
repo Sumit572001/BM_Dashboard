@@ -56,7 +56,7 @@ export default function Sidebar({ isOpen, toggleSidebar, onHoverChange }) {
               <div className="w-9 h-9 bg-white rounded flex items-center justify-center shrink-0">
                 <img
                   src="https://nyatigroup.com/_next/image?url=%2Fimages%2Flogo%2Flogo.png&w=640&q=80"
-                  alt="Nyati Group Logo"
+                  alt="NYATI GROUP - REAL ESTATE DIVISION Logo"
                   className="w-8 h-8 object-contain"
                 />
               </div>

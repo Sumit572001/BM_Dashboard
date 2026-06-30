@@ -1278,14 +1278,10 @@ export default function Dashboard3() {
           </div>
         </>
       ) : (
-        <div className="flex-1 p-6 pb-12 overflow-y-auto bg-slate-50/10">
-          <div className="space-y-6">
+        <div className="flex-1 px-6 pt-2 pb-12 overflow-y-auto bg-slate-50/10">
+          <div className="space-y-4">
             {/* Portfolio Grid Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
-              <div>
-                <h2 className="text-2xl font-black text-nyati-navy">Project Portfolio</h2>
-                <p className="text-slate-700 text-sm font-semibold mt-1">Overview of all active projects, sales performance, collection rates, and health indicators.</p>
-              </div>
+            <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 border-b border-slate-100 pb-3">
               
               {/* Filters & Search Container */}
               <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
@@ -1341,9 +1337,9 @@ export default function Dashboard3() {
                   {showResidential && (
                     <div className="space-y-4">
                       <div className="flex flex-wrap items-baseline gap-2.5">
-                        <h3 className="text-lg font-black text-nyati-navy">Residential</h3>
-                        <span className="text-sm text-slate-700 font-bold">
-                          {resActiveCount} active project{resActiveCount > 1 ? 's' : ''} • combined target ₹{resCombinedTarget.toFixed(2)} Cr
+                        <h3 className="text-2xl font-black text-nyati-navy">Residential</h3>
+                        <span className="text-base text-slate-700 font-extrabold">
+                          {resActiveCount} active project{resActiveCount > 1 ? 's' : ''}
                         </span>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1358,9 +1354,9 @@ export default function Dashboard3() {
                   {showLuxury && (
                     <div className="space-y-4">
                       <div className="flex flex-wrap items-baseline gap-2.5">
-                        <h3 className="text-lg font-black text-nyati-navy">Luxury</h3>
-                        <span className="text-sm text-slate-700 font-bold">
-                          {luxActiveCount} active project{luxActiveCount > 1 ? 's' : ''} • combined target ₹{luxCombinedTarget.toFixed(2)} Cr
+                        <h3 className="text-2xl font-black text-nyati-navy">Luxury</h3>
+                        <span className="text-base text-slate-700 font-extrabold">
+                          {luxActiveCount} active project{luxActiveCount > 1 ? 's' : ''}
                         </span>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1375,9 +1371,9 @@ export default function Dashboard3() {
                   {showCommercial && (
                     <div className="space-y-4">
                       <div className="flex flex-wrap items-baseline gap-2.5">
-                        <h3 className="text-lg font-black text-nyati-navy">Commercial</h3>
-                        <span className="text-sm text-slate-700 font-bold">
-                          {commActiveCount} active project{commActiveCount > 1 ? 's' : ''} • combined target ₹{commCombinedTarget.toFixed(2)} Cr
+                        <h3 className="text-2xl font-black text-nyati-navy">Commercial</h3>
+                        <span className="text-base text-slate-700 font-extrabold">
+                          {commActiveCount} active project{commActiveCount > 1 ? 's' : ''}
                         </span>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

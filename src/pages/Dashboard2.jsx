@@ -286,9 +286,7 @@ export default function Dashboard2() {
   };
 
   return (
-    <div className="space-y-8 pb-12 pt-6">
-
-
+    <div className="space-y-8 pb-12 pt-2">
 
       {/* SECTION A: KPI Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

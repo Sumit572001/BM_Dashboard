@@ -179,7 +179,7 @@ export default function UploadZone() {
           <h1 className="text-2xl font-bold text-nyati-navy tracking-tight">
             Nyati Engineers & Consultants Pvt. Ltd.
           </h1>
-          <p className="text-slate-400 text-sm mt-1">Management Information System (MIS) Dashboard</p>
+          <p className="text-slate-400 text-sm mt-1">MANAGEMENT INFORMATION SYSTEM (MIS) Dashboard</p>
         </div>
 
         {/* Drag Zone */}

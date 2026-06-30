@@ -576,17 +576,8 @@ export default function ConstructionBudget() {
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="space-y-6 pb-12 pt-6"
+      className="space-y-6 pb-12 pt-2"
     >
-      {/* Title Row */}
-      <motion.div variants={itemVariants} className="flex items-center gap-3">
-        <div className="p-2.5 bg-nyati-orange/10 rounded-2xl">
-          <Hammer className="w-5.5 h-5.5 text-nyati-orange" />
-        </div>
-        <div>
-          <h2 className="text-2xl font-extrabold text-nyati-navy">Construction Budget Review</h2>
-        </div>
-      </motion.div>
 
       {/* KPI Cards & Charts Row */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 xl:grid-cols-5 gap-6">

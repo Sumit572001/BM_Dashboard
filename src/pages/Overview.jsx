@@ -19,27 +19,27 @@ const OverviewMetricRow = ({ label, actual, budget, prefix = '', suffix = '', de
   const isProgressing = status === 'Progressing';
   
   return (
-    <div className="flex items-center justify-between py-1.5 px-3.5 bg-slate-50/50 hover:bg-slate-50/80 rounded-xl border border-slate-200 transition-all duration-200">
+    <div className="flex items-center justify-between py-2 px-4 bg-slate-50/50 hover:bg-slate-50/80 rounded-xl border border-slate-200 transition-all duration-200">
       <div className="flex flex-col gap-0.5 min-w-0">
         <div className="flex items-center gap-2">
           {Icon && <Icon className="w-3.5 h-3.5 text-slate-700 shrink-0" />}
-          <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-800 select-none whitespace-nowrap">
+          <span className="text-[13px] font-extrabold uppercase tracking-wider text-slate-800 select-none whitespace-nowrap">
             {label}
           </span>
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-[14px] font-black text-nyati-navy whitespace-nowrap">
+          <span className="text-[16px] font-black text-nyati-navy whitespace-nowrap">
             {prefix}<AnimatedNumber value={actual} decimals={decimals} />{suffix}
           </span>
           {budget !== undefined && (
-            <span className="text-[11px] text-slate-800 font-extrabold whitespace-nowrap select-none">
+            <span className="text-[13px] text-slate-800 font-extrabold whitespace-nowrap select-none">
               Tgt: {prefix}{budget.toLocaleString('en-IN', { maximumFractionDigits: decimals })}{suffix}
             </span>
           )}
         </div>
       </div>
       {status && (
-        <span className={`px-2.5 py-0.5 text-[11px] font-extrabold rounded-full border select-none shrink-0 ${
+        <span className={`px-2.5 py-0.5 text-[12px] font-extrabold rounded-full border select-none shrink-0 ${
           isAchieved 
             ? 'bg-emerald-50 text-emerald-700 border-emerald-155 font-extrabold shadow-sm' 
             : isProgressing
@@ -108,80 +108,116 @@ const MountedResponsiveContainer = ({ children, ...props }) => {
   );
 };
 
-// Sales & Collection normalized target achievement bar chart
-const SalesComboChart = ({ data }) => {
+// Sales cumulative progress line graph displaying Units (Green) & Rate (Blue)
+const SalesLineChart = ({ data }) => {
+  const [hideUnits, setHideUnits] = React.useState(false);
+  const [hideRate, setHideRate] = React.useState(false);
+
   return (
     <div className="w-full h-full relative">
       <MountedResponsiveContainer width="100%" height="100%">
-        <BarChart
+        <LineChart
           data={data}
-          margin={{ top: 20, right: 10, left: 10, bottom: 5 }}
-          barSize={60}
+          margin={{ top: 15, right: -15, left: -20, bottom: 25 }}
         >
-          <defs>
-            <linearGradient id="salesAchievedGrad" x1="0" y1="1" x2="0" y2="0">
-              <stop offset="0%" stopColor="#f97316" />
-              <stop offset="100%" stopColor="#10b981" />
-            </linearGradient>
-          </defs>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
           <XAxis 
             dataKey="name" 
             axisLine={false} 
             tickLine={false} 
-            tick={{ fontSize: 11, fontWeight: 800, fill: '#1e293b' }} 
+            interval={0}
+            angle={-45}
+            textAnchor="end"
+            height={45}
+            tick={{ fontSize: 10, fontWeight: 800, fill: '#1e293b' }} 
           />
           <YAxis 
+            yAxisId="left"
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 11, fontWeight: 800, fill: '#1e293b' }}
-            domain={[0, 120]}
-            tickFormatter={(val) => `${val}%`}
+            tick={{ fontSize: 11, fontWeight: 800, fill: '#10b981' }}
+            tickFormatter={(val) => `${val}`}
+          />
+          <YAxis 
+            yAxisId="right"
+            orientation="right"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 11, fontWeight: 800, fill: '#3b82f6' }}
+            tickFormatter={(val) => `₹${val.toLocaleString('en-IN')}`}
           />
           <Tooltip 
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
-                const actualVal = payload[0].payload.rawActual;
-                const targetVal = payload[0].payload.rawTarget;
-                const unit = payload[0].payload.unit || '';
-                const prefix = payload[0].payload.prefix || '';
-                const pct = payload[0].payload.value;
+                const unitsVal = payload.find(p => p.dataKey === "Units")?.value;
+                const rateVal = payload.find(p => p.dataKey === "Rate")?.value;
                 return (
-                  <div className="bg-slate-900/95 text-white px-3 py-2 rounded-xl text-xs shadow-xl border border-slate-800 space-y-1">
+                  <div className="bg-slate-900/95 text-white px-3.5 py-2.5 rounded-2xl text-xs shadow-xl border border-slate-800 space-y-1.5 font-sans">
                     <p className="font-extrabold text-slate-300 uppercase tracking-wider">{payload[0].payload.name}</p>
-                    <p className="font-bold flex items-center justify-between gap-4 text-slate-200">
-                      <span>Actual:</span>
-                      <span className="text-emerald-400 font-black">{prefix}{actualVal.toLocaleString('en-IN')}{unit}</span>
-                    </p>
-                    <p className="font-bold flex items-center justify-between gap-4 text-slate-200">
-                      <span>Target:</span>
-                      <span className="text-slate-400 font-black">{prefix}{targetVal.toLocaleString('en-IN')}{unit}</span>
-                    </p>
-                    <p className="font-black border-t border-slate-800 pt-1 flex items-center justify-between gap-4">
-                      <span className="text-slate-300">Achievement:</span>
-                      <span className="text-nyati-orange">{pct.toFixed(1)}%</span>
-                    </p>
+                    {unitsVal !== undefined && unitsVal !== null && (
+                      <p className="font-bold flex items-center justify-between gap-6 text-slate-200">
+                        <span>Units Sold:</span>
+                        <span className="text-[#10b981] font-black">{unitsVal} units</span>
+                      </p>
+                    )}
+                    {rateVal !== undefined && rateVal !== null && (
+                      <p className="font-bold flex items-center justify-between gap-6 text-slate-200">
+                        <span>Avg Rate:</span>
+                        <span className="text-[#3b82f6] font-black">₹{rateVal.toLocaleString('en-IN')}/sf</span>
+                      </p>
+                    )}
                   </div>
                 );
               }
               return null;
             }}
           />
-          <ReferenceLine 
-            y={100} 
-            stroke="#475569" 
-            strokeDasharray="3 3" 
-            strokeWidth={1.5} 
-            label={{ value: 'Target', position: 'top', fill: '#475569', fontSize: 8, fontWeight: 800 }} 
+          <Legend 
+            verticalAlign="top" 
+            height={36} 
+            iconType="rect" 
+            iconSize={12} 
+            onClick={(e) => {
+              const key = e.dataKey;
+              if (key === 'Units') {
+                setHideUnits(prev => !prev);
+              } else if (key === 'Rate') {
+                setHideRate(prev => !prev);
+              }
+            }}
+            formatter={(value, entry) => {
+              const isHidden = (entry.dataKey === 'Units' && hideUnits) || (entry.dataKey === 'Rate' && hideRate);
+              return (
+                <span className={`text-xs font-bold cursor-pointer select-none ${isHidden ? 'text-slate-300 line-through' : 'text-slate-800'}`}>
+                  {value}
+                </span>
+              );
+            }} 
           />
-          <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-            {data.map((entry, index) => (
-              <Cell 
-                key={`cell-${index}`} 
-                fill={entry.value >= 100 ? 'url(#salesAchievedGrad)' : '#f97316'} 
-              />
-            ))}
-          </Bar>
-        </BarChart>
+          <Line 
+            yAxisId="left"
+            type="monotone" 
+            dataKey="Units" 
+            name="Units Sold" 
+            stroke="#10b981" 
+            strokeWidth={2.5} 
+            dot={{ r: 3, strokeWidth: 1 }} 
+            activeDot={{ r: 5 }} 
+            hide={hideUnits}
+          />
+          <Line 
+            yAxisId="right"
+            type="monotone" 
+            dataKey="Rate" 
+            name="Average Rate" 
+            stroke="#3b82f6" 
+            strokeWidth={2.5} 
+            dot={{ r: 3, strokeWidth: 1 }} 
+            activeDot={{ r: 5 }} 
+            connectNulls={false} 
+            hide={hideRate}
+          />
+        </LineChart>
       </MountedResponsiveContainer>
     </div>
   );
@@ -291,7 +327,7 @@ const ConstructionRowChart = ({ target, achieved, variance, efficiency }) => {
         <BarChart
           layout="vertical"
           data={data}
-          margin={{ top: 10, right: 110, left: 10, bottom: 5 }}
+          margin={{ top: 10, right: 95, left: -15, bottom: 5 }}
         >
           <XAxis type="number" hide domain={[0, 100]} />
           <YAxis 
@@ -300,7 +336,7 @@ const ConstructionRowChart = ({ target, achieved, variance, efficiency }) => {
             axisLine={false} 
             tickLine={false} 
             tick={{ fontSize: 11, fontWeight: 800, fill: '#1e293b' }}
-            width={110}
+            width={90}
           />
           <Tooltip 
             content={({ active, payload }) => {
@@ -366,12 +402,12 @@ const PortfolioPieChart = ({ activeProjects, newlyStarted, inProcess, nearingCom
   return (
     <div className="w-full h-full relative">
       <MountedResponsiveContainer width="100%" height="100%">
-        <PieChart margin={{ top: 10, right: 10, left: -25, bottom: 10 }}>
+        <PieChart margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
           <Pie
             data={data}
-            cx="40%"
+            cx="48%"
             cy="50%"
-            outerRadius="85%"
+            outerRadius="75%"
             dataKey="value"
             label={renderCustomizedLabel}
             labelLine={false}
@@ -456,6 +492,56 @@ export default function Overview() {
   // Active Projects: use override if available, else total count of filteredProjects
   const activeProjectsCount   = portfolioKpiOverrides?.activeProjects     != null ? portfolioKpiOverrides.activeProjects     : filteredProjects.length;
 
+  // --- Sales Cumulative chart data ---
+  const months = React.useMemo(() => [
+    'Apr-26', 'May-26', 'Jun-26', 'Jul-26', 'Aug-26', 'Sep-26',
+    'Oct-26', 'Nov-26', 'Dec-26', 'Jan-27', 'Feb-27', 'Mar-27'
+  ], []);
+
+  const latestMonthWithActual = React.useMemo(() => {
+    for (let i = months.length - 1; i >= 0; i--) {
+      const m = months[i];
+      const hasActual = filteredProjects.some(p => {
+        const val = p.monthlyData?.[m]?.salesValueActual;
+        return val !== null && val !== undefined && val !== 0;
+      });
+      if (hasActual) return m;
+    }
+    return 'May-26';
+  }, [filteredProjects, months]);
+
+  const salesLineChartData = React.useMemo(() => {
+    const data = [];
+    const reportingIndex = months.indexOf(latestMonthWithActual);
+
+    months.forEach((m, idx) => {
+      // Sum actual units sold in that month
+      const mUnitsActual = filteredProjects.reduce((sum, p) => sum + (p.monthlyData?.[m]?.unitsActual || 0), 0);
+      
+      // Calculate weighted average actual rate
+      const totalActualAmt = filteredProjects.reduce((sum, p) => {
+        const units = p.monthlyData?.[m]?.unitsActual || 0;
+        const rate = p.monthlyData?.[m]?.rateActual || 0;
+        return sum + (units * rate);
+      }, 0);
+      
+      // Weighted average rate or fallback to average rate of active projects in that month
+      let mRateActual = mUnitsActual > 0 ? (totalActualAmt / mUnitsActual) : 0;
+      if (mRateActual === 0) {
+        const activeRateSum = filteredProjects.reduce((sum, p) => sum + (p.monthlyData?.[m]?.rateActual || p.actualRate || 0), 0);
+        mRateActual = filteredProjects.length > 0 ? (activeRateSum / filteredProjects.length) : 0;
+      }
+
+      data.push({
+        name: m,
+        Units: idx <= reportingIndex ? mUnitsActual : null,
+        Rate: idx <= reportingIndex ? Math.round(mRateActual) : null,
+      });
+    });
+
+    return data;
+  }, [filteredProjects, latestMonthWithActual, months]);
+
   const getEffColor = (eff) => {
     if (eff >= 100) return 'text-emerald-600';
     if (eff >= 50) return 'text-amber-500';
@@ -493,7 +579,7 @@ export default function Overview() {
 
       {/* Page Title */}
       <motion.div variants={item} className="flex-shrink-0">
-        <h2 className="text-3xl font-black text-nyati-navy">Dashboard Overview</h2>
+        <h2 className="text-3xl font-black text-nyati-navy">OVERVIEW</h2>
       </motion.div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 flex-1 min-h-0">
@@ -510,8 +596,8 @@ export default function Overview() {
                 <LayoutDashboard className="w-4 h-4 text-nyati-orange" />
               </div>
               <div>
-                <h3 className="font-extrabold text-nyati-navy text-base">Sales</h3>
-                <p className="text-slate-700 text-xs font-semibold mt-0.5">FY actuals vs budget targets</p>
+                <h3 className="font-extrabold text-nyati-navy text-lg">SALES</h3>
+                <p className="text-slate-700 text-sm font-semibold mt-0.5">FY actuals vs budget targets</p>
               </div>
             </div>
             <button
@@ -524,7 +610,7 @@ export default function Overview() {
 
           <div className="flex-1 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100 p-4 gap-4 min-h-0 items-center justify-between">
             {/* Left Side: Stacking list of 4 metric rows */}
-            <div className="w-full md:w-[280px] xl:w-[320px] flex-shrink-0 flex flex-col gap-1.5 justify-center">
+            <div className="w-full md:w-[340px] xl:w-[390px] flex-shrink-0 flex flex-col gap-1.5 justify-center">
               <OverviewMetricRow 
                 label="Units Sold" 
                 actual={totals.soldToDate} 
@@ -564,16 +650,9 @@ export default function Overview() {
               />
             </div>
 
-            {/* Right Side: Sales Combo Chart */}
+            {/* Right Side: Sales Line Chart */}
             <div className="flex-1 w-full h-full min-h-0 md:pl-4">
-              <SalesComboChart 
-                data={[
-                  { name: 'Units', value: unitsEff, rawActual: totals.soldToDate, rawTarget: totals.budgetUnits, unit: ' units' },
-                  { name: 'Rate', value: rateEff, rawActual: totals.actualRate, rawTarget: totals.budgetRate, prefix: '₹', unit: '/sf' },
-                  { name: 'Area', value: areaEff, rawActual: totals.actualArea, rawTarget: totals.budgetArea, unit: ' sf' },
-                  { name: 'Collection', value: collectionEff, rawActual: totals.actualCollection, rawTarget: totals.budgetCollection, prefix: '₹', unit: ' Cr' }
-                ]} 
-              />
+              <SalesLineChart data={salesLineChartData} />
             </div>
           </div>
         </motion.div>
@@ -590,8 +669,8 @@ export default function Overview() {
                 <BarChart3 className="w-4 h-4 text-sky-500" />
               </div>
               <div>
-                <h3 className="font-extrabold text-nyati-navy text-base">Outstanding & Collection</h3>
-                <p className="text-slate-700 text-xs font-semibold mt-0.5">Consolidated dues, collections, and ageing matrix</p>
+                <h3 className="font-extrabold text-nyati-navy text-lg">Outstanding & Collection</h3>
+                <p className="text-slate-700 text-sm font-semibold mt-0.5">Consolidated dues, collections, and ageing matrix</p>
               </div>
             </div>
             <button
@@ -604,7 +683,7 @@ export default function Overview() {
 
           <div className="flex-1 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100 p-4 gap-4 min-h-0 items-center justify-between">
             {/* Left Side: Stacking list of 4 metric rows */}
-            <div className="w-full md:w-[280px] xl:w-[320px] flex-shrink-0 flex flex-col gap-1.5 justify-center">
+            <div className="w-full md:w-[340px] xl:w-[390px] flex-shrink-0 flex flex-col gap-1.5 justify-center">
               <OverviewMetricRow 
                 label="Total Outstanding" 
                 actual={grandTotalOutstanding} 
@@ -667,8 +746,8 @@ export default function Overview() {
                 <Hammer className="w-4 h-4 text-nyati-orange" />
               </div>
               <div>
-                <h3 className="font-extrabold text-nyati-navy text-base">Construction Budget</h3>
-                <p className="text-slate-700 text-xs font-semibold mt-0.5">Target planned vs achieved construction costs and progress</p>
+                <h3 className="font-extrabold text-nyati-navy text-lg">Construction Budget</h3>
+                <p className="text-slate-700 text-sm font-semibold mt-0.5">Target planned vs achieved construction costs and progress</p>
               </div>
             </div>
             <button
@@ -681,7 +760,7 @@ export default function Overview() {
 
           <div className="flex-1 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100 p-4 gap-4 min-h-0 items-center justify-between">
             {/* Left Side: Stacking list of 4 metric rows */}
-            <div className="w-full md:w-[280px] xl:w-[320px] flex-shrink-0 flex flex-col gap-1.5 justify-center">
+            <div className="w-full md:w-[340px] xl:w-[390px] flex-shrink-0 flex flex-col gap-1.5 justify-center">
               <OverviewMetricRow 
                 label="Target Planned" 
                 actual={grandConstTarget} 
@@ -743,8 +822,8 @@ export default function Overview() {
                 <Layers className="w-4 h-4 text-emerald-600" />
               </div>
               <div>
-                <h3 className="font-extrabold text-nyati-navy text-base">Project Portfolio</h3>
-                <p className="text-slate-700 text-xs font-semibold mt-0.5">Inventory funnel & construction completion</p>
+                <h3 className="font-extrabold text-nyati-navy text-lg">Project Portfolio</h3>
+                <p className="text-slate-700 text-sm font-semibold mt-0.5">Inventory funnel & construction completion</p>
               </div>
             </div>
             <button
@@ -757,7 +836,7 @@ export default function Overview() {
 
           <div className="flex-1 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100 p-4 gap-4 min-h-0 items-center justify-between">
             {/* Left Side: Stacking list of metric rows — core KPIs + status breakdown */}
-            <div className="w-full md:w-[280px] xl:w-[320px] flex-shrink-0 flex flex-col gap-1 justify-center">
+            <div className="w-full md:w-[340px] xl:w-[390px] flex-shrink-0 flex flex-col gap-1 justify-center">
               {/* Core KPIs */}
               <OverviewMetricRow 
                 label="Active Projects" 

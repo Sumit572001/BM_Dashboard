@@ -193,6 +193,7 @@ export default function Dashboard1() {
       animate="show"
       className="space-y-6"
     >
+
       {/* KPI Cards Row */}
       <motion.div 
         variants={itemVariants} 
