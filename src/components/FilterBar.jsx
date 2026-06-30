@@ -66,7 +66,7 @@ export default function FilterBar() {
   };
 
   return (
-    <div className="bg-white border-b border-slate-100 px-6 py-3 sticky top-[73px] z-20 shadow-sm flex flex-wrap gap-4 items-center justify-between">
+    <div className="bg-white border-b border-slate-100 px-6 py-3 sticky top-[73px] z-40 shadow-sm flex flex-wrap gap-4 items-center justify-between">
       
       {/* Filters Form Container */}
       <div className="flex flex-wrap items-center gap-4 text-[13px]">

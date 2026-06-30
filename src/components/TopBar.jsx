@@ -184,7 +184,7 @@ export default function TopBar({ toggleSidebar }) {
   });
 
   return (
-    <header className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-30 shadow-sm">
+    <header className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between sticky top-0 z-50 shadow-sm">
       
       {/* Left section: Hamburger & Title */}
       <div className="flex items-center gap-4">
