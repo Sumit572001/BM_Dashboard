@@ -168,9 +168,7 @@ export default function ProjectTable() {
     { key: 'areaTarget', label: 'Area Target', format: 'number' },
     { key: 'areaActual', label: 'Area Actual', format: 'number' },
     { key: 'salesValueTarget', label: 'Value Target', format: 'currency' },
-    { key: 'salesValueActual', label: 'Value Actual', format: 'currency' },
-    { key: 'collectionTarget', label: 'Coll. Target', format: 'currency' },
-    { key: 'collectionActual', label: 'Coll. Actual', format: 'currency' }
+    { key: 'salesValueActual', label: 'Value Actual', format: 'currency' }
   ];
 
   // Sort logic
@@ -328,7 +326,7 @@ export default function ProjectTable() {
 
       {/* Table Wrapper with horizontal scrolling */}
       <div className="overflow-x-auto w-full max-w-full rounded-b-3xl">
-        <table ref={tableRef} className={`w-full text-left text-[14px] text-slate-800 border-collapse ${showMonthlyColumns ? 'min-w-[1450px]' : ''}`}>
+        <table ref={tableRef} className={`w-full text-left text-[14px] text-slate-800 border-collapse ${showMonthlyColumns ? 'min-w-[1200px]' : ''}`}>
           <thead>
             {!showMonthlyColumns ? (
               // Original Summary View Headers (Grouped like Excel)
@@ -353,11 +351,8 @@ export default function ProjectTable() {
                   <th colSpan={2} className="bg-[#c4d79b] text-slate-900 text-center font-black border-r border-slate-200 py-3 text-[13px] tracking-wider sticky top-0 z-20">
                     Area
                   </th>
-                  <th colSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black border-r border-slate-200 py-3 text-[13px] tracking-wider sticky top-0 z-20">
+                  <th colSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black py-3 text-[13px] tracking-wider sticky top-0 z-20">
                     Sales Value
-                  </th>
-                  <th colSpan={2} className="bg-[#b1a0c7] text-slate-900 text-center font-black py-3 text-[13px] tracking-wider sticky top-0 z-20">
-                    Collection
                   </th>
                 </tr>
                 <tr className="bg-slate-50 text-slate-900 uppercase tracking-wider font-black border-b border-slate-200 select-none text-[12px]">
@@ -386,14 +381,7 @@ export default function ProjectTable() {
                   <th onClick={() => requestSort('budgetValCr')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[45px] z-20">
                     <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  <th onClick={() => requestSort('actualValCr')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r-2 border-slate-200 sticky top-[45px] z-20">
-                    <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
-                  </th>
-                  {/* Collection */}
-                  <th onClick={() => requestSort('budgetCollection')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[110px] border-r border-slate-100 sticky top-[45px] z-20">
-                    <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
-                  </th>
-                  <th onClick={() => requestSort('actualCollection')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[110px] sticky top-[45px] z-20">
+                  <th onClick={() => requestSort('actualValCr')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] sticky top-[45px] z-20">
                     <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
                 </tr>
@@ -417,7 +405,7 @@ export default function ProjectTable() {
                     return (
                       <th
                         key={month}
-                        colSpan={10}
+                        colSpan={8}
                         className="bg-slate-100 text-nyati-navy text-center font-black border-r-2 border-slate-200 py-3 border-b border-slate-200 text-[15px] sticky top-0 z-20"
                       >
                         {month}
@@ -439,11 +427,8 @@ export default function ProjectTable() {
                         <th colSpan={2} className="bg-[#c4d79b] text-slate-900 text-center font-black border-r border-slate-200 py-2.5 text-[14px] sticky top-[45px] z-20">
                           Area
                         </th>
-                        <th colSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black border-r border-slate-200 py-2.5 text-[14px] sticky top-[45px] z-20">
+                        <th colSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black border-r-2 border-slate-200 py-2.5 text-[14px] sticky top-[45px] z-20">
                           Sales Value
-                        </th>
-                        <th colSpan={2} className="bg-[#b1a0c7] text-slate-900 text-center font-black border-r-2 border-slate-200 py-2.5 text-[14px] sticky top-[45px] z-20">
-                          Collection
                         </th>
                       </React.Fragment>
                     );
@@ -460,9 +445,7 @@ export default function ProjectTable() {
                       { key: 'areaTarget', label: 'Target' },
                       { key: 'areaActual', label: 'Actual' },
                       { key: 'salesValueTarget', label: 'Target' },
-                      { key: 'salesValueActual', label: 'Actual' },
-                      { key: 'collectionTarget', label: 'Target' },
-                      { key: 'collectionActual', label: 'Actual' }
+                      { key: 'salesValueActual', label: 'Actual' }
                     ];
                     return groupMetrics.map((metric, mIdx) => {
                       const fieldKey = `${month}_${metric.key}`;
@@ -491,7 +474,7 @@ export default function ProjectTable() {
             {sortedProjects.length === 0 ? (
               <tr>
                 <td
-                  colSpan={11}
+                  colSpan={9}
                   className="px-6 py-12 text-center text-slate-400"
                 >
                   <div className="flex flex-col items-center justify-center space-y-2">
@@ -542,14 +525,8 @@ export default function ProjectTable() {
                       <td className="px-3 py-3.5 text-right font-semibold text-slate-700">
                         ₹{p.budgetValCr.toFixed(2)} Cr
                       </td>
-                      <td className="px-3 py-3.5 text-right font-bold text-slate-700">
+                      <td className="px-6 py-3.5 text-right font-bold text-slate-700">
                         ₹{p.actualValCr.toFixed(2)} Cr
-                      </td>
-                      <td className="px-3 py-3.5 text-right font-semibold text-slate-700">
-                        ₹{p.budgetCollection.toFixed(2)} Cr
-                      </td>
-                      <td className="px-6 py-3.5 text-right font-bold text-[#0d9488]">
-                        ₹{p.actualCollection.toFixed(2)} Cr
                       </td>
                     </motion.tr>
                   ))
@@ -615,14 +592,8 @@ export default function ProjectTable() {
                     <td className="px-3 py-4 text-right text-slate-700 bg-slate-50">
                       ₹{totals.budgetValCr.toFixed(2)} Cr
                     </td>
-                    <td className="px-3 py-4 text-right text-slate-700 bg-slate-50">
+                    <td className="px-6 py-4 text-right text-slate-700 font-extrabold bg-slate-50">
                       ₹{totals.actualValCr.toFixed(2)} Cr
-                    </td>
-                    <td className="px-3 py-4 text-right text-slate-700 bg-slate-50">
-                      ₹{totals.budgetCollection.toFixed(2)} Cr
-                    </td>
-                    <td className="px-6 py-4 text-right text-[#0d9488] font-extrabold bg-slate-50">
-                      ₹{totals.actualCollection.toFixed(2)} Cr
                     </td>
                   </tr>
                 ) : (

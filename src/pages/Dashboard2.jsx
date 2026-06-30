@@ -345,50 +345,61 @@ export default function Dashboard2() {
           <h3 className="font-bold text-nyati-navy text-lg">Consolidated Project Outstanding</h3>
         </div>
         <div className="lg:overflow-x-visible overflow-x-auto">
-          <table className="w-full text-left text-[13px] text-slate-800">
+          <table className="w-full text-left text-[13px] text-slate-800 border-collapse min-w-[1250px]">
             <thead>
               <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-900 uppercase tracking-wider font-extrabold border-b border-slate-100 shadow-sm text-[13px]">
-                <th className="px-6 py-4 cursor-pointer select-none hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('name')}>
-                  <div className="flex items-center gap-1.5">
+                <th rowSpan={2} className="px-6 py-4 cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-200" onClick={() => handleSort('name')}>
+                  <div className="flex items-center gap-1.5 justify-center h-full">
                     <span>Project</span>
                     {renderSortIcon('name')}
                   </div>
                 </th>
-                <th className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('actualValCr')}>
-                  <div className="flex items-center justify-end gap-1.5">
+                <th rowSpan={2} className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-100" onClick={() => handleSort('actualValCr')}>
+                  <div className="flex items-center justify-end gap-1.5 h-full">
                     <span>Sold Value (₹ Cr)</span>
                     {renderSortIcon('actualValCr')}
                   </div>
                 </th>
-                <th className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('dueMilestone')}>
-                  <div className="flex items-center justify-end gap-1.5">
+                <th rowSpan={2} className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-100" onClick={() => handleSort('dueMilestone')}>
+                  <div className="flex items-center justify-end gap-1.5 h-full">
                     <span>Due as per Milestone (₹ Cr)</span>
                     {renderSortIcon('dueMilestone')}
                   </div>
                 </th>
-                <th className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('actualCollection')}>
-                  <div className="flex items-center justify-end gap-1.5">
+                <th rowSpan={2} className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-100" onClick={() => handleSort('actualCollection')}>
+                  <div className="flex items-center justify-end gap-1.5 h-full">
                     <span>Total Collection (₹ Cr)</span>
                     {renderSortIcon('actualCollection')}
                   </div>
                 </th>
-                <th className="px-4 py-4 text-center cursor-pointer select-none hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('outstanding')}>
-                  <div className="flex items-center justify-center gap-1.5">
+                <th rowSpan={2} className="px-4 py-4 text-center cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-100" onClick={() => handleSort('outstanding')}>
+                  <div className="flex items-center justify-center gap-1.5 h-full">
                     <span>Total Outstanding (₹ Cr)</span>
                     {renderSortIcon('outstanding')}
                   </div>
                 </th>
-                <th className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('registeredOS')}>
-                  <div className="flex items-center justify-end gap-1.5">
+                <th rowSpan={2} className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-100" onClick={() => handleSort('registeredOS')}>
+                  <div className="flex items-center justify-end gap-1.5 h-full">
                     <span>Registered O/S</span>
                     {renderSortIcon('registeredOS')}
                   </div>
                 </th>
-                <th className="px-6 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('unregisteredOS')}>
-                  <div className="flex items-center justify-end gap-1.5">
+                <th rowSpan={2} className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-200" onClick={() => handleSort('unregisteredOS')}>
+                  <div className="flex items-center justify-end gap-1.5 h-full">
                     <span>Unregistered O/S</span>
                     {renderSortIcon('unregisteredOS')}
                   </div>
+                </th>
+                <th colSpan={2} className="bg-[#b1a0c7] text-slate-900 text-center font-black py-2.5 text-[13px] tracking-wider border-b border-slate-250">
+                  Collection
+                </th>
+              </tr>
+              <tr className="bg-slate-50 text-slate-900 uppercase tracking-wider font-extrabold select-none text-[12px]">
+                <th onClick={() => handleSort('budgetCollection')} className="px-4 py-2 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors border-r border-slate-100">
+                  <div className="flex items-center justify-end gap-1">Target {renderSortIcon('budgetCollection')}</div>
+                </th>
+                <th onClick={() => handleSort('actualCollection')} className="px-6 py-2 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors">
+                  <div className="flex items-center justify-end gap-1">Actual {renderSortIcon('actualCollection')}</div>
                 </th>
               </tr>
             </thead>
@@ -405,7 +416,9 @@ export default function Dashboard2() {
                     </span>
                   </td>
                   <td className="px-4 py-3.5 text-right text-slate-700">₹{p.registeredOS.toFixed(2)}</td>
-                  <td className="px-6 py-3.5 text-right text-slate-700">₹{p.unregisteredOS.toFixed(2)}</td>
+                  <td className="px-4 py-3.5 text-right text-slate-700 border-r border-slate-200">₹{p.unregisteredOS.toFixed(2)}</td>
+                  <td className="px-4 py-3.5 text-right text-slate-700">₹{p.budgetCollection.toFixed(2)}</td>
+                  <td className="px-6 py-3.5 text-right font-bold text-[#0d9488]">₹{p.actualCollection.toFixed(2)}</td>
                 </tr>
               ))}
               {/* Grand Total Row */}
@@ -420,7 +433,9 @@ export default function Dashboard2() {
                   </span>
                 </td>
                 <td className="px-4 py-4 text-right">₹{grandTotalRegOS.toFixed(2)}</td>
-                <td className="px-6 py-4 text-right">₹{grandTotalUnregOS.toFixed(2)}</td>
+                <td className="px-4 py-4 text-right border-r border-slate-200">₹{grandTotalUnregOS.toFixed(2)}</td>
+                <td className="px-4 py-4 text-right text-slate-700 bg-slate-50/50">₹{grandTotalBudgetCollection.toFixed(2)}</td>
+                <td className="px-6 py-4 text-right text-[#0d9488] font-extrabold bg-slate-50/50">₹{grandTotalCollection.toFixed(2)}</td>
               </tr>
             </tbody>
           </table>
