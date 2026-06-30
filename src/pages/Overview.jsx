@@ -110,162 +110,172 @@ const MountedResponsiveContainer = ({ children, ...props }) => {
 
 // Sales cumulative progress line graph displaying Units (Green) & Rate (Blue)
 const SalesLineChart = ({ data }) => {
-  const [hideUnits, setHideUnits] = React.useState(false);
-  const [hideCollection, setHideCollection] = React.useState(true);
+  const [activeTab, setActiveTab] = React.useState('Unit'); // 'Unit' or 'Collection'
+
+  const hideUnits = activeTab !== 'Unit';
+  const hideCollection = activeTab !== 'Collection';
 
   return (
-    <div className="w-full h-full relative">
-      <MountedResponsiveContainer width="100%" height="100%">
-        <LineChart
-          data={data}
-          margin={{ top: 15, right: -15, left: -20, bottom: 25 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-          <XAxis 
-            dataKey="name" 
-            axisLine={false} 
-            tickLine={false} 
-            interval={0}
-            angle={-45}
-            textAnchor="end"
-            height={45}
-            tick={{ fontSize: 10, fontWeight: 800, fill: '#1e293b' }} 
-          />
-          <YAxis 
-            yAxisId="left"
-            axisLine={false}
-            tickLine={false}
-            tick={{ fontSize: 11, fontWeight: 800, fill: '#10b981' }}
-            tickFormatter={(val) => `${val}`}
-          />
-          <YAxis 
-            yAxisId="right"
-            orientation="right"
-            axisLine={false}
-            tickLine={false}
-            tick={{ fontSize: 11, fontWeight: 800, fill: '#3b82f6' }}
-            tickFormatter={(val) => `₹${val.toFixed(1)} Cr`}
-          />
-          <Tooltip 
-            content={({ active, payload }) => {
-              if (active && payload && payload.length) {
-                const unitsActual = payload.find(p => p.dataKey === "UnitsActual")?.value;
-                const unitsTarget = payload.find(p => p.dataKey === "UnitsTarget")?.value;
-                const collectionActual = payload.find(p => p.dataKey === "CollectionActual")?.value;
-                const collectionTarget = payload.find(p => p.dataKey === "CollectionTarget")?.value;
-                
-                return (
-                  <div className="bg-slate-900/95 text-white px-3.5 py-2.5 rounded-2xl text-xs shadow-xl border border-slate-800 space-y-1.5 font-sans">
-                    <p className="font-extrabold text-slate-300 uppercase tracking-wider">{payload[0].payload.name}</p>
-                    
-                    {!hideUnits && (
-                      <div className="space-y-0.5 border-b border-slate-850 pb-1.5">
-                        <p className="font-extrabold text-[#10b981] tracking-wide text-[10px]">UNITS SOLD</p>
-                        <p className="font-bold flex items-center justify-between gap-6 text-slate-200">
-                          <span>Actual:</span>
-                          <span className="font-black text-white">{unitsActual !== undefined && unitsActual !== null ? `${unitsActual} units` : '-'}</span>
-                        </p>
-                        <p className="font-bold flex items-center justify-between gap-6 text-slate-200">
-                          <span>Target:</span>
-                          <span className="font-black text-slate-300">{unitsTarget} units</span>
-                        </p>
-                      </div>
-                    )}
-                    
-                    {!hideCollection && (
-                      <div className="space-y-0.5 pt-1">
-                        <p className="font-extrabold text-[#3b82f6] tracking-wide text-[10px]">TOTAL COLLECTION</p>
-                        <p className="font-bold flex items-center justify-between gap-6 text-slate-200">
-                          <span>Actual:</span>
-                          <span className="font-black text-white">{collectionActual !== undefined && collectionActual !== null ? `₹${collectionActual.toFixed(2)} Cr` : '-'}</span>
-                        </p>
-                        <p className="font-bold flex items-center justify-between gap-6 text-slate-200">
-                          <span>Target:</span>
-                          <span className="font-black text-slate-300">₹{collectionTarget.toFixed(2)} Cr</span>
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-              return null;
-            }}
-          />
-          <Legend 
-            verticalAlign="top" 
-            height={36} 
-            iconType="rect" 
-            iconSize={12} 
-            onClick={(e) => {
-              const key = e.dataKey;
-              if (key === 'UnitsActual') {
-                setHideUnits(prev => !prev);
-              } else if (key === 'CollectionActual') {
-                setHideCollection(prev => !prev);
-              }
-            }}
-            formatter={(value, entry) => {
-              const isHidden = (entry.dataKey === 'UnitsActual' && hideUnits) || (entry.dataKey === 'CollectionActual' && hideCollection);
-              return (
-                <span className={`text-xs font-bold cursor-pointer select-none ${isHidden ? 'text-slate-300 line-through' : 'text-slate-800'}`}>
-                  {value}
-                </span>
-              );
-            }} 
-          />
-          {/* Units Sold lines */}
-          <Line 
-            yAxisId="left"
-            type="monotone" 
-            dataKey="UnitsTarget" 
-            name="Units Target" 
-            stroke="#3b82f6" 
-            strokeWidth={1.5} 
-            strokeDasharray="4 4"
-            dot={{ r: 2 }} 
-            activeDot={false}
-            legendType="none"
-            hide={hideUnits}
-          />
-          <Line 
-            yAxisId="left"
-            type="monotone" 
-            dataKey="UnitsActual" 
-            name="Units Sold" 
-            stroke="#10b981" 
-            strokeWidth={2.5} 
-            dot={{ r: 4, strokeWidth: 1, fill: '#ffffff', stroke: '#10b981' }} 
-            activeDot={{ r: 5 }} 
-            hide={hideUnits}
-          />
-          {/* Collection lines */}
-          <Line 
-            yAxisId="right"
-            type="monotone" 
-            dataKey="CollectionTarget" 
-            name="Collection Target" 
-            stroke="#3b82f6" 
-            strokeWidth={1.5} 
-            strokeDasharray="4 4"
-            dot={{ r: 2 }} 
-            activeDot={false}
-            legendType="none"
-            hide={hideCollection}
-          />
-          <Line 
-            yAxisId="right"
-            type="monotone" 
-            dataKey="CollectionActual" 
-            name="Total Collection" 
-            stroke="#10b981" 
-            strokeWidth={2.5} 
-            dot={{ r: 4, strokeWidth: 1, fill: '#ffffff', stroke: '#10b981' }} 
-            activeDot={{ r: 5 }} 
-            connectNulls={false} 
-            hide={hideCollection}
-          />
-        </LineChart>
-      </MountedResponsiveContainer>
+    <div className="w-full h-full flex flex-col relative">
+      {/* Custom toggle button */}
+      <div className="flex justify-center mb-3">
+        <div className="flex items-center gap-1 bg-slate-100/80 border border-slate-200/50 rounded-2xl p-1 shrink-0">
+          <button
+            onClick={() => setActiveTab('Unit')}
+            className={`${
+              activeTab === 'Unit'
+                ? 'bg-white text-nyati-navy font-bold shadow-sm'
+                : 'text-slate-600 font-semibold hover:text-nyati-navy'
+            } rounded-xl px-4 py-1.5 transition-all text-xs cursor-pointer`}
+          >
+            Unit
+          </button>
+          <button
+            onClick={() => setActiveTab('Collection')}
+            className={`${
+              activeTab === 'Collection'
+                ? 'bg-white text-nyati-navy font-bold shadow-sm'
+                : 'text-slate-600 font-semibold hover:text-nyati-navy'
+            } rounded-xl px-4 py-1.5 transition-all text-xs cursor-pointer`}
+          >
+            Collection
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 w-full min-h-0">
+        <MountedResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={data}
+            margin={hideCollection ? { top: 15, right: 10, left: -20, bottom: 25 } : { top: 15, right: -15, left: -20, bottom: 25 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+            <XAxis 
+              dataKey="name" 
+              axisLine={false} 
+              tickLine={false} 
+              interval={0}
+              angle={-45}
+              textAnchor="end"
+              height={45}
+              tick={{ fontSize: 10, fontWeight: 800, fill: '#1e293b' }} 
+            />
+            <YAxis 
+              yAxisId="left"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 11, fontWeight: 800, fill: '#1e293b' }}
+              tickFormatter={(val) => `${val}`}
+              hide={hideUnits}
+            />
+            <YAxis 
+              yAxisId="right"
+              orientation="right"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 11, fontWeight: 800, fill: '#1e293b' }}
+              tickFormatter={(val) => `₹${val.toFixed(1)} Cr`}
+              hide={hideCollection}
+            />
+            <Tooltip 
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  const unitsActual = payload.find(p => p.dataKey === "UnitsActual")?.value;
+                  const unitsTarget = payload.find(p => p.dataKey === "UnitsTarget")?.value;
+                  const collectionActual = payload.find(p => p.dataKey === "CollectionActual")?.value;
+                  const collectionTarget = payload.find(p => p.dataKey === "CollectionTarget")?.value;
+                  
+                  return (
+                    <div className="bg-slate-900/95 text-white px-3.5 py-2.5 rounded-2xl text-xs shadow-xl border border-slate-800 space-y-1.5 font-sans">
+                      <p className="font-extrabold text-slate-300 uppercase tracking-wider">{payload[0].payload.name}</p>
+                      
+                      {!hideUnits && (
+                        <div className="space-y-0.5 pb-0.5">
+                          <p className="font-extrabold text-[#10b981] tracking-wide text-[10px]">UNIT</p>
+                          <p className="font-bold flex items-center justify-between gap-6 text-slate-200">
+                            <span>Actual:</span>
+                            <span className="font-black text-white">{unitsActual !== undefined && unitsActual !== null ? `${unitsActual} units` : '-'}</span>
+                          </p>
+                          <p className="font-bold flex items-center justify-between gap-6 text-slate-200">
+                            <span>Target:</span>
+                            <span className="font-black text-slate-300">{unitsTarget} units</span>
+                          </p>
+                        </div>
+                      )}
+                      
+                      {!hideCollection && (
+                        <div className="space-y-0.5 pt-0.5">
+                          <p className="font-extrabold text-[#3b82f6] tracking-wide text-[10px]">COLLECTION</p>
+                          <p className="font-bold flex items-center justify-between gap-6 text-slate-200">
+                            <span>Actual:</span>
+                            <span className="font-black text-white">{collectionActual !== undefined && collectionActual !== null ? `₹${collectionActual.toFixed(2)} Cr` : '-'}</span>
+                          </p>
+                          <p className="font-bold flex items-center justify-between gap-6 text-slate-200">
+                            <span>Target:</span>
+                            <span className="font-black text-slate-300">₹{collectionTarget.toFixed(2)} Cr</span>
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
+            {/* Units Sold lines */}
+            <Line 
+              yAxisId="left"
+              type="monotone" 
+              dataKey="UnitsTarget" 
+              name="Units Target" 
+              stroke="#3b82f6" 
+              strokeWidth={1.5} 
+              strokeDasharray="4 4"
+              dot={{ r: 2 }} 
+              activeDot={false}
+              legendType="none"
+              hide={hideUnits}
+            />
+            <Line 
+              yAxisId="left"
+              type="monotone" 
+              dataKey="UnitsActual" 
+              name="Units Sold" 
+              stroke="#10b981" 
+              strokeWidth={2.5} 
+              dot={{ r: 4, strokeWidth: 1, fill: '#ffffff', stroke: '#10b981' }} 
+              activeDot={{ r: 5 }} 
+              hide={hideUnits}
+            />
+            {/* Collection lines */}
+            <Line 
+              yAxisId="right"
+              type="monotone" 
+              dataKey="CollectionTarget" 
+              name="Collection Target" 
+              stroke="#3b82f6" 
+              strokeWidth={1.5} 
+              strokeDasharray="4 4"
+              dot={{ r: 2 }} 
+              activeDot={false}
+              legendType="none"
+              hide={hideCollection}
+            />
+            <Line 
+              yAxisId="right"
+              type="monotone" 
+              dataKey="CollectionActual" 
+              name="Total Collection" 
+              stroke="#10b981" 
+              strokeWidth={2.5} 
+              dot={{ r: 4, strokeWidth: 1, fill: '#ffffff', stroke: '#10b981' }} 
+              activeDot={{ r: 5 }} 
+              connectNulls={false} 
+              hide={hideCollection}
+            />
+          </LineChart>
+        </MountedResponsiveContainer>
+      </div>
     </div>
   );
 };
