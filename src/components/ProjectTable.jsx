@@ -8,18 +8,6 @@ import { motion } from 'framer-motion';
 export default function ProjectTable() {
   const { filteredProjects, setActiveProjectName, filters } = useData();
   const totals = calculateGrandTotals(filteredProjects);
-
-  const periodGrandTotals = React.useMemo(() => {
-    let target = 0;
-    let actual = 0;
-    filteredProjects.forEach(p => {
-      salesMonths.forEach(m => {
-        target += p.monthlyData?.[m]?.salesValueTarget || 0;
-        actual += p.monthlyData?.[m]?.salesValueActual || 0;
-      });
-    });
-    return { target, actual };
-  }, [filteredProjects, salesMonths]);
   const navigate = useNavigate();
   const tableRef = React.useRef(null);
 
@@ -161,6 +149,18 @@ export default function ProjectTable() {
     }
     return activeMonths;
   }, [filteredProjects, filters]);
+
+  const periodGrandTotals = React.useMemo(() => {
+    let target = 0;
+    let actual = 0;
+    filteredProjects.forEach(p => {
+      salesMonths.forEach(m => {
+        target += p.monthlyData?.[m]?.salesValueTarget || 0;
+        actual += p.monthlyData?.[m]?.salesValueActual || 0;
+      });
+    });
+    return { target, actual };
+  }, [filteredProjects, salesMonths]);
 
   const showMonthlyColumns = salesMonths.length > 0;
 
