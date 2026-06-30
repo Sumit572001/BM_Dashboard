@@ -342,13 +342,13 @@ export default function ProjectTable() {
                       <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
                     </div>
                   </th>
-                  <th colSpan={2} className="bg-[#ffff00] text-slate-900 text-center font-black border-r border-slate-200 py-3 text-[13px] tracking-wider sticky top-0 z-20">
+                  <th colSpan={2} className="bg-[#ffff00] text-slate-900 text-center font-black border-r-2 border-slate-800 py-3 text-[13px] tracking-wider sticky top-0 z-20">
                     Units
                   </th>
-                  <th colSpan={2} className="bg-[#8db4e2] text-slate-900 text-center font-black border-r border-slate-200 py-3 text-[13px] tracking-wider sticky top-0 z-20">
+                  <th colSpan={2} className="bg-[#8db4e2] text-slate-900 text-center font-black border-r-2 border-slate-800 py-3 text-[13px] tracking-wider sticky top-0 z-20">
                     Rate
                   </th>
-                  <th colSpan={2} className="bg-[#c4d79b] text-slate-900 text-center font-black border-r border-slate-200 py-3 text-[13px] tracking-wider sticky top-0 z-20">
+                  <th colSpan={2} className="bg-[#c4d79b] text-slate-900 text-center font-black border-r-2 border-slate-800 py-3 text-[13px] tracking-wider sticky top-0 z-20">
                     Area
                   </th>
                   <th colSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black py-3 text-[13px] tracking-wider sticky top-0 z-20">
@@ -360,21 +360,21 @@ export default function ProjectTable() {
                   <th onClick={() => requestSort('budgetUnits')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[90px] border-r border-slate-100 sticky top-[45px] z-20">
                     <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  <th onClick={() => requestSort('soldToDate')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[90px] border-r-2 border-slate-200 sticky top-[45px] z-20">
+                  <th onClick={() => requestSort('soldToDate')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[90px] border-r-2 border-slate-800 sticky top-[45px] z-20">
                     <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
                   {/* Rate */}
                   <th onClick={() => requestSort('budgetRate')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[45px] z-20">
                     <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  <th onClick={() => requestSort('actualRate')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r-2 border-slate-200 sticky top-[45px] z-20">
+                  <th onClick={() => requestSort('actualRate')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r-2 border-slate-800 sticky top-[45px] z-20">
                     <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
                   {/* Area */}
                   <th onClick={() => requestSort('budgetArea')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[45px] z-20">
                     <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  <th onClick={() => requestSort('actualArea')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r-2 border-slate-200 sticky top-[45px] z-20">
+                  <th onClick={() => requestSort('actualArea')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r-2 border-slate-800 sticky top-[45px] z-20">
                     <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
                   {/* Sales Value */}
@@ -418,16 +418,16 @@ export default function ProjectTable() {
                     const month = salesMonths[selectedMonthIndex];
                     return (
                       <React.Fragment key={`groups_${month}`}>
-                        <th colSpan={2} className="bg-[#ffff00] text-slate-900 text-center font-black border-r border-slate-200 py-2.5 text-[14px] sticky top-[45px] z-20">
+                        <th colSpan={2} className="bg-[#ffff00] text-slate-900 text-center font-black border-r-2 border-slate-800 py-2.5 text-[14px] sticky top-[45px] z-20">
                           Units
                         </th>
-                        <th colSpan={2} className="bg-[#8db4e2] text-slate-900 text-center font-black border-r border-slate-200 py-2.5 text-[14px] sticky top-[45px] z-20">
+                        <th colSpan={2} className="bg-[#8db4e2] text-slate-900 text-center font-black border-r-2 border-slate-800 py-2.5 text-[14px] sticky top-[45px] z-20">
                           Rate
                         </th>
-                        <th colSpan={2} className="bg-[#c4d79b] text-slate-900 text-center font-black border-r border-slate-200 py-2.5 text-[14px] sticky top-[45px] z-20">
+                        <th colSpan={2} className="bg-[#c4d79b] text-slate-900 text-center font-black border-r-2 border-slate-800 py-2.5 text-[14px] sticky top-[45px] z-20">
                           Area
                         </th>
-                        <th colSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black border-r-2 border-slate-200 py-2.5 text-[14px] sticky top-[45px] z-20">
+                        <th colSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black border-r-2 border-slate-800 py-2.5 text-[14px] sticky top-[45px] z-20">
                           Sales Value
                         </th>
                       </React.Fragment>
@@ -455,7 +455,7 @@ export default function ProjectTable() {
                         <th
                           key={fieldKey}
                           onClick={() => requestSort(fieldKey)}
-                          className={`bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[115px] ${isLastMetric ? 'border-r-2 border-slate-200' : isGroupEnd ? 'border-r-2 border-slate-200' : 'border-r border-slate-100'} sticky top-[82px] z-20 text-[13px]`}
+                          className={`bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[115px] ${isLastMetric ? 'border-r-2 border-slate-800' : isGroupEnd ? 'border-r-2 border-slate-800' : 'border-r border-slate-100'} sticky top-[82px] z-20 text-[13px]`}
                         >
                           <div className="flex items-center justify-center gap-1">
                             {metric.label}
@@ -507,19 +507,19 @@ export default function ProjectTable() {
                       <td className="px-3 py-3.5 text-center font-semibold text-slate-700">
                         {p.budgetUnits.toLocaleString('en-IN')}
                       </td>
-                      <td className="px-3 py-3.5 text-center font-bold text-nyati-navy">
+                      <td className="px-3 py-3.5 text-center font-bold text-nyati-navy border-r-2 border-slate-800">
                         {p.soldToDate.toLocaleString('en-IN')}
                       </td>
                       <td className="px-3 py-3.5 text-right font-semibold text-slate-700">
                         ₹{Math.round(p.budgetRate).toLocaleString('en-IN')}/sf
                       </td>
-                      <td className="px-3 py-3.5 text-right font-bold text-nyati-navy">
+                      <td className="px-3 py-3.5 text-right font-bold text-nyati-navy border-r-2 border-slate-800">
                         {p.actualRate > 0 ? `₹${Math.round(p.actualRate).toLocaleString('en-IN')}/sf` : '-'}
                       </td>
                       <td className="px-3 py-3.5 text-right font-semibold text-slate-700">
                         {Math.round(p.budgetArea).toLocaleString('en-IN')}
                       </td>
-                      <td className="px-3 py-3.5 text-right font-bold text-slate-700">
+                      <td className="px-3 py-3.5 text-right font-bold text-slate-700 border-r-2 border-slate-800">
                         {Math.round(p.actualArea).toLocaleString('en-IN')}
                       </td>
                       <td className="px-3 py-3.5 text-right font-semibold text-slate-700">
@@ -552,11 +552,12 @@ export default function ProjectTable() {
                         return metrics.map((metric, mIdx) => {
                           const val = mData[metric.key];
                           const isLastMetric = mIdx === metrics.length - 1;
+                          const isGroupEnd = mIdx % 2 === 1;
                           const isActual = metric.key.toLowerCase().includes('actual');
                           return (
                             <td
                               key={`${month}_${metric.key}`}
-                              className={`px-2 py-3.5 text-center ${isActual ? 'font-bold text-nyati-navy' : 'font-semibold text-slate-700'} ${isLastMetric ? 'border-r-2 border-slate-200 bg-slate-50/5' : 'border-r border-slate-100'}`}
+                              className={`px-2 py-3.5 text-center ${isActual ? 'font-bold text-nyati-navy' : 'font-semibold text-slate-700'} ${isLastMetric ? 'border-r-2 border-slate-800 bg-slate-50/5' : isGroupEnd ? 'border-r-2 border-slate-800' : 'border-r border-slate-100'}`}
                             >
                               {formatCellVal(val, metric.format)}
                             </td>
@@ -574,19 +575,19 @@ export default function ProjectTable() {
                     <td className="px-3 py-4 text-center bg-slate-50">
                       {totals.budgetUnits.toLocaleString('en-IN')}
                     </td>
-                    <td className="px-3 py-4 text-center text-nyati-navy font-extrabold bg-slate-50">
+                    <td className="px-3 py-4 text-center text-nyati-navy font-extrabold bg-slate-50 border-r-2 border-slate-800">
                       {totals.soldToDate.toLocaleString('en-IN')}
                     </td>
                     <td className="px-3 py-4 text-right text-slate-700 bg-slate-50">
                       ₹{Math.round(totals.budgetRate).toLocaleString('en-IN')}/sf
                     </td>
-                    <td className="px-3 py-4 text-right text-nyati-navy font-extrabold bg-slate-50">
+                    <td className="px-3 py-4 text-right text-nyati-navy font-extrabold bg-slate-50 border-r-2 border-slate-800">
                       ₹{Math.round(totals.actualRate).toLocaleString('en-IN')}/sf
                     </td>
                     <td className="px-3 py-4 text-right text-slate-700 bg-slate-50">
                       {Math.round(totals.budgetArea).toLocaleString('en-IN')}
                     </td>
-                    <td className="px-3 py-4 text-right text-slate-700 bg-slate-50">
+                    <td className="px-3 py-4 text-right text-slate-700 bg-slate-50 border-r-2 border-slate-800">
                       {Math.round(totals.actualArea).toLocaleString('en-IN')}
                     </td>
                     <td className="px-3 py-4 text-right text-slate-700 bg-slate-50">
@@ -605,6 +606,7 @@ export default function ProjectTable() {
                       const month = salesMonths[selectedMonthIndex];
                       return metrics.map((metric, mIdx) => {
                         const isLastMetric = mIdx === metrics.length - 1;
+                        const isGroupEnd = mIdx % 2 === 1;
                         let totalVal = 0;
                         if (metric.format === 'rate') {
                           const type = metric.key.toLowerCase().includes('target') ? 'Target' : 'Actual';
@@ -615,7 +617,7 @@ export default function ProjectTable() {
                         return (
                           <td
                             key={`total_${month}_${metric.key}`}
-                            className={`px-2 py-4 text-center font-black ${isLastMetric ? 'border-r-2 border-slate-200' : 'border-r border-slate-100'}`}
+                            className={`px-2 py-4 text-center font-black ${isLastMetric ? 'border-r-2 border-slate-800' : isGroupEnd ? 'border-r-2 border-slate-800' : 'border-r border-slate-100'}`}
                           >
                             {formatCellVal(totalVal, metric.format)}
                           </td>
