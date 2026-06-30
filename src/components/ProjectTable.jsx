@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { calculateGrandTotals, getQuarterFromMonth, parseMonthYearToDate } from '../utils/dataHelpers';
-import { ArrowUpDown, ArrowRight, Home, ShieldAlert, Award } from 'lucide-react';
+import { ArrowUpDown, ArrowRight, Home, ShieldAlert, Award, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function ProjectTable() {
@@ -152,6 +152,14 @@ export default function ProjectTable() {
 
   const showMonthlyColumns = salesMonths.length > 0;
 
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState(0);
+
+  React.useEffect(() => {
+    if (selectedMonthIndex >= salesMonths.length) {
+      setSelectedMonthIndex(0);
+    }
+  }, [salesMonths, selectedMonthIndex]);
+
   const metrics = [
     { key: 'unitsTarget', label: 'Units Target', format: 'number' },
     { key: 'unitsActual', label: 'Units Actual', format: 'number' },
@@ -230,15 +238,38 @@ export default function ProjectTable() {
               Click headers to sort.
             </p>
           </div>
-          <div className="text-sm font-bold text-slate-700 bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-1.5">
-            Showing <span className="text-nyati-navy font-bold">{filteredProjects.length}</span> active projects
+          <div className="flex items-center gap-3">
+            {showMonthlyColumns && salesMonths.length > 0 && (
+              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-1 shrink-0">
+                <button
+                  onClick={() => setSelectedMonthIndex(prev => Math.max(0, prev - 1))}
+                  disabled={selectedMonthIndex === 0}
+                  className="p-1.5 rounded-xl hover:bg-slate-100 active:bg-slate-200 text-slate-700 disabled:opacity-40 disabled:hover:bg-transparent transition-all"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <span className="px-3 text-sm font-black uppercase text-nyati-navy select-none min-w-[85px] text-center">
+                  {salesMonths[selectedMonthIndex]}
+                </span>
+                <button
+                  onClick={() => setSelectedMonthIndex(prev => Math.min(salesMonths.length - 1, prev + 1))}
+                  disabled={selectedMonthIndex === salesMonths.length - 1}
+                  className="p-1.5 rounded-xl hover:bg-slate-100 active:bg-slate-200 text-slate-700 disabled:opacity-40 disabled:hover:bg-transparent transition-all"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+            <div className="text-sm font-bold text-slate-700 bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-1.5">
+              Showing <span className="text-nyati-navy font-bold">{filteredProjects.length}</span> active projects
+            </div>
           </div>
         </div>
       </div>
 
       {/* Table Wrapper with horizontal scrolling */}
       <div className="overflow-x-auto w-full max-w-full rounded-b-3xl">
-        <table ref={tableRef} className={`w-full text-left text-[13px] text-slate-800 border-collapse ${showMonthlyColumns ? 'min-w-[4000px]' : ''}`}>
+        <table ref={tableRef} className={`w-full text-left text-[13px] text-slate-800 border-collapse ${showMonthlyColumns ? 'min-w-[1250px]' : ''}`}>
           <thead>
             {!showMonthlyColumns ? (
               // Original Summary View Headers (Grouped like Excel)
@@ -394,7 +425,7 @@ export default function ProjectTable() {
             {sortedProjects.length === 0 ? (
               <tr>
                 <td
-                  colSpan={showMonthlyColumns ? (salesMonths.length * 10 + 1) : 11}
+                  colSpan={11}
                   className="px-6 py-12 text-center text-slate-400"
                 >
                   <div className="flex flex-col items-center justify-center space-y-2">
@@ -457,7 +488,7 @@ export default function ProjectTable() {
                     </motion.tr>
                   ))
                 ) : (
-                  // Excel-aligned Month Group Row Rendering
+                  // Excel-aligned Month Group Row Rendering - Render Only Selected Month
                   sortedProjects.map((p, index) => (
                     <tr
                       key={p.name}
@@ -472,7 +503,8 @@ export default function ProjectTable() {
                           {renderTypeBadge(p.type)}
                         </div>
                       </td>
-                      {salesMonths.flatMap(month => {
+                      {salesMonths.length > 0 && (() => {
+                        const month = salesMonths[selectedMonthIndex];
                         const mData = p.monthlyData?.[month] || {};
                         return metrics.map((metric, mIdx) => {
                           const val = mData[metric.key];
@@ -487,7 +519,7 @@ export default function ProjectTable() {
                             </td>
                           );
                         });
-                      })}
+                      })()}
                     </tr>
                   ))
                 )}
@@ -532,7 +564,8 @@ export default function ProjectTable() {
                     <td className="px-6 py-4 sticky left-0 bg-slate-100 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200">
                       GRAND TOTAL
                     </td>
-                    {salesMonths.flatMap(month => {
+                    {salesMonths.length > 0 && (() => {
+                      const month = salesMonths[selectedMonthIndex];
                       return metrics.map((metric, mIdx) => {
                         const isLastMetric = mIdx === metrics.length - 1;
                         let totalVal = 0;
@@ -551,7 +584,7 @@ export default function ProjectTable() {
                           </td>
                         );
                       });
-                    })}
+                    })()}
                   </tr>
                 )}
               </>
