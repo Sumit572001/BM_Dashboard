@@ -175,6 +175,65 @@ export default function ProjectTable() {
 
   // Sort logic
   const sortedProjects = [...filteredProjects].sort((a, b) => {
+    if (sortField === 'name') {
+      const getProjectWeight = (name) => {
+        const uName = name.trim().toUpperCase();
+        
+        // Check for the last four projects first
+        if (uName.includes('EKATVA')) return 1001;
+        if (uName.includes('ELARIS')) return 1002;
+        if (uName.includes('PATRAKARNAGAR')) return 1003;
+        if (uName.includes('ETHOS')) return 1004;
+
+        // Check in the main sequence list
+        const sequence = [
+          "NYATI EMERALD I",
+          "NYATI EMERALD II",
+          "NYATI EMERALD III",
+          "NYATI EQUINOX I",
+          "NYATI EQUINOX II",
+          "NYATI ERA II",
+          "NYATI ERA III",
+          "NYATI ERA IV",
+          "NYATI EXUBERANCE I",
+          "NYATI EXUBERANCE IV",
+          "NYATI ESTEBAN II",
+          "NYATI ESTEBAN III",
+          "NYATI PLAZA & NYATI ENTHRAL I",
+          "NYATI EMPRESS",
+          "NYATI EVOQUE",
+          "NYATI EVANIA",
+          "NYATI ELENOR",
+          "NYATI EMBLEM",
+          "NYATI ELAN COMMERCIAL",
+          "NYATI DEFENCE ENCLAVE III",
+          "NYATI QUANTUM TOWERS",
+          "NYATI UNITREE EXTENSION",
+          "OLD PROJECTS"
+        ];
+
+        // Find match in sequence
+        const idx = sequence.findIndex(s => uName.includes(s) || s.includes(uName));
+        if (idx !== -1) return idx;
+
+        // Fallback for any other projects (in the middle)
+        return 500;
+      };
+
+      const weightA = getProjectWeight(a.name);
+      const weightB = getProjectWeight(b.name);
+
+      if (weightA !== weightB) {
+        return sortDirection === 'asc' ? weightA - weightB : weightB - weightA;
+      }
+      
+      // Secondary fallback (alphabetical)
+      return sortDirection === 'asc' 
+        ? a.name.localeCompare(b.name) 
+        : b.name.localeCompare(a.name);
+    }
+
+    // For other fields, keep the original sort logic
     let valA, valB;
     if (sortField.includes('_')) {
       const [m, metricKey] = sortField.split('_');
