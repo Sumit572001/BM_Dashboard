@@ -151,15 +151,18 @@ export default function ProjectTable() {
   }, [filteredProjects, filters]);
 
   const periodGrandTotals = React.useMemo(() => {
-    let target = 0;
-    let actual = 0;
+    let units = 0;
+    let area = 0;
+    let value = 0;
     filteredProjects.forEach(p => {
       salesMonths.forEach(m => {
-        target += p.monthlyData?.[m]?.salesValueTarget || 0;
-        actual += p.monthlyData?.[m]?.salesValueActual || 0;
+        units += p.monthlyData?.[m]?.unitsActual || 0;
+        area += p.monthlyData?.[m]?.areaActual || 0;
+        value += p.monthlyData?.[m]?.salesValueActual || 0;
       });
     });
-    return { target, actual };
+    const rate = area > 0 ? value / area : 0;
+    return { units, rate, area, value };
   }, [filteredProjects, salesMonths]);
 
   const showMonthlyColumns = salesMonths.length > 0;
@@ -245,10 +248,21 @@ export default function ProjectTable() {
 
     // For other fields, keep the original sort logic
     let valA, valB;
-    if (sortField === 'periodTotalTarget') {
-      valA = salesMonths.reduce((sum, m) => sum + (a.monthlyData?.[m]?.salesValueTarget || 0), 0);
-      valB = salesMonths.reduce((sum, m) => sum + (b.monthlyData?.[m]?.salesValueTarget || 0), 0);
-    } else if (sortField === 'periodTotalActual') {
+    if (sortField === 'periodTotalUnits') {
+      valA = salesMonths.reduce((sum, m) => sum + (a.monthlyData?.[m]?.unitsActual || 0), 0);
+      valB = salesMonths.reduce((sum, m) => sum + (b.monthlyData?.[m]?.unitsActual || 0), 0);
+    } else if (sortField === 'periodTotalRate') {
+      const valAVal = salesMonths.reduce((sum, m) => sum + (a.monthlyData?.[m]?.salesValueActual || 0), 0);
+      const valAArea = salesMonths.reduce((sum, m) => sum + (a.monthlyData?.[m]?.areaActual || 0), 0);
+      valA = valAArea > 0 ? valAVal / valAArea : 0;
+
+      const valBVal = salesMonths.reduce((sum, m) => sum + (b.monthlyData?.[m]?.salesValueActual || 0), 0);
+      const valBArea = salesMonths.reduce((sum, m) => sum + (b.monthlyData?.[m]?.areaActual || 0), 0);
+      valB = valBArea > 0 ? valBVal / valBArea : 0;
+    } else if (sortField === 'periodTotalArea') {
+      valA = salesMonths.reduce((sum, m) => sum + (a.monthlyData?.[m]?.areaActual || 0), 0);
+      valB = salesMonths.reduce((sum, m) => sum + (b.monthlyData?.[m]?.areaActual || 0), 0);
+    } else if (sortField === 'periodTotalValue') {
       valA = salesMonths.reduce((sum, m) => sum + (a.monthlyData?.[m]?.salesValueActual || 0), 0);
       valB = salesMonths.reduce((sum, m) => sum + (b.monthlyData?.[m]?.salesValueActual || 0), 0);
     } else if (sortField.includes('_')) {
@@ -341,7 +355,7 @@ export default function ProjectTable() {
 
       {/* Table Wrapper with horizontal scrolling */}
       <div className="overflow-x-auto w-full max-w-full rounded-b-3xl">
-        <table ref={tableRef} className={`w-full text-left text-[14px] text-slate-800 border-collapse ${showMonthlyColumns ? 'min-w-[1200px]' : ''}`}>
+        <table ref={tableRef} className={`w-full text-left text-[14px] text-slate-800 border-collapse ${showMonthlyColumns ? 'min-w-[1400px]' : ''}`}>
           <thead>
             {!showMonthlyColumns ? (
               // Original Summary View Headers (Grouped like Excel)
@@ -369,7 +383,7 @@ export default function ProjectTable() {
                   <th colSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black border-r-2 border-slate-300 py-3 text-[13px] tracking-wider sticky top-0 z-20">
                     Sales Value
                   </th>
-                  <th colSpan={2} className="bg-slate-200 text-slate-900 text-center font-black py-3 text-[13px] tracking-wider sticky top-0 z-20">
+                  <th colSpan={4} className="bg-slate-200 text-slate-900 text-center font-black py-3 text-[13px] tracking-wider sticky top-0 z-20">
                     Total
                   </th>
                 </tr>
@@ -402,12 +416,18 @@ export default function ProjectTable() {
                   <th onClick={() => requestSort('actualValCr')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r-2 border-slate-300 sticky top-[45px] z-20">
                     <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  {/* Total Period Sales Value */}
-                  <th onClick={() => requestSort('periodTotalTarget')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[45px] z-20">
-                    <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  {/* Total Period Columns */}
+                  <th onClick={() => requestSort('periodTotalUnits')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[80px] border-r border-slate-100 sticky top-[45px] z-20">
+                    <div className="flex items-center justify-center gap-1">Unit <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  <th onClick={() => requestSort('periodTotalActual')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] sticky top-[45px] z-20">
-                    <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  <th onClick={() => requestSort('periodTotalRate')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[45px] z-20">
+                    <div className="flex items-center justify-center gap-1">Rate <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  </th>
+                  <th onClick={() => requestSort('periodTotalArea')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[45px] z-20">
+                    <div className="flex items-center justify-center gap-1">Area <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  </th>
+                  <th onClick={() => requestSort('periodTotalValue')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[110px] sticky top-[45px] z-20">
+                    <div className="flex items-center justify-center gap-1">Sales Value <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
                 </tr>
               </>
@@ -436,7 +456,7 @@ export default function ProjectTable() {
                         >
                           {month}
                         </th>
-                        <th colSpan={2} rowSpan={2} className="bg-slate-200 text-slate-900 text-center font-black py-3 border-b border-slate-200 text-[14px] sticky top-0 z-20">
+                        <th colSpan={4} rowSpan={2} className="bg-slate-200 text-slate-900 text-center font-black py-3 border-b border-slate-200 text-[14px] sticky top-0 z-20">
                           Total
                         </th>
                       </>
@@ -496,11 +516,17 @@ export default function ProjectTable() {
                             </th>
                           );
                         })}
-                        <th onClick={() => requestSort('periodTotalTarget')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[115px] border-r border-slate-100 sticky top-[82px] z-20 text-[13px]">
-                          <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60 flex-shrink-0" /></div>
+                        <th onClick={() => requestSort('periodTotalUnits')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[90px] border-r border-slate-100 sticky top-[82px] z-20 text-[13px]">
+                          <div className="flex items-center justify-center gap-1">Unit <ArrowUpDown className="w-3 h-3 opacity-60 flex-shrink-0" /></div>
                         </th>
-                        <th onClick={() => requestSort('periodTotalActual')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[115px] sticky top-[82px] z-20 text-[13px]">
-                          <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60 flex-shrink-0" /></div>
+                        <th onClick={() => requestSort('periodTotalRate')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[110px] border-r border-slate-100 sticky top-[82px] z-20 text-[13px]">
+                          <div className="flex items-center justify-center gap-1">Rate <ArrowUpDown className="w-3 h-3 opacity-60 flex-shrink-0" /></div>
+                        </th>
+                        <th onClick={() => requestSort('periodTotalArea')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[110px] border-r border-slate-100 sticky top-[82px] z-20 text-[13px]">
+                          <div className="flex items-center justify-center gap-1">Area <ArrowUpDown className="w-3 h-3 opacity-60 flex-shrink-0" /></div>
+                        </th>
+                        <th onClick={() => requestSort('periodTotalValue')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[115px] sticky top-[82px] z-20 text-[13px]">
+                          <div className="flex items-center justify-center gap-1">Sales Value <ArrowUpDown className="w-3 h-3 opacity-60 flex-shrink-0" /></div>
                         </th>
                       </>
                     );
@@ -569,15 +595,23 @@ export default function ProjectTable() {
                         ₹{p.actualValCr.toFixed(2)} Cr
                       </td>
                       {(() => {
-                        const totalTarget = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.salesValueTarget || 0), 0);
-                        const totalActual = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.salesValueActual || 0), 0);
+                        const totalUnits = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.unitsActual || 0), 0);
+                        const totalArea = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.areaActual || 0), 0);
+                        const totalValue = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.salesValueActual || 0), 0);
+                        const totalRate = totalArea > 0 ? totalValue / totalArea : 0;
                         return (
                           <>
+                            <td className="px-3 py-3.5 text-center font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5">
+                              {totalUnits.toLocaleString('en-IN')}
+                            </td>
                             <td className="px-3 py-3.5 text-right font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5">
-                              ₹{(totalTarget / 10000000).toFixed(2)} Cr
+                              {formatCellVal(totalRate, 'rate')}
+                            </td>
+                            <td className="px-3 py-3.5 text-right font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5">
+                              {Math.round(totalArea).toLocaleString('en-IN')}
                             </td>
                             <td className="px-6 py-3.5 text-right font-bold text-slate-700 bg-slate-50/5">
-                              ₹{(totalActual / 10000000).toFixed(2)} Cr
+                              ₹{(totalValue / 10000000).toFixed(2)} Cr
                             </td>
                           </>
                         );
@@ -620,15 +654,23 @@ export default function ProjectTable() {
                               );
                             })}
                             {(() => {
-                              const totalTarget = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.salesValueTarget || 0), 0);
-                              const totalActual = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.salesValueActual || 0), 0);
+                              const totalUnits = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.unitsActual || 0), 0);
+                              const totalArea = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.areaActual || 0), 0);
+                              const totalValue = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.salesValueActual || 0), 0);
+                              const totalRate = totalArea > 0 ? totalValue / totalArea : 0;
                               return (
                                 <>
                                   <td className="px-2 py-3.5 text-center font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5">
-                                    ₹{(totalTarget / 10000000).toFixed(2)} Cr
+                                    {totalUnits.toLocaleString('en-IN')}
+                                  </td>
+                                  <td className="px-2 py-3.5 text-center font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5">
+                                    {formatCellVal(totalRate, 'rate')}
+                                  </td>
+                                  <td className="px-2 py-3.5 text-center font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5">
+                                    {Math.round(totalArea).toLocaleString('en-IN')}
                                   </td>
                                   <td className="px-2 py-3.5 text-center font-bold text-nyati-navy bg-slate-50/5">
-                                    ₹{(totalActual / 10000000).toFixed(2)} Cr
+                                    ₹{(totalValue / 10000000).toFixed(2)} Cr
                                   </td>
                                 </>
                               );
@@ -668,11 +710,17 @@ export default function ProjectTable() {
                     <td className="px-6 py-4 text-right text-slate-700 font-extrabold bg-slate-50 border-r-2 border-slate-300">
                       ₹{totals.actualValCr.toFixed(2)} Cr
                     </td>
+                    <td className="px-3 py-4 text-center text-slate-700 bg-slate-50 border-r border-slate-100">
+                      {periodGrandTotals.units.toLocaleString('en-IN')}
+                    </td>
                     <td className="px-3 py-4 text-right text-slate-700 bg-slate-50 border-r border-slate-100">
-                      ₹{(periodGrandTotals.target / 10000000).toFixed(2)} Cr
+                      {formatCellVal(periodGrandTotals.rate, 'rate')}
+                    </td>
+                    <td className="px-3 py-4 text-right text-slate-700 bg-slate-50 border-r border-slate-100">
+                      {Math.round(periodGrandTotals.area).toLocaleString('en-IN')}
                     </td>
                     <td className="px-6 py-4 text-right text-slate-700 font-extrabold bg-slate-50">
-                      ₹{(periodGrandTotals.actual / 10000000).toFixed(2)} Cr
+                      ₹{(periodGrandTotals.value / 10000000).toFixed(2)} Cr
                     </td>
                   </tr>
                 ) : (
@@ -704,10 +752,16 @@ export default function ProjectTable() {
                             );
                           })}
                           <td className="px-2 py-4 text-center font-black border-r border-slate-100 bg-slate-100">
-                            ₹{(periodGrandTotals.target / 10000000).toFixed(2)} Cr
+                            {periodGrandTotals.units.toLocaleString('en-IN')}
+                          </td>
+                          <td className="px-2 py-4 text-center font-black border-r border-slate-100 bg-slate-100">
+                            {formatCellVal(periodGrandTotals.rate, 'rate')}
+                          </td>
+                          <td className="px-2 py-4 text-center font-black border-r border-slate-100 bg-slate-100">
+                            {Math.round(periodGrandTotals.area).toLocaleString('en-IN')}
                           </td>
                           <td className="px-2 py-4 text-center font-black bg-slate-100">
-                            ₹{(periodGrandTotals.actual / 10000000).toFixed(2)} Cr
+                            ₹{(periodGrandTotals.value / 10000000).toFixed(2)} Cr
                           </td>
                         </>
                       );
