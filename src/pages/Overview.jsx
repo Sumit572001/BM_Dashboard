@@ -111,7 +111,7 @@ const MountedResponsiveContainer = ({ children, ...props }) => {
 // Sales cumulative progress line graph displaying Units (Green) & Rate (Blue)
 const SalesLineChart = ({ data }) => {
   const [hideUnits, setHideUnits] = React.useState(false);
-  const [hideRate, setHideRate] = React.useState(false);
+  const [hideCollection, setHideCollection] = React.useState(true);
 
   return (
     <div className="w-full h-full relative">
@@ -144,13 +144,13 @@ const SalesLineChart = ({ data }) => {
             axisLine={false}
             tickLine={false}
             tick={{ fontSize: 11, fontWeight: 800, fill: '#3b82f6' }}
-            tickFormatter={(val) => `₹${val.toLocaleString('en-IN')}`}
+            tickFormatter={(val) => `₹${val.toFixed(1)} Cr`}
           />
           <Tooltip 
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
                 const unitsVal = payload.find(p => p.dataKey === "Units")?.value;
-                const rateVal = payload.find(p => p.dataKey === "Rate")?.value;
+                const collectionVal = payload.find(p => p.dataKey === "Collection")?.value;
                 return (
                   <div className="bg-slate-900/95 text-white px-3.5 py-2.5 rounded-2xl text-xs shadow-xl border border-slate-800 space-y-1.5 font-sans">
                     <p className="font-extrabold text-slate-300 uppercase tracking-wider">{payload[0].payload.name}</p>
@@ -160,10 +160,10 @@ const SalesLineChart = ({ data }) => {
                         <span className="text-[#10b981] font-black">{unitsVal} units</span>
                       </p>
                     )}
-                    {rateVal !== undefined && rateVal !== null && (
+                    {collectionVal !== undefined && collectionVal !== null && (
                       <p className="font-bold flex items-center justify-between gap-6 text-slate-200">
-                        <span>Avg Rate:</span>
-                        <span className="text-[#3b82f6] font-black">₹{rateVal.toLocaleString('en-IN')}/sf</span>
+                        <span>Total Collection:</span>
+                        <span className="text-[#3b82f6] font-black">₹{collectionVal.toFixed(2)} Cr</span>
                       </p>
                     )}
                   </div>
@@ -181,12 +181,12 @@ const SalesLineChart = ({ data }) => {
               const key = e.dataKey;
               if (key === 'Units') {
                 setHideUnits(prev => !prev);
-              } else if (key === 'Rate') {
-                setHideRate(prev => !prev);
+              } else if (key === 'Collection') {
+                setHideCollection(prev => !prev);
               }
             }}
             formatter={(value, entry) => {
-              const isHidden = (entry.dataKey === 'Units' && hideUnits) || (entry.dataKey === 'Rate' && hideRate);
+              const isHidden = (entry.dataKey === 'Units' && hideUnits) || (entry.dataKey === 'Collection' && hideCollection);
               return (
                 <span className={`text-xs font-bold cursor-pointer select-none ${isHidden ? 'text-slate-300 line-through' : 'text-slate-800'}`}>
                   {value}
@@ -208,14 +208,14 @@ const SalesLineChart = ({ data }) => {
           <Line 
             yAxisId="right"
             type="monotone" 
-            dataKey="Rate" 
-            name="Average Rate" 
+            dataKey="Collection" 
+            name="Total Collection" 
             stroke="#3b82f6" 
             strokeWidth={2.5} 
             dot={{ r: 3, strokeWidth: 1 }} 
             activeDot={{ r: 5 }} 
             connectNulls={false} 
-            hide={hideRate}
+            hide={hideCollection}
           />
         </LineChart>
       </MountedResponsiveContainer>
@@ -518,24 +518,13 @@ export default function Overview() {
       // Sum actual units sold in that month
       const mUnitsActual = filteredProjects.reduce((sum, p) => sum + (p.monthlyData?.[m]?.unitsActual || 0), 0);
       
-      // Calculate weighted average actual rate
-      const totalActualAmt = filteredProjects.reduce((sum, p) => {
-        const units = p.monthlyData?.[m]?.unitsActual || 0;
-        const rate = p.monthlyData?.[m]?.rateActual || 0;
-        return sum + (units * rate);
-      }, 0);
-      
-      // Weighted average rate or fallback to average rate of active projects in that month
-      let mRateActual = mUnitsActual > 0 ? (totalActualAmt / mUnitsActual) : 0;
-      if (mRateActual === 0) {
-        const activeRateSum = filteredProjects.reduce((sum, p) => sum + (p.monthlyData?.[m]?.rateActual || p.actualRate || 0), 0);
-        mRateActual = filteredProjects.length > 0 ? (activeRateSum / filteredProjects.length) : 0;
-      }
+      // Sum actual collection in that month (in Rupees)
+      const mCollectionActual = filteredProjects.reduce((sum, p) => sum + (p.monthlyData?.[m]?.collectionActual || 0), 0);
 
       data.push({
         name: m,
         Units: idx <= reportingIndex ? mUnitsActual : null,
-        Rate: idx <= reportingIndex ? Math.round(mRateActual) : null,
+        Collection: idx <= reportingIndex ? (mCollectionActual / 10000000) : null,
       });
     });
 
