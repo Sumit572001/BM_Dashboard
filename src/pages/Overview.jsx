@@ -149,22 +149,41 @@ const SalesLineChart = ({ data }) => {
           <Tooltip 
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
-                const unitsVal = payload.find(p => p.dataKey === "Units")?.value;
-                const collectionVal = payload.find(p => p.dataKey === "Collection")?.value;
+                const unitsActual = payload.find(p => p.dataKey === "UnitsActual")?.value;
+                const unitsTarget = payload.find(p => p.dataKey === "UnitsTarget")?.value;
+                const collectionActual = payload.find(p => p.dataKey === "CollectionActual")?.value;
+                const collectionTarget = payload.find(p => p.dataKey === "CollectionTarget")?.value;
+                
                 return (
                   <div className="bg-slate-900/95 text-white px-3.5 py-2.5 rounded-2xl text-xs shadow-xl border border-slate-800 space-y-1.5 font-sans">
                     <p className="font-extrabold text-slate-300 uppercase tracking-wider">{payload[0].payload.name}</p>
-                    {unitsVal !== undefined && unitsVal !== null && (
-                      <p className="font-bold flex items-center justify-between gap-6 text-slate-200">
-                        <span>Units Sold:</span>
-                        <span className="text-[#10b981] font-black">{unitsVal} units</span>
-                      </p>
+                    
+                    {!hideUnits && (
+                      <div className="space-y-0.5 border-b border-slate-850 pb-1.5">
+                        <p className="font-extrabold text-[#10b981] tracking-wide text-[10px]">UNITS SOLD</p>
+                        <p className="font-bold flex items-center justify-between gap-6 text-slate-200">
+                          <span>Actual:</span>
+                          <span className="font-black text-white">{unitsActual !== undefined && unitsActual !== null ? `${unitsActual} units` : '-'}</span>
+                        </p>
+                        <p className="font-bold flex items-center justify-between gap-6 text-slate-200">
+                          <span>Target:</span>
+                          <span className="font-black text-slate-300">{unitsTarget} units</span>
+                        </p>
+                      </div>
                     )}
-                    {collectionVal !== undefined && collectionVal !== null && (
-                      <p className="font-bold flex items-center justify-between gap-6 text-slate-200">
-                        <span>Total Collection:</span>
-                        <span className="text-[#3b82f6] font-black">₹{collectionVal.toFixed(2)} Cr</span>
-                      </p>
+                    
+                    {!hideCollection && (
+                      <div className="space-y-0.5 pt-1">
+                        <p className="font-extrabold text-[#3b82f6] tracking-wide text-[10px]">TOTAL COLLECTION</p>
+                        <p className="font-bold flex items-center justify-between gap-6 text-slate-200">
+                          <span>Actual:</span>
+                          <span className="font-black text-white">{collectionActual !== undefined && collectionActual !== null ? `₹${collectionActual.toFixed(2)} Cr` : '-'}</span>
+                        </p>
+                        <p className="font-bold flex items-center justify-between gap-6 text-slate-200">
+                          <span>Target:</span>
+                          <span className="font-black text-slate-300">₹{collectionTarget.toFixed(2)} Cr</span>
+                        </p>
+                      </div>
                     )}
                   </div>
                 );
@@ -179,14 +198,14 @@ const SalesLineChart = ({ data }) => {
             iconSize={12} 
             onClick={(e) => {
               const key = e.dataKey;
-              if (key === 'Units') {
+              if (key === 'UnitsActual') {
                 setHideUnits(prev => !prev);
-              } else if (key === 'Collection') {
+              } else if (key === 'CollectionActual') {
                 setHideCollection(prev => !prev);
               }
             }}
             formatter={(value, entry) => {
-              const isHidden = (entry.dataKey === 'Units' && hideUnits) || (entry.dataKey === 'Collection' && hideCollection);
+              const isHidden = (entry.dataKey === 'UnitsActual' && hideUnits) || (entry.dataKey === 'CollectionActual' && hideCollection);
               return (
                 <span className={`text-xs font-bold cursor-pointer select-none ${isHidden ? 'text-slate-300 line-through' : 'text-slate-800'}`}>
                   {value}
@@ -194,25 +213,53 @@ const SalesLineChart = ({ data }) => {
               );
             }} 
           />
+          {/* Units Sold lines */}
           <Line 
             yAxisId="left"
             type="monotone" 
-            dataKey="Units" 
+            dataKey="UnitsTarget" 
+            name="Units Target" 
+            stroke="#10b981" 
+            strokeWidth={1.5} 
+            strokeDasharray="4 4"
+            dot={{ r: 2 }} 
+            activeDot={false}
+            legendType="none"
+            hide={hideUnits}
+          />
+          <Line 
+            yAxisId="left"
+            type="monotone" 
+            dataKey="UnitsActual" 
             name="Units Sold" 
             stroke="#10b981" 
             strokeWidth={2.5} 
-            dot={{ r: 3, strokeWidth: 1 }} 
+            dot={{ r: 4, strokeWidth: 1, fill: '#ffffff', stroke: '#10b981' }} 
             activeDot={{ r: 5 }} 
             hide={hideUnits}
+          />
+          {/* Collection lines */}
+          <Line 
+            yAxisId="right"
+            type="monotone" 
+            dataKey="CollectionTarget" 
+            name="Collection Target" 
+            stroke="#3b82f6" 
+            strokeWidth={1.5} 
+            strokeDasharray="4 4"
+            dot={{ r: 2 }} 
+            activeDot={false}
+            legendType="none"
+            hide={hideCollection}
           />
           <Line 
             yAxisId="right"
             type="monotone" 
-            dataKey="Collection" 
+            dataKey="CollectionActual" 
             name="Total Collection" 
             stroke="#3b82f6" 
             strokeWidth={2.5} 
-            dot={{ r: 3, strokeWidth: 1 }} 
+            dot={{ r: 4, strokeWidth: 1, fill: '#ffffff', stroke: '#3b82f6' }} 
             activeDot={{ r: 5 }} 
             connectNulls={false} 
             hide={hideCollection}
@@ -515,16 +562,22 @@ export default function Overview() {
     const reportingIndex = months.indexOf(latestMonthWithActual);
 
     months.forEach((m, idx) => {
-      // Sum actual units sold in that month
+      // Target/Planned units sold in that month
+      const mUnitsTarget = filteredProjects.reduce((sum, p) => sum + (p.monthlyData?.[m]?.unitsTarget || 0), 0);
+      // Actual units sold in that month
       const mUnitsActual = filteredProjects.reduce((sum, p) => sum + (p.monthlyData?.[m]?.unitsActual || 0), 0);
       
-      // Sum actual collection in that month (in Rupees)
+      // Target/Planned collection in that month (in Rupees)
+      const mCollectionTarget = filteredProjects.reduce((sum, p) => sum + (p.monthlyData?.[m]?.collectionTarget || 0), 0);
+      // Actual collection in that month (in Rupees)
       const mCollectionActual = filteredProjects.reduce((sum, p) => sum + (p.monthlyData?.[m]?.collectionActual || 0), 0);
 
       data.push({
         name: m,
-        Units: idx <= reportingIndex ? mUnitsActual : null,
-        Collection: idx <= reportingIndex ? (mCollectionActual / 10000000) : null,
+        UnitsTarget: mUnitsTarget,
+        UnitsActual: idx <= reportingIndex ? mUnitsActual : null,
+        CollectionTarget: mCollectionTarget / 10000000,
+        CollectionActual: idx <= reportingIndex ? (mCollectionActual / 10000000) : null,
       });
     });
 
