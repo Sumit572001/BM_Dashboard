@@ -112,8 +112,8 @@ const MountedResponsiveContainer = ({ children, ...props }) => {
 const SalesLineChart = ({ data }) => {
   const [activeTab, setActiveTab] = React.useState('Unit'); // 'Unit' or 'Collection'
 
-  const hideUnits = activeTab !== 'Unit';
-  const hideCollection = activeTab !== 'Collection';
+  const hideUnits = false;
+  const hideCollection = activeTab === 'Unit';
 
   return (
     <div className="w-full h-full flex flex-col relative">
@@ -147,7 +147,7 @@ const SalesLineChart = ({ data }) => {
         <MountedResponsiveContainer width="100%" height="100%">
           <LineChart
             data={data}
-            margin={hideCollection ? { top: 15, right: 10, left: -20, bottom: 25 } : { top: 15, right: -15, left: -20, bottom: 25 }}
+            margin={hideCollection ? { top: 15, right: 15, left: 10, bottom: 25 } : { top: 15, right: 45, left: 10, bottom: 25 }}
           >
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
             <XAxis 
