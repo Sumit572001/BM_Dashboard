@@ -345,60 +345,60 @@ export default function Dashboard2() {
           <h3 className="font-bold text-nyati-navy text-lg">Consolidated Project Outstanding</h3>
         </div>
         <div className="lg:overflow-x-visible overflow-x-auto">
-          <table className="w-full text-left text-[13px] text-slate-800 border-collapse min-w-[1250px]">
+          <table className="w-full text-left text-[13px] text-slate-800 border-collapse min-w-[1280px]">
             <thead>
               <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-900 uppercase tracking-wider font-extrabold border-b border-slate-100 shadow-sm text-[13px]">
-                <th rowSpan={2} className="px-6 py-4 cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-200" onClick={() => handleSort('name')}>
+                <th rowSpan={2} className="px-6 py-4 cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-200 min-w-[240px] w-[240px]" onClick={() => handleSort('name')}>
                   <div className="flex items-center gap-1.5 justify-center h-full">
                     <span>Project</span>
                     {renderSortIcon('name')}
                   </div>
                 </th>
-                <th rowSpan={2} className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-100" onClick={() => handleSort('actualValCr')}>
+                <th rowSpan={2} className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-100 w-[130px] min-w-[130px] max-w-[130px]" onClick={() => handleSort('actualValCr')}>
                   <div className="flex items-center justify-end gap-1.5 h-full">
                     <span>Sold Value (₹ Cr)</span>
                     {renderSortIcon('actualValCr')}
                   </div>
                 </th>
-                <th rowSpan={2} className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-100" onClick={() => handleSort('dueMilestone')}>
+                <th rowSpan={2} className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-100 w-[130px] min-w-[130px] max-w-[130px]" onClick={() => handleSort('dueMilestone')}>
                   <div className="flex items-center justify-end gap-1.5 h-full">
                     <span>Due as per Milestone (₹ Cr)</span>
                     {renderSortIcon('dueMilestone')}
                   </div>
                 </th>
-                <th rowSpan={2} className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-100" onClick={() => handleSort('actualCollection')}>
+                <th rowSpan={2} className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-100 w-[130px] min-w-[130px] max-w-[130px]" onClick={() => handleSort('actualCollection')}>
                   <div className="flex items-center justify-end gap-1.5 h-full">
                     <span>Total Collection (₹ Cr)</span>
                     {renderSortIcon('actualCollection')}
                   </div>
                 </th>
-                <th rowSpan={2} className="px-4 py-4 text-center cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-100" onClick={() => handleSort('outstanding')}>
+                <th rowSpan={2} className="px-4 py-4 text-center cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-100 w-[130px] min-w-[130px] max-w-[130px]" onClick={() => handleSort('outstanding')}>
                   <div className="flex items-center justify-center gap-1.5 h-full">
                     <span>Total Outstanding (₹ Cr)</span>
                     {renderSortIcon('outstanding')}
                   </div>
                 </th>
-                <th rowSpan={2} className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-100" onClick={() => handleSort('registeredOS')}>
+                <th rowSpan={2} className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-100 w-[130px] min-w-[130px] max-w-[130px]" onClick={() => handleSort('registeredOS')}>
                   <div className="flex items-center justify-end gap-1.5 h-full">
                     <span>Registered O/S</span>
                     {renderSortIcon('registeredOS')}
                   </div>
                 </th>
-                <th rowSpan={2} className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-200" onClick={() => handleSort('unregisteredOS')}>
+                <th rowSpan={2} className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-200 w-[130px] min-w-[130px] max-w-[130px]" onClick={() => handleSort('unregisteredOS')}>
                   <div className="flex items-center justify-end gap-1.5 h-full">
                     <span>Unregistered O/S</span>
                     {renderSortIcon('unregisteredOS')}
                   </div>
                 </th>
-                <th colSpan={2} className="bg-[#b1a0c7] text-slate-900 text-center font-black py-2.5 text-[13px] tracking-wider border-b border-slate-250">
+                <th colSpan={2} className="bg-[#b1a0c7] text-slate-900 text-center font-black py-2.5 text-[13px] tracking-wider border-b border-slate-250 w-[260px] min-w-[260px] max-w-[260px]">
                   Collection
                 </th>
               </tr>
               <tr className="bg-slate-50 text-slate-900 uppercase tracking-wider font-extrabold select-none text-[12px]">
-                <th onClick={() => handleSort('budgetCollection')} className="px-4 py-2 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors border-r border-slate-100">
+                <th onClick={() => handleSort('budgetCollection')} className="px-4 py-2 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors border-r border-slate-100 w-[130px] min-w-[130px] max-w-[130px]">
                   <div className="flex items-center justify-end gap-1">Target {renderSortIcon('budgetCollection')}</div>
                 </th>
-                <th onClick={() => handleSort('actualCollection')} className="px-6 py-2 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors">
+                <th onClick={() => handleSort('actualCollection')} className="px-6 py-2 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors w-[130px] min-w-[130px] max-w-[130px]">
                   <div className="flex items-center justify-end gap-1">Actual {renderSortIcon('actualCollection')}</div>
                 </th>
               </tr>
@@ -406,36 +406,36 @@ export default function Dashboard2() {
             <tbody className="divide-y divide-slate-50 font-medium text-slate-850">
               {sortedProjects.map((p, index) => (
                 <tr key={p.name} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-3.5 font-bold text-slate-700">{p.name}</td>
-                  <td className="px-4 py-3.5 text-right">₹{p.actualValCr.toFixed(2)}</td>
-                  <td className="px-4 py-3.5 text-right">₹{p.dueMilestone.toFixed(2)}</td>
-                  <td className="px-4 py-3.5 text-right">₹{p.actualCollection.toFixed(2)}</td>
-                  <td className="px-4 py-3.5 text-center">
+                  <td className="px-6 py-3.5 font-bold text-slate-700 min-w-[240px] w-[240px]">{p.name}</td>
+                  <td className="px-4 py-3.5 text-right w-[130px] min-w-[130px] max-w-[130px]">₹{p.actualValCr.toFixed(2)}</td>
+                  <td className="px-4 py-3.5 text-right w-[130px] min-w-[130px] max-w-[130px]">₹{p.dueMilestone.toFixed(2)}</td>
+                  <td className="px-4 py-3.5 text-right w-[130px] min-w-[130px] max-w-[130px]">₹{p.actualCollection.toFixed(2)}</td>
+                  <td className="px-4 py-3.5 text-center w-[130px] min-w-[130px] max-w-[130px]">
                     <span className={`px-3 py-1 rounded-lg text-[13px] ${getOutstandingColor(p.outstanding)}`}>
                       ₹{p.outstanding.toFixed(2)}
                     </span>
                   </td>
-                  <td className="px-4 py-3.5 text-right text-slate-700">₹{p.registeredOS.toFixed(2)}</td>
-                  <td className="px-4 py-3.5 text-right text-slate-700 border-r border-slate-200">₹{p.unregisteredOS.toFixed(2)}</td>
-                  <td className="px-4 py-3.5 text-right text-slate-700">₹{p.budgetCollection.toFixed(2)}</td>
-                  <td className="px-6 py-3.5 text-right font-bold text-[#0d9488]">₹{p.actualCollection.toFixed(2)}</td>
+                  <td className="px-4 py-3.5 text-right text-slate-700 w-[130px] min-w-[130px] max-w-[130px]">₹{p.registeredOS.toFixed(2)}</td>
+                  <td className="px-4 py-3.5 text-right text-slate-700 border-r border-slate-200 w-[130px] min-w-[130px] max-w-[130px]">₹{p.unregisteredOS.toFixed(2)}</td>
+                  <td className="px-4 py-3.5 text-right text-slate-700 w-[130px] min-w-[130px] max-w-[130px]">₹{p.budgetCollection.toFixed(2)}</td>
+                  <td className="px-6 py-3.5 text-right font-bold text-[#0d9488] w-[130px] min-w-[130px] max-w-[130px]">₹{p.actualCollection.toFixed(2)}</td>
                 </tr>
               ))}
               {/* Grand Total Row */}
               <tr className="bg-slate-50/80 font-bold text-nyati-navy border-t-2 border-slate-200 text-[13px]">
-                <td className="px-6 py-4">GRAND TOTAL</td>
-                <td className="px-4 py-4 text-right">₹{grandTotalSoldVal.toFixed(2)}</td>
-                <td className="px-4 py-4 text-right">₹{grandTotalDueMilestone.toFixed(2)}</td>
-                <td className="px-4 py-4 text-right">₹{grandTotalCollection.toFixed(2)}</td>
-                <td className="px-4 py-4 text-center">
+                <td className="px-6 py-4 min-w-[240px] w-[240px]">GRAND TOTAL</td>
+                <td className="px-4 py-4 text-right w-[130px] min-w-[130px] max-w-[130px]">₹{grandTotalSoldVal.toFixed(2)}</td>
+                <td className="px-4 py-4 text-right w-[130px] min-w-[130px] max-w-[130px]">₹{grandTotalDueMilestone.toFixed(2)}</td>
+                <td className="px-4 py-4 text-right w-[130px] min-w-[130px] max-w-[130px]">₹{grandTotalCollection.toFixed(2)}</td>
+                <td className="px-4 py-4 text-center w-[130px] min-w-[130px] max-w-[130px]">
                   <span className={`px-4 py-1.5 rounded-lg text-[13px] border border-nyati-navy/10 ${getOutstandingColor(grandTotalOutstanding)}`}>
                     ₹{grandTotalOutstanding.toFixed(2)}
                   </span>
                 </td>
-                <td className="px-4 py-4 text-right">₹{grandTotalRegOS.toFixed(2)}</td>
-                <td className="px-4 py-4 text-right border-r border-slate-200">₹{grandTotalUnregOS.toFixed(2)}</td>
-                <td className="px-4 py-4 text-right text-slate-700 bg-slate-50/50">₹{grandTotalBudgetCollection.toFixed(2)}</td>
-                <td className="px-6 py-4 text-right text-[#0d9488] font-extrabold bg-slate-50/50">₹{grandTotalCollection.toFixed(2)}</td>
+                <td className="px-4 py-4 text-right w-[130px] min-w-[130px] max-w-[130px]">₹{grandTotalRegOS.toFixed(2)}</td>
+                <td className="px-4 py-4 text-right border-r border-slate-200 w-[130px] min-w-[130px] max-w-[130px]">₹{grandTotalUnregOS.toFixed(2)}</td>
+                <td className="px-4 py-4 text-right text-slate-700 bg-slate-50/50 w-[130px] min-w-[130px] max-w-[130px]">₹{grandTotalBudgetCollection.toFixed(2)}</td>
+                <td className="px-6 py-4 text-right text-[#0d9488] font-extrabold bg-slate-50/50 w-[130px] min-w-[130px] max-w-[130px]">₹{grandTotalCollection.toFixed(2)}</td>
               </tr>
             </tbody>
           </table>
