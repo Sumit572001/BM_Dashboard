@@ -301,19 +301,7 @@ export default function Dashboard2() {
           icon={ClipboardList}
           borderStyle="border-l-4 border-nyati-orange"
         />
-        
-        <KPICard
-          title="Total Due"
-          budget={grandTotalBudgetDue}
-          actual={grandTotalDueMilestone}
-          eff={grandTotalBudgetDue > 0 ? (grandTotalDueMilestone / grandTotalBudgetDue) * 100 : 0}
-          prefix="₹"
-          suffix=" Cr"
-          decimals={2}
-          icon={Landmark}
-          borderStyle="border-l-4 border-nyati-navy"
-        />
-        
+
         <KPICard
           title="Total Collection"
           budget={grandTotalBudgetCollection}
@@ -325,6 +313,20 @@ export default function Dashboard2() {
           icon={CreditCard}
           borderStyle="border-l-4 border-emerald-600"
         />
+        
+        <KPICard
+          title="Total Due"
+          budget={grandTotalBudgetDue}
+          actual={grandTotalDueMilestone}
+          eff={grandTotalBudgetDue > 0 ? (grandTotalDueMilestone / grandTotalBudgetDue) * 100 : 0}
+          prefix="₹"
+          suffix=" Cr"
+          decimals={2}
+          icon={Landmark}
+          borderStyle="border-l-4 border-nyati-navy/60"
+          simple={true}
+          bgClass="bg-slate-50/70 border border-slate-100"
+        />
 
         <KPICard
           title="Total Balance"
@@ -335,7 +337,9 @@ export default function Dashboard2() {
           suffix=" Cr"
           decimals={2}
           icon={AlertTriangle}
-          borderStyle="border-l-4 border-sky-500"
+          borderStyle="border-l-4 border-sky-500/60"
+          simple={true}
+          bgClass="bg-slate-50/70 border border-slate-100"
         />
       </div>
 
