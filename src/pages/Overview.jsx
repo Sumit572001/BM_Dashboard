@@ -8,7 +8,7 @@ import {
   TrendingUp, TrendingDown, AlertTriangle, CheckCircle,
   IndianRupee, ClipboardList, Maximize, CreditCard,
   ArrowRight, Activity, Landmark, Hammer,
-  Zap, Clock, Target, Play
+  Zap, Clock, Target, Play, RotateCcw
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, Tooltip, XAxis, YAxis, ReferenceLine, LineChart, Line, CartesianGrid, AreaChart, Area, Legend } from 'recharts';
@@ -507,8 +507,18 @@ const PortfolioPieChart = ({ activeProjects, newlyStarted, inProcess, nearingCom
 };
 
 export default function Overview() {
-  const { filteredProjects, portfolioKpiOverrides } = useData();
+  const { filteredProjects, portfolioKpiOverrides, updateFilters } = useData();
   const navigate = useNavigate();
+
+  const handleResetFilters = () => {
+    updateFilters({
+      selectedProjects: [],
+      dateFrom: '',
+      dateTo: '',
+      selectedQuarters: ['Q1', 'Q2', 'Q3', 'Q4'],
+      selectedType: 'All'
+    });
+  };
   const totals = calculateGrandTotals(filteredProjects);
 
   // --- Sales & Collection derived ---
@@ -630,8 +640,15 @@ export default function Overview() {
     >
 
       {/* Page Title */}
-      <motion.div variants={item} className="flex-shrink-0">
+      <motion.div variants={item} className="flex-shrink-0 flex items-center justify-between">
         <h2 className="text-3xl font-black text-nyati-navy">OVERVIEW</h2>
+        <button
+          onClick={handleResetFilters}
+          className="flex items-center gap-1.5 text-xs font-extrabold text-slate-700 hover:text-nyati-orange py-2 px-3 hover:bg-nyati-orange/5 rounded-xl transition-all duration-200 border border-transparent hover:border-nyati-orange/10 focus:outline-none"
+        >
+          <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+          Reset Filters
+        </button>
       </motion.div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 flex-1 min-h-0">
@@ -652,12 +669,7 @@ export default function Overview() {
                 <p className="text-slate-700 text-sm font-semibold mt-0.5">FY actuals vs budget targets</p>
               </div>
             </div>
-            <button
-              onClick={() => navigate('/sales-collection')}
-              className="flex items-center gap-1.5 text-[13px] font-extrabold text-nyati-orange hover:text-nyati-navy transition-colors"
-            >
-              View Full <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+
           </div>
 
           <div className="flex-1 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100 p-4 gap-4 min-h-0 items-center justify-between">
@@ -725,12 +737,7 @@ export default function Overview() {
                 <p className="text-slate-700 text-sm font-semibold mt-0.5">Consolidated dues, collections, and ageing matrix</p>
               </div>
             </div>
-            <button
-              onClick={() => navigate('/outstanding')}
-              className="flex items-center gap-1.5 text-[13px] font-extrabold text-nyati-orange hover:text-nyati-navy transition-colors"
-            >
-              View Full <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+
           </div>
 
           <div className="flex-1 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100 p-4 gap-4 min-h-0 items-center justify-between">
@@ -802,12 +809,7 @@ export default function Overview() {
                 <p className="text-slate-700 text-sm font-semibold mt-0.5">Target planned vs achieved construction costs and progress</p>
               </div>
             </div>
-            <button
-              onClick={() => navigate('/construction-budget')}
-              className="flex items-center gap-1.5 text-[13px] font-extrabold text-nyati-orange hover:text-nyati-navy transition-colors"
-            >
-              View Full <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+
           </div>
 
           <div className="flex-1 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100 p-4 gap-4 min-h-0 items-center justify-between">
@@ -878,12 +880,7 @@ export default function Overview() {
                 <p className="text-slate-700 text-sm font-semibold mt-0.5">Inventory funnel & construction completion</p>
               </div>
             </div>
-            <button
-              onClick={() => navigate('/portfolio')}
-              className="flex items-center gap-1.5 text-[13px] font-extrabold text-nyati-orange hover:text-nyati-navy transition-colors"
-            >
-              View Full <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+
           </div>
 
           <div className="flex-1 flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100 p-4 gap-4 min-h-0 items-center justify-between">
