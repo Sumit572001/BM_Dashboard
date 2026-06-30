@@ -219,7 +219,7 @@ const SalesLineChart = ({ data }) => {
             type="monotone" 
             dataKey="UnitsTarget" 
             name="Units Target" 
-            stroke="#10b981" 
+            stroke="#3b82f6" 
             strokeWidth={1.5} 
             strokeDasharray="4 4"
             dot={{ r: 2 }} 
@@ -257,9 +257,9 @@ const SalesLineChart = ({ data }) => {
             type="monotone" 
             dataKey="CollectionActual" 
             name="Total Collection" 
-            stroke="#3b82f6" 
+            stroke="#10b981" 
             strokeWidth={2.5} 
-            dot={{ r: 4, strokeWidth: 1, fill: '#ffffff', stroke: '#3b82f6' }} 
+            dot={{ r: 4, strokeWidth: 1, fill: '#ffffff', stroke: '#10b981' }} 
             activeDot={{ r: 5 }} 
             connectNulls={false} 
             hide={hideCollection}
