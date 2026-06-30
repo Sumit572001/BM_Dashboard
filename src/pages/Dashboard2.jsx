@@ -384,21 +384,21 @@ export default function Dashboard2() {
                     {renderSortIcon('registeredOS')}
                   </div>
                 </th>
-                <th rowSpan={2} className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-200 w-[130px] min-w-[130px] max-w-[130px]" onClick={() => handleSort('unregisteredOS')}>
+                <th rowSpan={2} className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-100 w-[130px] min-w-[130px] max-w-[130px]" onClick={() => handleSort('unregisteredOS')}>
                   <div className="flex items-center justify-end gap-1.5 h-full">
                     <span>Unregistered O/S</span>
                     {renderSortIcon('unregisteredOS')}
                   </div>
                 </th>
-                <th colSpan={2} className="bg-[#b1a0c7] text-slate-900 text-center font-black py-2.5 text-[13px] tracking-wider border-b border-slate-250 w-[260px] min-w-[260px] max-w-[260px]">
+                <th colSpan={2} className="bg-slate-50 text-slate-900 text-center font-black py-2.5 text-[13px] tracking-wider border-b border-slate-100 w-[260px] min-w-[260px] max-w-[260px]">
                   Collection
                 </th>
               </tr>
               <tr className="bg-slate-50 text-slate-900 uppercase tracking-wider font-extrabold select-none text-[12px]">
-                <th onClick={() => handleSort('budgetCollection')} className="px-4 py-2 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors border-r border-slate-100 w-[130px] min-w-[130px] max-w-[130px]">
+                <th onClick={() => handleSort('budgetCollection')} className="px-4 py-2 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors border-r border-slate-100 w-[130px] min-w-[130px] max-w-[130px] sticky top-[138px] z-10 bg-slate-50">
                   <div className="flex items-center justify-end gap-1">Target {renderSortIcon('budgetCollection')}</div>
                 </th>
-                <th onClick={() => handleSort('actualCollection')} className="px-6 py-2 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors w-[130px] min-w-[130px] max-w-[130px]">
+                <th onClick={() => handleSort('actualCollection')} className="px-6 py-2 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors w-[130px] min-w-[130px] max-w-[130px] sticky top-[138px] z-10 bg-slate-50">
                   <div className="flex items-center justify-end gap-1">Actual {renderSortIcon('actualCollection')}</div>
                 </th>
               </tr>
@@ -416,7 +416,7 @@ export default function Dashboard2() {
                     </span>
                   </td>
                   <td className="px-4 py-3.5 text-right text-slate-700 w-[130px] min-w-[130px] max-w-[130px]">₹{p.registeredOS.toFixed(2)}</td>
-                  <td className="px-4 py-3.5 text-right text-slate-700 border-r border-slate-200 w-[130px] min-w-[130px] max-w-[130px]">₹{p.unregisteredOS.toFixed(2)}</td>
+                  <td className="px-4 py-3.5 text-right text-slate-700 w-[130px] min-w-[130px] max-w-[130px]">₹{p.unregisteredOS.toFixed(2)}</td>
                   <td className="px-4 py-3.5 text-right text-slate-700 w-[130px] min-w-[130px] max-w-[130px]">₹{p.budgetCollection.toFixed(2)}</td>
                   <td className="px-6 py-3.5 text-right font-bold text-[#0d9488] w-[130px] min-w-[130px] max-w-[130px]">₹{p.actualCollection.toFixed(2)}</td>
                 </tr>
@@ -433,7 +433,7 @@ export default function Dashboard2() {
                   </span>
                 </td>
                 <td className="px-4 py-4 text-right w-[130px] min-w-[130px] max-w-[130px]">₹{grandTotalRegOS.toFixed(2)}</td>
-                <td className="px-4 py-4 text-right border-r border-slate-200 w-[130px] min-w-[130px] max-w-[130px]">₹{grandTotalUnregOS.toFixed(2)}</td>
+                <td className="px-4 py-4 text-right w-[130px] min-w-[130px] max-w-[130px]">₹{grandTotalUnregOS.toFixed(2)}</td>
                 <td className="px-4 py-4 text-right text-slate-700 bg-slate-50/50 w-[130px] min-w-[130px] max-w-[130px]">₹{grandTotalBudgetCollection.toFixed(2)}</td>
                 <td className="px-6 py-4 text-right text-[#0d9488] font-extrabold bg-slate-50/50 w-[130px] min-w-[130px] max-w-[130px]">₹{grandTotalCollection.toFixed(2)}</td>
               </tr>
