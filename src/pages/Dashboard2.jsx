@@ -300,6 +300,7 @@ export default function Dashboard2() {
           decimals={2}
           icon={ClipboardList}
           borderStyle="border-l-4 border-nyati-orange"
+          bgClass="bg-orange-50/70 border border-orange-100"
         />
 
         <KPICard

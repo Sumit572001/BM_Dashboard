@@ -46,13 +46,13 @@ export default function KPICard({
     <motion.div
       whileHover={{ y: -6 }}
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-      className={`${bgClass} rounded-2xl p-4 shadow-premium hover:shadow-premium-hover flex flex-col justify-between relative overflow-hidden ${borderStyle}`}
+      className={`${bgClass} rounded-2xl p-4 shadow-premium hover:shadow-premium-hover flex flex-col justify-between relative overflow-hidden ${borderStyle} ${simple ? 'min-h-[140px] py-6' : ''}`}
     >
       {/* Top Header */}
       <div className="flex justify-between items-start">
         <div>
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-700">{title}</span>
-          <h2 className="text-xl font-extrabold text-nyati-navy mt-0.5">
+          <span className={`${simple ? 'text-[13px] font-bold' : 'text-[11px] font-semibold'} uppercase tracking-wider text-slate-700`}>{title}</span>
+          <h2 className={`${simple ? 'text-3xl font-black mt-2.5' : 'text-xl font-extrabold mt-0.5'} text-nyati-navy`}>
             <AnimatedNumber value={actual} prefix={prefix} suffix={suffix} decimals={decimals} />
           </h2>
         </div>
