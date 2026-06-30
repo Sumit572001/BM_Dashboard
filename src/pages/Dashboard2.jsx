@@ -300,7 +300,7 @@ export default function Dashboard2() {
           decimals={2}
           icon={ClipboardList}
           borderStyle="border-l-4 border-nyati-orange"
-          bgClass="bg-orange-50/70 border border-orange-100"
+          bgClass="bg-white"
         />
 
         <KPICard
@@ -326,7 +326,7 @@ export default function Dashboard2() {
           icon={Landmark}
           borderStyle="border-l-4 border-nyati-navy/60"
           simple={true}
-          bgClass="bg-slate-50/70 border border-slate-100"
+          bgClass="bg-orange-50/70 border border-orange-100"
         />
 
         <KPICard
@@ -340,7 +340,7 @@ export default function Dashboard2() {
           icon={AlertTriangle}
           borderStyle="border-l-4 border-sky-500/60"
           simple={true}
-          bgClass="bg-slate-50/70 border border-slate-100"
+          bgClass="bg-orange-50/70 border border-orange-100"
         />
       </div>
 
