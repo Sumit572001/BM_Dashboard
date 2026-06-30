@@ -324,9 +324,9 @@ export default function Dashboard2() {
           suffix=" Cr"
           decimals={2}
           icon={Landmark}
-          borderStyle="border-l-4 border-nyati-navy/60"
+          borderStyle="border-l-4 border-l-nyati-navy"
           simple={true}
-          bgClass="bg-orange-50/70 border border-orange-100"
+          bgClass="bg-orange-200/60"
         />
 
         <KPICard
@@ -338,9 +338,9 @@ export default function Dashboard2() {
           suffix=" Cr"
           decimals={2}
           icon={AlertTriangle}
-          borderStyle="border-l-4 border-sky-500/60"
+          borderStyle="border-l-4 border-l-sky-500"
           simple={true}
-          bgClass="bg-orange-50/70 border border-orange-100"
+          bgClass="bg-orange-200/60"
         />
       </div>
 
