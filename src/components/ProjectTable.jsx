@@ -151,18 +151,34 @@ export default function ProjectTable() {
   }, [filteredProjects, filters]);
 
   const periodGrandTotals = React.useMemo(() => {
-    let units = 0;
-    let area = 0;
-    let value = 0;
+    let unitsTarget = 0;
+    let unitsActual = 0;
+    let areaTarget = 0;
+    let areaActual = 0;
+    let valueTarget = 0;
+    let valueActual = 0;
     filteredProjects.forEach(p => {
       salesMonths.forEach(m => {
-        units += p.monthlyData?.[m]?.unitsActual || 0;
-        area += p.monthlyData?.[m]?.areaActual || 0;
-        value += p.monthlyData?.[m]?.salesValueActual || 0;
+        unitsTarget += p.monthlyData?.[m]?.unitsTarget || 0;
+        unitsActual += p.monthlyData?.[m]?.unitsActual || 0;
+        areaTarget += p.monthlyData?.[m]?.areaTarget || 0;
+        areaActual += p.monthlyData?.[m]?.areaActual || 0;
+        valueTarget += p.monthlyData?.[m]?.salesValueTarget || 0;
+        valueActual += p.monthlyData?.[m]?.salesValueActual || 0;
       });
     });
-    const rate = area > 0 ? value / area : 0;
-    return { units, rate, area, value };
+    const rateTarget = areaTarget > 0 ? valueTarget / areaTarget : 0;
+    const rateActual = areaActual > 0 ? valueActual / areaActual : 0;
+    return {
+      unitsTarget,
+      unitsActual,
+      rateTarget,
+      rateActual,
+      areaTarget,
+      areaActual,
+      valueTarget,
+      valueActual
+    };
   }, [filteredProjects, salesMonths]);
 
   const showMonthlyColumns = salesMonths.length > 0;
@@ -248,10 +264,21 @@ export default function ProjectTable() {
 
     // For other fields, keep the original sort logic
     let valA, valB;
-    if (sortField === 'periodTotalUnits') {
+    if (sortField === 'periodTotalUnitsTarget') {
+      valA = salesMonths.reduce((sum, m) => sum + (a.monthlyData?.[m]?.unitsTarget || 0), 0);
+      valB = salesMonths.reduce((sum, m) => sum + (b.monthlyData?.[m]?.unitsTarget || 0), 0);
+    } else if (sortField === 'periodTotalUnitsActual') {
       valA = salesMonths.reduce((sum, m) => sum + (a.monthlyData?.[m]?.unitsActual || 0), 0);
       valB = salesMonths.reduce((sum, m) => sum + (b.monthlyData?.[m]?.unitsActual || 0), 0);
-    } else if (sortField === 'periodTotalRate') {
+    } else if (sortField === 'periodTotalRateTarget') {
+      const valAVal = salesMonths.reduce((sum, m) => sum + (a.monthlyData?.[m]?.salesValueTarget || 0), 0);
+      const valAArea = salesMonths.reduce((sum, m) => sum + (a.monthlyData?.[m]?.areaTarget || 0), 0);
+      valA = valAArea > 0 ? valAVal / valAArea : 0;
+
+      const valBVal = salesMonths.reduce((sum, m) => sum + (b.monthlyData?.[m]?.salesValueTarget || 0), 0);
+      const valBArea = salesMonths.reduce((sum, m) => sum + (b.monthlyData?.[m]?.areaTarget || 0), 0);
+      valB = valBArea > 0 ? valBVal / valBArea : 0;
+    } else if (sortField === 'periodTotalRateActual') {
       const valAVal = salesMonths.reduce((sum, m) => sum + (a.monthlyData?.[m]?.salesValueActual || 0), 0);
       const valAArea = salesMonths.reduce((sum, m) => sum + (a.monthlyData?.[m]?.areaActual || 0), 0);
       valA = valAArea > 0 ? valAVal / valAArea : 0;
@@ -259,10 +286,16 @@ export default function ProjectTable() {
       const valBVal = salesMonths.reduce((sum, m) => sum + (b.monthlyData?.[m]?.salesValueActual || 0), 0);
       const valBArea = salesMonths.reduce((sum, m) => sum + (b.monthlyData?.[m]?.areaActual || 0), 0);
       valB = valBArea > 0 ? valBVal / valBArea : 0;
-    } else if (sortField === 'periodTotalArea') {
+    } else if (sortField === 'periodTotalAreaTarget') {
+      valA = salesMonths.reduce((sum, m) => sum + (a.monthlyData?.[m]?.areaTarget || 0), 0);
+      valB = salesMonths.reduce((sum, m) => sum + (b.monthlyData?.[m]?.areaTarget || 0), 0);
+    } else if (sortField === 'periodTotalAreaActual') {
       valA = salesMonths.reduce((sum, m) => sum + (a.monthlyData?.[m]?.areaActual || 0), 0);
       valB = salesMonths.reduce((sum, m) => sum + (b.monthlyData?.[m]?.areaActual || 0), 0);
-    } else if (sortField === 'periodTotalValue') {
+    } else if (sortField === 'periodTotalValueTarget') {
+      valA = salesMonths.reduce((sum, m) => sum + (a.monthlyData?.[m]?.salesValueTarget || 0), 0);
+      valB = salesMonths.reduce((sum, m) => sum + (b.monthlyData?.[m]?.salesValueTarget || 0), 0);
+    } else if (sortField === 'periodTotalValueActual') {
       valA = salesMonths.reduce((sum, m) => sum + (a.monthlyData?.[m]?.salesValueActual || 0), 0);
       valB = salesMonths.reduce((sum, m) => sum + (b.monthlyData?.[m]?.salesValueActual || 0), 0);
     } else if (sortField.includes('_')) {
@@ -355,14 +388,14 @@ export default function ProjectTable() {
 
       {/* Table Wrapper with horizontal scrolling */}
       <div className="overflow-x-auto w-full max-w-full rounded-b-3xl">
-        <table ref={tableRef} className={`w-full text-left text-[14px] text-slate-800 border-collapse ${showMonthlyColumns ? 'min-w-[1400px]' : ''}`}>
+        <table ref={tableRef} className={`w-full text-left text-[14px] text-slate-800 border-collapse ${showMonthlyColumns ? 'min-w-[1650px]' : ''}`}>
           <thead>
             {!showMonthlyColumns ? (
               // Original Summary View Headers (Grouped like Excel)
               <>
                 <tr className="bg-slate-50 text-slate-900 uppercase font-black border-b border-slate-100 select-none text-[13px]">
                   <th
-                    rowSpan={2}
+                    rowSpan={3}
                     onClick={() => requestSort('name')}
                     className="bg-slate-50 px-6 py-4 cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[220px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200 text-center"
                   >
@@ -371,63 +404,91 @@ export default function ProjectTable() {
                       <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
                     </div>
                   </th>
-                  <th colSpan={2} className="bg-[#ffff00] text-slate-900 text-center font-black border-r-2 border-slate-300 py-3 text-[13px] tracking-wider sticky top-0 z-20">
+                  <th colSpan={2} rowSpan={2} className="bg-[#ffff00] text-slate-900 text-center font-black border-r-2 border-slate-300 py-3 text-[13px] tracking-wider sticky top-0 z-20">
                     Units
                   </th>
-                  <th colSpan={2} className="bg-[#8db4e2] text-slate-900 text-center font-black border-r-2 border-slate-300 py-3 text-[13px] tracking-wider sticky top-0 z-20">
+                  <th colSpan={2} rowSpan={2} className="bg-[#8db4e2] text-slate-900 text-center font-black border-r-2 border-slate-300 py-3 text-[13px] tracking-wider sticky top-0 z-20">
                     Rate
                   </th>
-                  <th colSpan={2} className="bg-[#c4d79b] text-slate-900 text-center font-black border-r-2 border-slate-300 py-3 text-[13px] tracking-wider sticky top-0 z-20">
+                  <th colSpan={2} rowSpan={2} className="bg-[#c4d79b] text-slate-900 text-center font-black border-r-2 border-slate-300 py-3 text-[13px] tracking-wider sticky top-0 z-20">
                     Area
                   </th>
-                  <th colSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black border-r-2 border-slate-300 py-3 text-[13px] tracking-wider sticky top-0 z-20">
+                  <th colSpan={2} rowSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black border-r-2 border-slate-300 py-3 text-[13px] tracking-wider sticky top-0 z-20">
                     Sales Value
                   </th>
-                  <th colSpan={4} className="bg-slate-200 text-slate-900 text-center font-black py-3 text-[13px] tracking-wider sticky top-0 z-20">
+                  <th colSpan={8} className="bg-slate-200 text-slate-900 text-center font-black py-3 text-[13px] tracking-wider sticky top-0 z-20">
                     Total
                   </th>
                 </tr>
+                <tr className="bg-slate-50 text-slate-900 uppercase font-black border-b border-slate-100 select-none text-[13px]">
+                  {/* Under Total in Row 2 */}
+                  <th colSpan={2} className="bg-[#ffff00]/30 text-slate-900 text-center font-black border-r-2 border-slate-300 py-2.5 text-[14px] sticky top-[45px] z-20">
+                    Units
+                  </th>
+                  <th colSpan={2} className="bg-[#8db4e2]/30 text-slate-900 text-center font-black border-r-2 border-slate-300 py-2.5 text-[14px] sticky top-[45px] z-20">
+                    Rate
+                  </th>
+                  <th colSpan={2} className="bg-[#c4d79b]/30 text-slate-900 text-center font-black border-r-2 border-slate-300 py-2.5 text-[14px] sticky top-[45px] z-20">
+                    Area
+                  </th>
+                  <th colSpan={2} className="bg-[#fabf8f]/30 text-slate-900 text-center font-black border-r-2 border-slate-300 py-2.5 text-[14px] sticky top-[45px] z-20">
+                    Sales Value
+                  </th>
+                </tr>
                 <tr className="bg-slate-50 text-slate-900 uppercase tracking-wider font-black border-b border-slate-200 select-none text-[12px]">
+                  {/* Row 3 - Target/Actual columns */}
                   {/* Units */}
-                  <th onClick={() => requestSort('budgetUnits')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[90px] border-r border-slate-100 sticky top-[45px] z-20">
+                  <th onClick={() => requestSort('budgetUnits')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[90px] border-r border-slate-100 sticky top-[82px] z-20">
                     <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  <th onClick={() => requestSort('soldToDate')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[90px] border-r-2 border-slate-300 sticky top-[45px] z-20">
+                  <th onClick={() => requestSort('soldToDate')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[90px] border-r-2 border-slate-300 sticky top-[82px] z-20">
                     <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
                   {/* Rate */}
-                  <th onClick={() => requestSort('budgetRate')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[45px] z-20">
+                  <th onClick={() => requestSort('budgetRate')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[82px] z-20">
                     <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  <th onClick={() => requestSort('actualRate')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r-2 border-slate-300 sticky top-[45px] z-20">
+                  <th onClick={() => requestSort('actualRate')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r-2 border-slate-300 sticky top-[82px] z-20">
                     <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
                   {/* Area */}
-                  <th onClick={() => requestSort('budgetArea')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[45px] z-20">
+                  <th onClick={() => requestSort('budgetArea')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[82px] z-20">
                     <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  <th onClick={() => requestSort('actualArea')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r-2 border-slate-300 sticky top-[45px] z-20">
+                  <th onClick={() => requestSort('actualArea')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r-2 border-slate-300 sticky top-[82px] z-20">
                     <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
                   {/* Sales Value */}
-                  <th onClick={() => requestSort('budgetValCr')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[45px] z-20">
+                  <th onClick={() => requestSort('budgetValCr')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[82px] z-20">
                     <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  <th onClick={() => requestSort('actualValCr')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r-2 border-slate-300 sticky top-[45px] z-20">
+                  <th onClick={() => requestSort('actualValCr')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r-2 border-slate-300 sticky top-[82px] z-20">
                     <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
                   {/* Total Period Columns */}
-                  <th onClick={() => requestSort('periodTotalUnits')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[80px] border-r border-slate-100 sticky top-[45px] z-20">
-                    <div className="flex items-center justify-center gap-1">Unit <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  <th onClick={() => requestSort('periodTotalUnitsTarget')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[90px] border-r border-slate-100 sticky top-[82px] z-20">
+                    <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  <th onClick={() => requestSort('periodTotalRate')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[45px] z-20">
-                    <div className="flex items-center justify-center gap-1">Rate <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  <th onClick={() => requestSort('periodTotalUnitsActual')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[90px] border-r-2 border-slate-300 sticky top-[82px] z-20">
+                    <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  <th onClick={() => requestSort('periodTotalArea')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[45px] z-20">
-                    <div className="flex items-center justify-center gap-1">Area <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  <th onClick={() => requestSort('periodTotalRateTarget')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[82px] z-20">
+                    <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  <th onClick={() => requestSort('periodTotalValue')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[110px] sticky top-[45px] z-20">
-                    <div className="flex items-center justify-center gap-1">Sales Value <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  <th onClick={() => requestSort('periodTotalRateActual')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r-2 border-slate-300 sticky top-[82px] z-20">
+                    <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  </th>
+                  <th onClick={() => requestSort('periodTotalAreaTarget')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[82px] z-20">
+                    <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  </th>
+                  <th onClick={() => requestSort('periodTotalAreaActual')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r-2 border-slate-300 sticky top-[82px] z-20">
+                    <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  </th>
+                  <th onClick={() => requestSort('periodTotalValueTarget')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[82px] z-20">
+                    <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  </th>
+                  <th onClick={() => requestSort('periodTotalValueActual')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[110px] sticky top-[82px] z-20">
+                    <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
                 </tr>
               </>
@@ -456,7 +517,7 @@ export default function ProjectTable() {
                         >
                           {month}
                         </th>
-                        <th colSpan={4} rowSpan={2} className="bg-slate-200 text-slate-900 text-center font-black py-3 border-b border-slate-200 text-[14px] sticky top-0 z-20">
+                        <th colSpan={8} className="bg-slate-200 text-slate-900 text-center font-black py-3 border-b border-slate-200 text-[14px] sticky top-0 z-20">
                           Total
                         </th>
                       </>
@@ -468,6 +529,7 @@ export default function ProjectTable() {
                     const month = salesMonths[selectedMonthIndex];
                     return (
                       <React.Fragment key={`groups_${month}`}>
+                        {/* Month columns */}
                         <th colSpan={2} className="bg-[#ffff00] text-slate-900 text-center font-black border-r-2 border-slate-300 py-2.5 text-[14px] sticky top-[45px] z-20">
                           Units
                         </th>
@@ -478,6 +540,19 @@ export default function ProjectTable() {
                           Area
                         </th>
                         <th colSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black border-r-2 border-slate-300 py-2.5 text-[14px] sticky top-[45px] z-20">
+                          Sales Value
+                        </th>
+                        {/* Total columns */}
+                        <th colSpan={2} className="bg-[#ffff00]/30 text-slate-900 text-center font-black border-r-2 border-slate-300 py-2.5 text-[14px] sticky top-[45px] z-20">
+                          Units
+                        </th>
+                        <th colSpan={2} className="bg-[#8db4e2]/30 text-slate-900 text-center font-black border-r-2 border-slate-300 py-2.5 text-[14px] sticky top-[45px] z-20">
+                          Rate
+                        </th>
+                        <th colSpan={2} className="bg-[#c4d79b]/30 text-slate-900 text-center font-black border-r-2 border-slate-300 py-2.5 text-[14px] sticky top-[45px] z-20">
+                          Area
+                        </th>
+                        <th colSpan={2} className="bg-[#fabf8f]/30 text-slate-900 text-center font-black border-r-2 border-slate-300 py-2.5 text-[14px] sticky top-[45px] z-20">
                           Sales Value
                         </th>
                       </React.Fragment>
@@ -496,6 +571,16 @@ export default function ProjectTable() {
                       { key: 'areaActual', label: 'Actual' },
                       { key: 'salesValueTarget', label: 'Target' },
                       { key: 'salesValueActual', label: 'Actual' }
+                    ];
+                    const totalMetrics = [
+                      { key: 'periodTotalUnitsTarget', label: 'Target' },
+                      { key: 'periodTotalUnitsActual', label: 'Actual' },
+                      { key: 'periodTotalRateTarget', label: 'Target' },
+                      { key: 'periodTotalRateActual', label: 'Actual' },
+                      { key: 'periodTotalAreaTarget', label: 'Target' },
+                      { key: 'periodTotalAreaActual', label: 'Actual' },
+                      { key: 'periodTotalValueTarget', label: 'Target' },
+                      { key: 'periodTotalValueActual', label: 'Actual' }
                     ];
                     return (
                       <>
@@ -516,18 +601,22 @@ export default function ProjectTable() {
                             </th>
                           );
                         })}
-                        <th onClick={() => requestSort('periodTotalUnits')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[90px] border-r border-slate-100 sticky top-[82px] z-20 text-[13px]">
-                          <div className="flex items-center justify-center gap-1">Unit <ArrowUpDown className="w-3 h-3 opacity-60 flex-shrink-0" /></div>
-                        </th>
-                        <th onClick={() => requestSort('periodTotalRate')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[110px] border-r border-slate-100 sticky top-[82px] z-20 text-[13px]">
-                          <div className="flex items-center justify-center gap-1">Rate <ArrowUpDown className="w-3 h-3 opacity-60 flex-shrink-0" /></div>
-                        </th>
-                        <th onClick={() => requestSort('periodTotalArea')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[110px] border-r border-slate-100 sticky top-[82px] z-20 text-[13px]">
-                          <div className="flex items-center justify-center gap-1">Area <ArrowUpDown className="w-3 h-3 opacity-60 flex-shrink-0" /></div>
-                        </th>
-                        <th onClick={() => requestSort('periodTotalValue')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[115px] sticky top-[82px] z-20 text-[13px]">
-                          <div className="flex items-center justify-center gap-1">Sales Value <ArrowUpDown className="w-3 h-3 opacity-60 flex-shrink-0" /></div>
-                        </th>
+                        {totalMetrics.map((metric, mIdx) => {
+                          const isGroupEnd = mIdx % 2 === 1;
+                          const isLastMetric = mIdx === totalMetrics.length - 1;
+                          return (
+                            <th
+                              key={metric.key}
+                              onClick={() => requestSort(metric.key)}
+                              className={`bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[115px] ${isLastMetric ? 'border-r-2 border-slate-300' : isGroupEnd ? 'border-r-2 border-slate-300' : 'border-r border-slate-100'} sticky top-[82px] z-20 text-[13px]`}
+                            >
+                              <div className="flex items-center justify-center gap-1">
+                                {metric.label}
+                                <ArrowUpDown className="w-3 h-3 opacity-60 flex-shrink-0" />
+                              </div>
+                            </th>
+                          );
+                        })}
                       </>
                     );
                   })()}
@@ -595,23 +684,46 @@ export default function ProjectTable() {
                         ₹{p.actualValCr.toFixed(2)} Cr
                       </td>
                       {(() => {
-                        const totalUnits = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.unitsActual || 0), 0);
-                        const totalArea = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.areaActual || 0), 0);
-                        const totalValue = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.salesValueActual || 0), 0);
-                        const totalRate = totalArea > 0 ? totalValue / totalArea : 0;
+                        const totalUnitsTarget = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.unitsTarget || 0), 0);
+                        const totalUnitsActual = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.unitsActual || 0), 0);
+
+                        const totalValueTarget = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.salesValueTarget || 0), 0);
+                        const totalAreaTarget = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.areaTarget || 0), 0);
+                        const totalRateTarget = totalAreaTarget > 0 ? totalValueTarget / totalAreaTarget : 0;
+
+                        const totalValueActual = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.salesValueActual || 0), 0);
+                        const totalAreaActual = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.areaActual || 0), 0);
+                        const totalRateActual = totalAreaActual > 0 ? totalValueActual / totalAreaActual : 0;
+
                         return (
                           <>
-                            <td className="px-3 py-3.5 text-center font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5">
-                              {totalUnits.toLocaleString('en-IN')}
+                            {/* Units */}
+                            <td className="px-2 py-3.5 text-center font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5">
+                              {totalUnitsTarget.toLocaleString('en-IN')}
                             </td>
-                            <td className="px-3 py-3.5 text-right font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5">
-                              {formatCellVal(totalRate, 'rate')}
+                            <td className="px-2 py-3.5 text-center font-bold text-nyati-navy border-r-2 border-slate-200 bg-slate-50/5">
+                              {totalUnitsActual.toLocaleString('en-IN')}
                             </td>
-                            <td className="px-3 py-3.5 text-right font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5">
-                              {Math.round(totalArea).toLocaleString('en-IN')}
+                            {/* Rate */}
+                            <td className="px-2 py-3.5 text-right font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5">
+                              {formatCellVal(totalRateTarget, 'rate')}
+                            </td>
+                            <td className="px-2 py-3.5 text-right font-bold text-nyati-navy border-r-2 border-slate-200 bg-slate-50/5">
+                              {formatCellVal(totalRateActual, 'rate')}
+                            </td>
+                            {/* Area */}
+                            <td className="px-2 py-3.5 text-right font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5">
+                              {Math.round(totalAreaTarget).toLocaleString('en-IN')}
+                            </td>
+                            <td className="px-2 py-3.5 text-right font-bold text-slate-700 border-r-2 border-slate-200 bg-slate-50/5">
+                              {Math.round(totalAreaActual).toLocaleString('en-IN')}
+                            </td>
+                            {/* Sales Value */}
+                            <td className="px-2 py-3.5 text-right font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5">
+                              ₹{(totalValueTarget / 10000000).toFixed(2)} Cr
                             </td>
                             <td className="px-6 py-3.5 text-right font-bold text-slate-700 bg-slate-50/5">
-                              ₹{(totalValue / 10000000).toFixed(2)} Cr
+                              ₹{(totalValueActual / 10000000).toFixed(2)} Cr
                             </td>
                           </>
                         );
@@ -654,23 +766,46 @@ export default function ProjectTable() {
                               );
                             })}
                             {(() => {
-                              const totalUnits = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.unitsActual || 0), 0);
-                              const totalArea = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.areaActual || 0), 0);
-                              const totalValue = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.salesValueActual || 0), 0);
-                              const totalRate = totalArea > 0 ? totalValue / totalArea : 0;
+                              const totalUnitsTarget = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.unitsTarget || 0), 0);
+                              const totalUnitsActual = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.unitsActual || 0), 0);
+
+                              const totalValueTarget = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.salesValueTarget || 0), 0);
+                              const totalAreaTarget = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.areaTarget || 0), 0);
+                              const totalRateTarget = totalAreaTarget > 0 ? totalValueTarget / totalAreaTarget : 0;
+
+                              const totalValueActual = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.salesValueActual || 0), 0);
+                              const totalAreaActual = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.areaActual || 0), 0);
+                              const totalRateActual = totalAreaActual > 0 ? totalValueActual / totalAreaActual : 0;
+
                               return (
                                 <>
+                                  {/* Units */}
                                   <td className="px-2 py-3.5 text-center font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5">
-                                    {totalUnits.toLocaleString('en-IN')}
+                                    {totalUnitsTarget.toLocaleString('en-IN')}
                                   </td>
-                                  <td className="px-2 py-3.5 text-center font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5">
-                                    {formatCellVal(totalRate, 'rate')}
+                                  <td className="px-2 py-3.5 text-center font-bold text-nyati-navy border-r-2 border-slate-200 bg-slate-50/5">
+                                    {totalUnitsActual.toLocaleString('en-IN')}
                                   </td>
+                                  {/* Rate */}
                                   <td className="px-2 py-3.5 text-center font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5">
-                                    {Math.round(totalArea).toLocaleString('en-IN')}
+                                    {formatCellVal(totalRateTarget, 'rate')}
+                                  </td>
+                                  <td className="px-2 py-3.5 text-center font-bold text-nyati-navy border-r-2 border-slate-200 bg-slate-50/5">
+                                    {formatCellVal(totalRateActual, 'rate')}
+                                  </td>
+                                  {/* Area */}
+                                  <td className="px-2 py-3.5 text-center font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5">
+                                    {Math.round(totalAreaTarget).toLocaleString('en-IN')}
+                                  </td>
+                                  <td className="px-2 py-3.5 text-center font-bold text-slate-700 border-r-2 border-slate-200 bg-slate-50/5">
+                                    {Math.round(totalAreaActual).toLocaleString('en-IN')}
+                                  </td>
+                                  {/* Sales Value */}
+                                  <td className="px-2 py-3.5 text-center font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5">
+                                    ₹{(totalValueTarget / 10000000).toFixed(2)} Cr
                                   </td>
                                   <td className="px-2 py-3.5 text-center font-bold text-nyati-navy bg-slate-50/5">
-                                    ₹{(totalValue / 10000000).toFixed(2)} Cr
+                                    ₹{(totalValueActual / 10000000).toFixed(2)} Cr
                                   </td>
                                 </>
                               );
@@ -710,17 +845,33 @@ export default function ProjectTable() {
                     <td className="px-6 py-4 text-right text-slate-700 font-extrabold bg-slate-50 border-r-2 border-slate-300">
                       ₹{totals.actualValCr.toFixed(2)} Cr
                     </td>
-                    <td className="px-3 py-4 text-center text-slate-700 bg-slate-50 border-r border-slate-100">
-                      {periodGrandTotals.units.toLocaleString('en-IN')}
+                    {/* Units */}
+                    <td className="px-2 py-4 text-center text-slate-700 bg-slate-50 border-r border-slate-100">
+                      {periodGrandTotals.unitsTarget.toLocaleString('en-IN')}
                     </td>
-                    <td className="px-3 py-4 text-right text-slate-700 bg-slate-50 border-r border-slate-100">
-                      {formatCellVal(periodGrandTotals.rate, 'rate')}
+                    <td className="px-2 py-4 text-center text-nyati-navy font-extrabold bg-slate-50 border-r-2 border-slate-200">
+                      {periodGrandTotals.unitsActual.toLocaleString('en-IN')}
                     </td>
-                    <td className="px-3 py-4 text-right text-slate-700 bg-slate-50 border-r border-slate-100">
-                      {Math.round(periodGrandTotals.area).toLocaleString('en-IN')}
+                    {/* Rate */}
+                    <td className="px-2 py-4 text-right text-slate-700 bg-slate-50 border-r border-slate-100">
+                      {formatCellVal(periodGrandTotals.rateTarget, 'rate')}
+                    </td>
+                    <td className="px-2 py-4 text-right text-nyati-navy font-extrabold bg-slate-50 border-r-2 border-slate-200">
+                      {formatCellVal(periodGrandTotals.rateActual, 'rate')}
+                    </td>
+                    {/* Area */}
+                    <td className="px-2 py-4 text-right text-slate-700 bg-slate-50 border-r border-slate-100">
+                      {Math.round(periodGrandTotals.areaTarget).toLocaleString('en-IN')}
+                    </td>
+                    <td className="px-2 py-4 text-right text-slate-700 font-extrabold bg-slate-50 border-r-2 border-slate-200">
+                      {Math.round(periodGrandTotals.areaActual).toLocaleString('en-IN')}
+                    </td>
+                    {/* Sales Value */}
+                    <td className="px-2 py-4 text-right text-slate-700 bg-slate-50 border-r border-slate-100">
+                      ₹{(periodGrandTotals.valueTarget / 10000000).toFixed(2)} Cr
                     </td>
                     <td className="px-6 py-4 text-right text-slate-700 font-extrabold bg-slate-50">
-                      ₹{(periodGrandTotals.value / 10000000).toFixed(2)} Cr
+                      ₹{(periodGrandTotals.valueActual / 10000000).toFixed(2)} Cr
                     </td>
                   </tr>
                 ) : (
@@ -751,17 +902,33 @@ export default function ProjectTable() {
                               </td>
                             );
                           })}
+                          {/* Units */}
                           <td className="px-2 py-4 text-center font-black border-r border-slate-100 bg-slate-100">
-                            {periodGrandTotals.units.toLocaleString('en-IN')}
+                            {periodGrandTotals.unitsTarget.toLocaleString('en-IN')}
                           </td>
-                          <td className="px-2 py-4 text-center font-black border-r border-slate-100 bg-slate-100">
-                            {formatCellVal(periodGrandTotals.rate, 'rate')}
+                          <td className="px-2 py-4 text-center font-black border-r-2 border-slate-200 bg-slate-100">
+                            {periodGrandTotals.unitsActual.toLocaleString('en-IN')}
                           </td>
+                          {/* Rate */}
                           <td className="px-2 py-4 text-center font-black border-r border-slate-100 bg-slate-100">
-                            {Math.round(periodGrandTotals.area).toLocaleString('en-IN')}
+                            {formatCellVal(periodGrandTotals.rateTarget, 'rate')}
+                          </td>
+                          <td className="px-2 py-4 text-center font-black border-r-2 border-slate-200 bg-slate-100">
+                            {formatCellVal(periodGrandTotals.rateActual, 'rate')}
+                          </td>
+                          {/* Area */}
+                          <td className="px-2 py-4 text-center font-black border-r border-slate-100 bg-slate-100">
+                            {Math.round(periodGrandTotals.areaTarget).toLocaleString('en-IN')}
+                          </td>
+                          <td className="px-2 py-4 text-center font-black border-r-2 border-slate-200 bg-slate-100">
+                            {Math.round(periodGrandTotals.areaActual).toLocaleString('en-IN')}
+                          </td>
+                          {/* Sales Value */}
+                          <td className="px-2 py-4 text-center font-black border-r border-slate-100 bg-slate-100">
+                            ₹{(periodGrandTotals.valueTarget / 10000000).toFixed(2)} Cr
                           </td>
                           <td className="px-2 py-4 text-center font-black bg-slate-100">
-                            ₹{(periodGrandTotals.value / 10000000).toFixed(2)} Cr
+                            ₹{(periodGrandTotals.valueActual / 10000000).toFixed(2)} Cr
                           </td>
                         </>
                       );
