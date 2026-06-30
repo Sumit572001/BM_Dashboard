@@ -241,118 +241,83 @@ export default function ProjectTable() {
         <table ref={tableRef} className={`w-full text-left text-[13px] text-slate-800 border-collapse ${showMonthlyColumns ? 'min-w-[4000px]' : ''}`}>
           <thead>
             {!showMonthlyColumns ? (
-              // Original Summary View Headers
-              <tr className="sticky top-0 z-20 bg-slate-50 text-slate-900 uppercase tracking-wider font-black border-b border-slate-100 select-none shadow-sm text-[13px]">
-                <th
-                  onClick={() => requestSort('name')}
-                  className="bg-slate-50 px-6 py-4 cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[180px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200"
-                >
-                  <div className="flex items-center gap-1.5">
-                    Project Name
-                    <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => requestSort('budgetUnits')}
-                  className="bg-slate-50 px-3 py-4 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[90px]"
-                >
-                  <div className="flex items-center justify-center gap-1.5">
-                    Units Target
-                    <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => requestSort('soldToDate')}
-                  className="bg-slate-50 px-3 py-4 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[90px]"
-                >
-                  <div className="flex items-center justify-center gap-1.5">
-                    Units Actual
-                    <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => requestSort('budgetRate')}
-                  className="bg-slate-50 px-3 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px]"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    Rate Target
-                    <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => requestSort('actualRate')}
-                  className="bg-slate-50 px-3 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px]"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    Rate Actual
-                    <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => requestSort('budgetArea')}
-                  className="bg-slate-50 px-3 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px]"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    Area Target
-                    <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => requestSort('actualArea')}
-                  className="bg-slate-50 px-3 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px]"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    Area Actual
-                    <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => requestSort('budgetValCr')}
-                  className="bg-slate-50 px-3 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px]"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    Sales Value Target
-                    <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => requestSort('actualValCr')}
-                  className="bg-slate-50 px-3 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px]"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    Sales Value Actual
-                    <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => requestSort('budgetCollection')}
-                  className="bg-slate-50 px-3 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[110px]"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    Collection Target
-                    <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
-                  </div>
-                </th>
-                <th
-                  onClick={() => requestSort('actualCollection')}
-                  className="bg-slate-50 px-6 py-4 text-right cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[110px]"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    Collection Actual
-                    <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
-                  </div>
-                </th>
-              </tr>
-            ) : (
-              // Excel-aligned Month Group Headers
+              // Original Summary View Headers (Grouped like Excel)
               <>
                 <tr className="bg-slate-50 text-slate-900 uppercase font-black border-b border-slate-100 select-none text-[13px]">
                   <th
                     rowSpan={2}
                     onClick={() => requestSort('name')}
-                    className="bg-slate-50 px-6 py-4 cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[220px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200"
+                    className="bg-slate-50 px-6 py-4 cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[220px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200 text-center"
                   >
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center justify-center gap-1.5 h-full">
+                      Project Name
+                      <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
+                    </div>
+                  </th>
+                  <th colSpan={2} className="bg-[#ffff00] text-slate-900 text-center font-black border-r border-slate-200 py-3 text-[13px] tracking-wider sticky top-0 z-20">
+                    Units
+                  </th>
+                  <th colSpan={2} className="bg-[#8db4e2] text-slate-900 text-center font-black border-r border-slate-200 py-3 text-[13px] tracking-wider sticky top-0 z-20">
+                    Rate
+                  </th>
+                  <th colSpan={2} className="bg-[#c4d79b] text-slate-900 text-center font-black border-r border-slate-200 py-3 text-[13px] tracking-wider sticky top-0 z-20">
+                    Area
+                  </th>
+                  <th colSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black border-r border-slate-200 py-3 text-[13px] tracking-wider sticky top-0 z-20">
+                    Sales Value
+                  </th>
+                  <th colSpan={2} className="bg-[#b1a0c7] text-slate-900 text-center font-black py-3 text-[13px] tracking-wider sticky top-0 z-20">
+                    Collection
+                  </th>
+                </tr>
+                <tr className="bg-slate-50 text-slate-900 uppercase tracking-wider font-black border-b border-slate-200 select-none text-[12px]">
+                  {/* Units */}
+                  <th onClick={() => requestSort('budgetUnits')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[90px] border-r border-slate-100 sticky top-[45px] z-20">
+                    <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  </th>
+                  <th onClick={() => requestSort('soldToDate')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[90px] border-r-2 border-slate-200 sticky top-[45px] z-20">
+                    <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  </th>
+                  {/* Rate */}
+                  <th onClick={() => requestSort('budgetRate')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[45px] z-20">
+                    <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  </th>
+                  <th onClick={() => requestSort('actualRate')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r-2 border-slate-200 sticky top-[45px] z-20">
+                    <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  </th>
+                  {/* Area */}
+                  <th onClick={() => requestSort('budgetArea')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[45px] z-20">
+                    <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  </th>
+                  <th onClick={() => requestSort('actualArea')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r-2 border-slate-200 sticky top-[45px] z-20">
+                    <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  </th>
+                  {/* Sales Value */}
+                  <th onClick={() => requestSort('budgetValCr')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[45px] z-20">
+                    <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  </th>
+                  <th onClick={() => requestSort('actualValCr')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r-2 border-slate-200 sticky top-[45px] z-20">
+                    <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  </th>
+                  {/* Collection */}
+                  <th onClick={() => requestSort('budgetCollection')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[110px] border-r border-slate-100 sticky top-[45px] z-20">
+                    <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  </th>
+                  <th onClick={() => requestSort('actualCollection')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[110px] sticky top-[45px] z-20">
+                    <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  </th>
+                </tr>
+              </>
+            ) : (
+              // Excel-aligned Month Group Headers
+              <>
+                <tr className="bg-slate-50 text-slate-900 uppercase font-black border-b border-slate-100 select-none text-[13px]">
+                  <th
+                    rowSpan={3}
+                    onClick={() => requestSort('name')}
+                    className="bg-slate-50 px-6 py-4 cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[220px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200 text-center"
+                  >
+                    <div className="flex items-center justify-center gap-1.5 h-full">
                       Project Name
                       <ArrowUpDown className="w-3.5 h-3.5 opacity-60" />
                     </div>
@@ -367,16 +332,50 @@ export default function ProjectTable() {
                     </th>
                   ))}
                 </tr>
+                <tr className="bg-slate-50 text-slate-900 uppercase font-black border-b border-slate-100 select-none text-[13px]">
+                  {salesMonths.map(month => (
+                    <React.Fragment key={`groups_${month}`}>
+                      <th colSpan={2} className="bg-[#ffff00] text-slate-900 text-center font-black border-r border-slate-200 py-2 text-[12px] sticky top-[38px] z-20">
+                        Units
+                      </th>
+                      <th colSpan={2} className="bg-[#8db4e2] text-slate-900 text-center font-black border-r border-slate-200 py-2 text-[12px] sticky top-[38px] z-20">
+                        Rate
+                      </th>
+                      <th colSpan={2} className="bg-[#c4d79b] text-slate-900 text-center font-black border-r border-slate-200 py-2 text-[12px] sticky top-[38px] z-20">
+                        Area
+                      </th>
+                      <th colSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black border-r border-slate-200 py-2 text-[12px] sticky top-[38px] z-20">
+                        Sales Value
+                      </th>
+                      <th colSpan={2} className="bg-[#b1a0c7] text-slate-900 text-center font-black border-r-2 border-slate-200 py-2 text-[12px] sticky top-[38px] z-20">
+                        Collection
+                      </th>
+                    </React.Fragment>
+                  ))}
+                </tr>
                 <tr className="bg-slate-50 text-slate-900 uppercase tracking-wider font-black border-b border-slate-200 select-none text-[12px]">
-                  {salesMonths.flatMap(month =>
-                    metrics.map((metric, mIdx) => {
+                  {salesMonths.flatMap(month => {
+                    const groupMetrics = [
+                      { key: 'unitsTarget', label: 'Target' },
+                      { key: 'unitsActual', label: 'Actual' },
+                      { key: 'rateTarget', label: 'Target' },
+                      { key: 'rateActual', label: 'Actual' },
+                      { key: 'areaTarget', label: 'Target' },
+                      { key: 'areaActual', label: 'Actual' },
+                      { key: 'salesValueTarget', label: 'Target' },
+                      { key: 'salesValueActual', label: 'Actual' },
+                      { key: 'collectionTarget', label: 'Target' },
+                      { key: 'collectionActual', label: 'Actual' }
+                    ];
+                    return groupMetrics.map((metric, mIdx) => {
                       const fieldKey = `${month}_${metric.key}`;
-                      const isLastMetric = mIdx === metrics.length - 1;
+                      const isGroupEnd = mIdx % 2 === 1;
+                      const isLastMetric = mIdx === groupMetrics.length - 1;
                       return (
                         <th
                           key={fieldKey}
                           onClick={() => requestSort(fieldKey)}
-                          className={`bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[110px] ${isLastMetric ? 'border-r-2 border-slate-200' : 'border-r border-slate-100'} sticky top-[38px] z-20`}
+                          className={`bg-slate-50 px-2 py-2 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[90px] ${isLastMetric ? 'border-r-2 border-slate-200' : isGroupEnd ? 'border-r-2 border-slate-200' : 'border-r border-slate-100'} sticky top-[72px] z-20`}
                         >
                           <div className="flex items-center justify-center gap-1">
                             {metric.label}
@@ -384,8 +383,8 @@ export default function ProjectTable() {
                           </div>
                         </th>
                       );
-                    })
-                  )}
+                    });
+                  })}
                 </tr>
               </>
             )}
