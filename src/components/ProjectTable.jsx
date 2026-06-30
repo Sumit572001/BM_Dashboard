@@ -8,6 +8,18 @@ import { motion } from 'framer-motion';
 export default function ProjectTable() {
   const { filteredProjects, setActiveProjectName, filters } = useData();
   const totals = calculateGrandTotals(filteredProjects);
+
+  const periodGrandTotals = React.useMemo(() => {
+    let target = 0;
+    let actual = 0;
+    filteredProjects.forEach(p => {
+      salesMonths.forEach(m => {
+        target += p.monthlyData?.[m]?.salesValueTarget || 0;
+        actual += p.monthlyData?.[m]?.salesValueActual || 0;
+      });
+    });
+    return { target, actual };
+  }, [filteredProjects, salesMonths]);
   const navigate = useNavigate();
   const tableRef = React.useRef(null);
 
@@ -233,7 +245,13 @@ export default function ProjectTable() {
 
     // For other fields, keep the original sort logic
     let valA, valB;
-    if (sortField.includes('_')) {
+    if (sortField === 'periodTotalTarget') {
+      valA = salesMonths.reduce((sum, m) => sum + (a.monthlyData?.[m]?.salesValueTarget || 0), 0);
+      valB = salesMonths.reduce((sum, m) => sum + (b.monthlyData?.[m]?.salesValueTarget || 0), 0);
+    } else if (sortField === 'periodTotalActual') {
+      valA = salesMonths.reduce((sum, m) => sum + (a.monthlyData?.[m]?.salesValueActual || 0), 0);
+      valB = salesMonths.reduce((sum, m) => sum + (b.monthlyData?.[m]?.salesValueActual || 0), 0);
+    } else if (sortField.includes('_')) {
       const [m, metricKey] = sortField.split('_');
       valA = a.monthlyData?.[m]?.[metricKey] || 0;
       valB = b.monthlyData?.[m]?.[metricKey] || 0;
@@ -317,9 +335,6 @@ export default function ProjectTable() {
                 </button>
               </div>
             )}
-            <div className="text-sm font-bold text-slate-700 bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-1.5">
-              Showing <span className="text-nyati-navy font-bold">{filteredProjects.length}</span> active projects
-            </div>
           </div>
         </div>
       </div>
@@ -351,8 +366,11 @@ export default function ProjectTable() {
                   <th colSpan={2} className="bg-[#c4d79b] text-slate-900 text-center font-black border-r-2 border-slate-300 py-3 text-[13px] tracking-wider sticky top-0 z-20">
                     Area
                   </th>
-                  <th colSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black py-3 text-[13px] tracking-wider sticky top-0 z-20">
+                  <th colSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black border-r-2 border-slate-300 py-3 text-[13px] tracking-wider sticky top-0 z-20">
                     Sales Value
+                  </th>
+                  <th colSpan={2} className="bg-slate-200 text-slate-900 text-center font-black py-3 text-[13px] tracking-wider sticky top-0 z-20">
+                    Total
                   </th>
                 </tr>
                 <tr className="bg-slate-50 text-slate-900 uppercase tracking-wider font-black border-b border-slate-200 select-none text-[12px]">
@@ -381,7 +399,14 @@ export default function ProjectTable() {
                   <th onClick={() => requestSort('budgetValCr')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[45px] z-20">
                     <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  <th onClick={() => requestSort('actualValCr')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] sticky top-[45px] z-20">
+                  <th onClick={() => requestSort('actualValCr')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r-2 border-slate-300 sticky top-[45px] z-20">
+                    <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  </th>
+                  {/* Total Period Sales Value */}
+                  <th onClick={() => requestSort('periodTotalTarget')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] border-r border-slate-100 sticky top-[45px] z-20">
+                    <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
+                  </th>
+                  <th onClick={() => requestSort('periodTotalActual')} className="bg-slate-50 px-2 py-3 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[100px] sticky top-[45px] z-20">
                     <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
                 </tr>
@@ -403,13 +428,18 @@ export default function ProjectTable() {
                   {salesMonths.length > 0 && (() => {
                     const month = salesMonths[selectedMonthIndex];
                     return (
-                      <th
-                        key={month}
-                        colSpan={8}
-                        className="bg-slate-100 text-nyati-navy text-center font-black border-r-2 border-slate-200 py-3 border-b border-slate-200 text-[15px] sticky top-0 z-20"
-                      >
-                        {month}
-                      </th>
+                      <>
+                        <th
+                          key={month}
+                          colSpan={8}
+                          className="bg-slate-100 text-nyati-navy text-center font-black border-r-2 border-slate-200 py-3 border-b border-slate-200 text-[15px] sticky top-0 z-20"
+                        >
+                          {month}
+                        </th>
+                        <th colSpan={2} rowSpan={2} className="bg-slate-200 text-slate-900 text-center font-black py-3 border-b border-slate-200 text-[14px] sticky top-0 z-20">
+                          Total
+                        </th>
+                      </>
                     );
                   })()}
                 </tr>
@@ -447,23 +477,33 @@ export default function ProjectTable() {
                       { key: 'salesValueTarget', label: 'Target' },
                       { key: 'salesValueActual', label: 'Actual' }
                     ];
-                    return groupMetrics.map((metric, mIdx) => {
-                      const fieldKey = `${month}_${metric.key}`;
-                      const isGroupEnd = mIdx % 2 === 1;
-                      const isLastMetric = mIdx === groupMetrics.length - 1;
-                      return (
-                        <th
-                          key={fieldKey}
-                          onClick={() => requestSort(fieldKey)}
-                          className={`bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[115px] ${isLastMetric ? 'border-r-2 border-slate-300' : isGroupEnd ? 'border-r-2 border-slate-300' : 'border-r border-slate-100'} sticky top-[82px] z-20 text-[13px]`}
-                        >
-                          <div className="flex items-center justify-center gap-1">
-                            {metric.label}
-                            <ArrowUpDown className="w-3 h-3 opacity-60 flex-shrink-0" />
-                          </div>
+                    return (
+                      <>
+                        {groupMetrics.map((metric, mIdx) => {
+                          const fieldKey = `${month}_${metric.key}`;
+                          const isGroupEnd = mIdx % 2 === 1;
+                          const isLastMetric = mIdx === groupMetrics.length - 1;
+                          return (
+                            <th
+                              key={fieldKey}
+                              onClick={() => requestSort(fieldKey)}
+                              className={`bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[115px] ${isLastMetric ? 'border-r-2 border-slate-300' : isGroupEnd ? 'border-r-2 border-slate-300' : 'border-r border-slate-100'} sticky top-[82px] z-20 text-[13px]`}
+                            >
+                              <div className="flex items-center justify-center gap-1">
+                                {metric.label}
+                                <ArrowUpDown className="w-3 h-3 opacity-60 flex-shrink-0" />
+                              </div>
+                            </th>
+                          );
+                        })}
+                        <th onClick={() => requestSort('periodTotalTarget')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[115px] border-r border-slate-100 sticky top-[82px] z-20 text-[13px]">
+                          <div className="flex items-center justify-center gap-1">Target <ArrowUpDown className="w-3 h-3 opacity-60 flex-shrink-0" /></div>
                         </th>
-                      );
-                    });
+                        <th onClick={() => requestSort('periodTotalActual')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[115px] sticky top-[82px] z-20 text-[13px]">
+                          <div className="flex items-center justify-center gap-1">Actual <ArrowUpDown className="w-3 h-3 opacity-60 flex-shrink-0" /></div>
+                        </th>
+                      </>
+                    );
                   })()}
                 </tr>
               </>
@@ -525,9 +565,23 @@ export default function ProjectTable() {
                       <td className="px-3 py-3.5 text-right font-semibold text-slate-700">
                         ₹{p.budgetValCr.toFixed(2)} Cr
                       </td>
-                      <td className="px-6 py-3.5 text-right font-bold text-slate-700">
+                      <td className="px-6 py-3.5 text-right font-bold text-slate-700 border-r-2 border-slate-300">
                         ₹{p.actualValCr.toFixed(2)} Cr
                       </td>
+                      {(() => {
+                        const totalTarget = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.salesValueTarget || 0), 0);
+                        const totalActual = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.salesValueActual || 0), 0);
+                        return (
+                          <>
+                            <td className="px-3 py-3.5 text-right font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5">
+                              ₹{(totalTarget / 10000000).toFixed(2)} Cr
+                            </td>
+                            <td className="px-6 py-3.5 text-right font-bold text-slate-700 bg-slate-50/5">
+                              ₹{(totalActual / 10000000).toFixed(2)} Cr
+                            </td>
+                          </>
+                        );
+                      })()}
                     </motion.tr>
                   ))
                 ) : (
@@ -549,20 +603,38 @@ export default function ProjectTable() {
                       {salesMonths.length > 0 && (() => {
                         const month = salesMonths[selectedMonthIndex];
                         const mData = p.monthlyData?.[month] || {};
-                        return metrics.map((metric, mIdx) => {
-                          const val = mData[metric.key];
-                          const isLastMetric = mIdx === metrics.length - 1;
-                          const isGroupEnd = mIdx % 2 === 1;
-                          const isActual = metric.key.toLowerCase().includes('actual');
-                          return (
-                            <td
-                              key={`${month}_${metric.key}`}
-                              className={`px-2 py-3.5 text-center ${isActual ? 'font-bold text-nyati-navy' : 'font-semibold text-slate-700'} ${isLastMetric ? 'border-r-2 border-slate-300 bg-slate-50/5' : isGroupEnd ? 'border-r-2 border-slate-300' : 'border-r border-slate-100'}`}
-                            >
-                              {formatCellVal(val, metric.format)}
-                            </td>
-                          );
-                        });
+                        return (
+                          <>
+                            {metrics.map((metric, mIdx) => {
+                              const val = mData[metric.key];
+                              const isLastMetric = mIdx === metrics.length - 1;
+                              const isGroupEnd = mIdx % 2 === 1;
+                              const isActual = metric.key.toLowerCase().includes('actual');
+                              return (
+                                <td
+                                  key={`${month}_${metric.key}`}
+                                  className={`px-2 py-3.5 text-center ${isActual ? 'font-bold text-nyati-navy' : 'font-semibold text-slate-700'} ${isLastMetric ? 'border-r-2 border-slate-300 bg-slate-50/5' : isGroupEnd ? 'border-r-2 border-slate-300' : 'border-r border-slate-100'}`}
+                                >
+                                  {formatCellVal(val, metric.format)}
+                                </td>
+                              );
+                            })}
+                            {(() => {
+                              const totalTarget = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.salesValueTarget || 0), 0);
+                              const totalActual = salesMonths.reduce((sum, m) => sum + (p.monthlyData?.[m]?.salesValueActual || 0), 0);
+                              return (
+                                <>
+                                  <td className="px-2 py-3.5 text-center font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5">
+                                    ₹{(totalTarget / 10000000).toFixed(2)} Cr
+                                  </td>
+                                  <td className="px-2 py-3.5 text-center font-bold text-nyati-navy bg-slate-50/5">
+                                    ₹{(totalActual / 10000000).toFixed(2)} Cr
+                                  </td>
+                                </>
+                              );
+                            })()}
+                          </>
+                        );
                       })()}
                     </tr>
                   ))
@@ -593,8 +665,14 @@ export default function ProjectTable() {
                     <td className="px-3 py-4 text-right text-slate-700 bg-slate-50">
                       ₹{totals.budgetValCr.toFixed(2)} Cr
                     </td>
-                    <td className="px-6 py-4 text-right text-slate-700 font-extrabold bg-slate-50">
+                    <td className="px-6 py-4 text-right text-slate-700 font-extrabold bg-slate-50 border-r-2 border-slate-300">
                       ₹{totals.actualValCr.toFixed(2)} Cr
+                    </td>
+                    <td className="px-3 py-4 text-right text-slate-700 bg-slate-50 border-r border-slate-100">
+                      ₹{(periodGrandTotals.target / 10000000).toFixed(2)} Cr
+                    </td>
+                    <td className="px-6 py-4 text-right text-slate-700 font-extrabold bg-slate-50">
+                      ₹{(periodGrandTotals.actual / 10000000).toFixed(2)} Cr
                     </td>
                   </tr>
                 ) : (
@@ -604,25 +682,35 @@ export default function ProjectTable() {
                     </td>
                     {salesMonths.length > 0 && (() => {
                       const month = salesMonths[selectedMonthIndex];
-                      return metrics.map((metric, mIdx) => {
-                        const isLastMetric = mIdx === metrics.length - 1;
-                        const isGroupEnd = mIdx % 2 === 1;
-                        let totalVal = 0;
-                        if (metric.format === 'rate') {
-                          const type = metric.key.toLowerCase().includes('target') ? 'Target' : 'Actual';
-                          totalVal = getMonthlyRateTotal(month, type);
-                        } else {
-                          totalVal = getMonthlyTotal(month, metric.key);
-                        }
-                        return (
-                          <td
-                            key={`total_${month}_${metric.key}`}
-                            className={`px-2 py-4 text-center font-black ${isLastMetric ? 'border-r-2 border-slate-300' : isGroupEnd ? 'border-r-2 border-slate-300' : 'border-r border-slate-100'}`}
-                          >
-                            {formatCellVal(totalVal, metric.format)}
+                      return (
+                        <>
+                          {metrics.map((metric, mIdx) => {
+                            const isLastMetric = mIdx === metrics.length - 1;
+                            const isGroupEnd = mIdx % 2 === 1;
+                            let totalVal = 0;
+                            if (metric.format === 'rate') {
+                              const type = metric.key.toLowerCase().includes('target') ? 'Target' : 'Actual';
+                              totalVal = getMonthlyRateTotal(month, type);
+                            } else {
+                              totalVal = getMonthlyTotal(month, metric.key);
+                            }
+                            return (
+                              <td
+                                key={`total_${month}_${metric.key}`}
+                                className={`px-2 py-4 text-center font-black ${isLastMetric ? 'border-r-2 border-slate-300' : isGroupEnd ? 'border-r-2 border-slate-300' : 'border-r border-slate-100'}`}
+                              >
+                                {formatCellVal(totalVal, metric.format)}
+                              </td>
+                            );
+                          })}
+                          <td className="px-2 py-4 text-center font-black border-r border-slate-100 bg-slate-100">
+                            ₹{(periodGrandTotals.target / 10000000).toFixed(2)} Cr
                           </td>
-                        );
-                      });
+                          <td className="px-2 py-4 text-center font-black bg-slate-100">
+                            ₹{(periodGrandTotals.actual / 10000000).toFixed(2)} Cr
+                          </td>
+                        </>
+                      );
                     })()}
                   </tr>
                 )}
