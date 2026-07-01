@@ -11,6 +11,15 @@ export default function ProjectTable() {
   const navigate = useNavigate();
   const tableRef = React.useRef(null);
 
+  const getQuarterText = () => {
+    const sq = filters?.selectedQuarters || [];
+    if (sq.length === 0 || sq.length === 4) {
+      return '';
+    }
+    const sortedQuarters = [...sq].sort();
+    return ` (${sortedQuarters.join(', ')})`;
+  };
+
   React.useEffect(() => {
     const mainEl = document.querySelector('main');
     if (!mainEl) return;
@@ -431,21 +440,21 @@ export default function ProjectTable() {
                     Sales Value
                   </th>
                   <th colSpan={8} className="bg-slate-200 text-slate-900 text-center font-black py-2 text-[12.5px] tracking-wider sticky top-0 z-20">
-                    Total
+                    Total{getQuarterText()}
                   </th>
                 </tr>
                 <tr className="bg-slate-50 text-slate-900 uppercase font-black border-b border-slate-100 select-none text-[12px]">
                   {/* Under Total in Row 2 */}
-                  <th colSpan={2} className="bg-[#ffff00]/30 text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[12.5px] sticky top-[36px] z-20">
+                  <th colSpan={2} className="bg-[#ffff00] text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[12.5px] sticky top-[36px] z-20">
                     Units
                   </th>
-                  <th colSpan={2} className="bg-[#8db4e2]/30 text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[12.5px] sticky top-[36px] z-20">
+                  <th colSpan={2} className="bg-[#8db4e2] text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[12.5px] sticky top-[36px] z-20">
                     Rate
                   </th>
-                  <th colSpan={2} className="bg-[#c4d79b]/30 text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[12.5px] sticky top-[36px] z-20">
+                  <th colSpan={2} className="bg-[#c4d79b] text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[12.5px] sticky top-[36px] z-20">
                     Area
                   </th>
-                  <th colSpan={2} className="bg-[#fabf8f]/30 text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[12.5px] sticky top-[36px] z-20">
+                  <th colSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[12.5px] sticky top-[36px] z-20">
                     Sales Value
                   </th>
                 </tr>
@@ -530,7 +539,7 @@ export default function ProjectTable() {
                           {month}
                         </th>
                         <th colSpan={8} className="bg-slate-200 text-slate-900 text-center font-black py-2 border-b border-slate-200 text-[12.5px] tracking-wider sticky top-0 z-20">
-                          Total
+                          Total{getQuarterText()}
                         </th>
                       </>
                     );
@@ -555,16 +564,16 @@ export default function ProjectTable() {
                           Sales Value
                         </th>
                         {/* Total columns */}
-                        <th colSpan={2} className="bg-[#ffff00]/30 text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[12.5px] sticky top-[36px] z-20">
+                        <th colSpan={2} className="bg-[#ffff00] text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[12.5px] sticky top-[36px] z-20">
                           Units
                         </th>
-                        <th colSpan={2} className="bg-[#8db4e2]/30 text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[12.5px] sticky top-[36px] z-20">
+                        <th colSpan={2} className="bg-[#8db4e2] text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[12.5px] sticky top-[36px] z-20">
                           Rate
                         </th>
-                        <th colSpan={2} className="bg-[#c4d79b]/30 text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[12.5px] sticky top-[36px] z-20">
+                        <th colSpan={2} className="bg-[#c4d79b] text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[12.5px] sticky top-[36px] z-20">
                           Area
                         </th>
-                        <th colSpan={2} className="bg-[#fabf8f]/30 text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[12.5px] sticky top-[36px] z-20">
+                        <th colSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[12.5px] sticky top-[36px] z-20">
                           Sales Value
                         </th>
                       </React.Fragment>

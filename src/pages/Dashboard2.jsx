@@ -28,7 +28,7 @@ const AgeingTooltip = ({ active, payload, label }) => {
 };
 
 export default function Dashboard2() {
-  const { filteredProjects } = useData();
+  const { filteredProjects, rawData } = useData();
   const [ageingView, setAgeingView] = useState('graph'); // 'table' | 'graph'
 
   // Sorting state for Consolidated Project Outstanding table
@@ -53,14 +53,84 @@ export default function Dashboard2() {
       : <ArrowDown className="w-3.5 h-3.5 text-nyati-orange shrink-0 select-none" />;
   };
 
-  // Sort projects dynamically before rendering rows
+  // Sort projects dynamically before rendering rows (following custom sequence and bottom weights)
   const sortedProjects = React.useMemo(() => {
     const projects = [...filteredProjects];
     if (!sortColumn) return projects;
 
     projects.sort((a, b) => {
-      let valA = sortColumn === 'name' ? a.name : (a[sortColumn] || 0);
-      let valB = sortColumn === 'name' ? b.name : (b[sortColumn] || 0);
+      // 1. Identify bottom projects and assign relative weights
+      const getBottomWeight = (name) => {
+        const uName = name.trim().toUpperCase();
+        if (uName.includes('OLD PROJECTS')) return 1000;
+        if (uName.includes('EKATVA')) return 1001;
+        if (uName.includes('ELARIS')) return 1002;
+        if (uName.includes('PATRAKARNAGAR') || uName.includes('PATRAKARNAGR')) return 1003;
+        if (uName.includes('ETHOS') || uName.includes('ETHOSE')) return 1004;
+        return null;
+      };
+
+      const bottomWeightA = getBottomWeight(a.name);
+      const bottomWeightB = getBottomWeight(b.name);
+
+      // If both are bottom projects, keep them at the bottom in their relative weight order
+      if (bottomWeightA !== null && bottomWeightB !== null) {
+        return bottomWeightA - bottomWeightB;
+      }
+      // If only A is a bottom project, A goes to the bottom
+      if (bottomWeightA !== null) return 1;
+      // If only B is a bottom project, B goes to the bottom
+      if (bottomWeightB !== null) return -1;
+
+      // 2. If neither is a bottom project, proceed with sort logic
+      if (sortColumn === 'name') {
+        const getProjectWeight = (name) => {
+          const uName = name.trim().toUpperCase();
+          const sequence = [
+            "NYATI EMERALD I",
+            "NYATI EMERALD II",
+            "NYATI EMERALD III",
+            "NYATI EQUINOX I",
+            "NYATI EQUINOX II",
+            "NYATI ERA II",
+            "NYATI ERA III",
+            "NYATI ERA IV",
+            "NYATI EXUBERANCE I",
+            "NYATI EXUBERANCE IV",
+            "NYATI ESTEBAN II",
+            "NYATI ESTEBAN III",
+            "NYATI PLAZA & NYATI ENTHRAL I",
+            "NYATI EMPRESS",
+            "NYATI EVOQUE",
+            "NYATI EVANIA",
+            "NYATI ELENOR",
+            "NYATI EMBLEM",
+            "NYATI ELAN COMMERCIAL",
+            "NYATI DEFENCE ENCLAVE III",
+            "NYATI QUANTUM TOWERS",
+            "NYATI UNITREE EXTENSION"
+          ];
+
+          const idx = sequence.findIndex(s => uName.includes(s) || s.includes(uName));
+          if (idx !== -1) return idx;
+          return 500;
+        };
+
+        const weightA = getProjectWeight(a.name);
+        const weightB = getProjectWeight(b.name);
+
+        if (weightA !== weightB) {
+          return sortDirection === 'asc' ? weightA - weightB : weightB - weightA;
+        }
+        
+        return sortDirection === 'asc' 
+          ? a.name.localeCompare(b.name) 
+          : b.name.localeCompare(a.name);
+      }
+
+      // For other fields
+      let valA = a[sortColumn] || 0;
+      let valB = b[sortColumn] || 0;
 
       if (typeof valA === 'string') {
         return sortDirection === 'asc' 
@@ -91,7 +161,40 @@ export default function Dashboard2() {
   const grandTotalSoldVal = filteredProjects.reduce((s, p) => s + p.actualValCr, 0);
   const grandTotalDueMilestone = filteredProjects.reduce((s, p) => s + p.dueMilestone, 0);
   const grandTotalCollection = filteredProjects.reduce((s, p) => s + p.actualCollection, 0);
-  const grandTotalOutstanding = grandTotalDueMilestone - grandTotalCollection;
+  // Dynamic summation of Ageing Apr and Ageing May if they exist in rawData
+  const ageingOutstandingSum = React.useMemo(() => {
+    if (!rawData || Array.isArray(rawData)) return null;
+    let totalSum = 0;
+    let hasAgeingSheets = false;
+    const sheetsToSum = ['Ageing Apr', 'Ageing May'];
+    sheetsToSum.forEach(sheetName => {
+      const actualKey = Object.keys(rawData).find(
+        k => k.trim().toLowerCase() === sheetName.toLowerCase()
+      );
+      if (actualKey) {
+        hasAgeingSheets = true;
+        const rows = rawData[actualKey];
+        if (Array.isArray(rows)) {
+          rows.forEach(row => {
+            const colKey = Object.keys(row).find(
+              k => k.trim().toLowerCase() === 'total outstanding'
+            );
+            if (colKey !== undefined && row[colKey] !== null && row[colKey] !== '') {
+              const val = parseFloat(row[colKey].toString().replace(/,/g, '').replace(/[₹%]/g, '').trim());
+              if (!isNaN(val)) {
+                totalSum += val;
+              }
+            }
+          });
+        }
+      }
+    });
+    return hasAgeingSheets ? (totalSum / 10000000) : null;
+  }, [rawData]);
+
+  const grandTotalOutstanding = ageingOutstandingSum !== null 
+    ? ageingOutstandingSum 
+    : (grandTotalDueMilestone - grandTotalCollection);
   const grandTotalRegOS = filteredProjects.reduce((s, p) => s + p.registeredOS, 0);
   const grandTotalUnregOS = filteredProjects.reduce((s, p) => s + p.unregisteredOS, 0);
 
@@ -159,14 +262,22 @@ export default function Dashboard2() {
 
   // Map ageing data to project-wise buckets for Bar Chart
   const chartData = React.useMemo(() => {
-    return filteredProjects.map(p => ({
-      name: p.name,
-      '0-30d': p.ageing['0-30'] || 0,
-      '31-60d': p.ageing['31-60'] || 0,
-      '61-90d': p.ageing['61-90'] || 0,
-      '91-120d': p.ageing['91-120'] || 0,
-      '>120d': p.ageing['gt120'] || 0,
-    }));
+    return filteredProjects
+      .map(p => ({
+        name: p.name,
+        '0-30d': p.ageing['0-30'] || 0,
+        '31-60d': p.ageing['31-60'] || 0,
+        '61-90d': p.ageing['61-90'] || 0,
+        '91-120d': p.ageing['91-120'] || 0,
+        '>120d': p.ageing['gt120'] || 0,
+      }))
+      .filter(item => 
+        item['0-30d'] !== 0 ||
+        item['31-60d'] !== 0 ||
+        item['61-90d'] !== 0 ||
+        item['91-120d'] !== 0 ||
+        item['>120d'] !== 0
+      );
   }, [filteredProjects]);
 
   const handleBarClick = (data, bucket) => {
@@ -289,59 +400,91 @@ export default function Dashboard2() {
     <div className="space-y-8 pb-12 pt-2">
 
       {/* SECTION A: KPI Cards Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <KPICard
-          title="Total Sales"
-          budget={totals.budgetValCr}
-          actual={totals.actualValCr}
-          eff={totals.budgetValCr > 0 ? (totals.actualValCr / totals.budgetValCr) * 100 : 0}
-          prefix="₹"
-          suffix=" Cr"
-          decimals={2}
-          icon={ClipboardList}
-          borderStyle="border-l-4 border-nyati-orange"
-          bgClass="bg-white"
-        />
+      {/*
+          Layout (like Sales page — all equal column widths, left cards natural height):
+          [Total Sales 25%] [Total Collection 25%] | [Total Due 25%]    [Reg O/S 25%]
+                                                   | [Total Balance 25%][Unreg O/S 25%]
+      */}
+      <div className="flex gap-4 items-stretch">
 
-        <KPICard
-          title="Total Collection"
-          budget={grandTotalBudgetCollection}
-          actual={grandTotalCollection}
-          eff={grandTotalBudgetCollection > 0 ? (grandTotalCollection / grandTotalBudgetCollection) * 100 : 0}
-          prefix="₹"
-          suffix=" Cr"
-          decimals={2}
-          icon={CreditCard}
-          borderStyle="border-l-4 border-emerald-600"
-        />
-        
-        <KPICard
-          title="Total Due"
-          budget={grandTotalBudgetDue}
-          actual={grandTotalDueMilestone}
-          eff={grandTotalBudgetDue > 0 ? (grandTotalDueMilestone / grandTotalBudgetDue) * 100 : 0}
-          prefix="₹"
-          suffix=" Cr"
-          decimals={2}
-          icon={Landmark}
-          borderStyle="border-l-4 border-l-nyati-navy"
-          simple={true}
-          bgClass="bg-orange-200/60"
-        />
+        {/* LEFT: 2 compact full-detail cards (same size as Sales page cards) */}
+        <div className="grid grid-cols-2 gap-4 flex-1">
+          <KPICard
+            title="Total Sales"
+            budget={totals.budgetValCr}
+            actual={totals.actualValCr}
+            eff={totals.budgetValCr > 0 ? (totals.actualValCr / totals.budgetValCr) * 100 : 0}
+            prefix="₹"
+            suffix=" Cr"
+            decimals={2}
+            icon={ClipboardList}
+            borderStyle="border-l-4 border-nyati-orange"
+            bgClass="bg-white"
+          />
+          <KPICard
+            title="Total Collection"
+            budget={grandTotalBudgetCollection}
+            actual={grandTotalCollection}
+            eff={grandTotalBudgetCollection > 0 ? (grandTotalCollection / grandTotalBudgetCollection) * 100 : 0}
+            prefix="₹"
+            suffix=" Cr"
+            decimals={2}
+            icon={CreditCard}
+            borderStyle="border-l-4 border-emerald-600"
+          />
+        </div>
 
-        <KPICard
-          title="Total Balance"
-          budget={grandTotalBudgetOS}
-          actual={grandTotalOutstanding}
-          eff={grandTotalOutstanding > 0 ? (grandTotalBudgetOS / grandTotalOutstanding) * 100 : 100}
-          prefix="₹"
-          suffix=" Cr"
-          decimals={2}
-          icon={AlertTriangle}
-          borderStyle="border-l-4 border-l-sky-500"
-          simple={true}
-          bgClass="bg-orange-200/60"
-        />
+        {/* RIGHT: 2×2 grid — Total Due, Reg O/S (row 1) | Total Balance, Unreg O/S (row 2) */}
+        <div className="grid grid-cols-2 gap-4 flex-1">
+
+          {/* Row 1 Col 1 — Total Due */}
+          <KPICard
+            title="Total Due"
+            budget={grandTotalBudgetDue}
+            actual={grandTotalDueMilestone}
+            eff={grandTotalBudgetDue > 0 ? (grandTotalDueMilestone / grandTotalBudgetDue) * 100 : 0}
+            prefix="₹"
+            suffix=" Cr"
+            decimals={2}
+            icon={Landmark}
+            borderStyle="border-l-4 border-l-nyati-navy"
+            simple={true}
+            bgClass="bg-[#FF9B45]/25"
+          />
+
+          {/* Row 1 Col 2 — Registered O/S blue box */}
+          <div className="h-full flex flex-col items-center justify-center bg-[#4A90D9] rounded-2xl shadow-lg px-5 py-4 text-white">
+            <span className="text-[13px] font-extrabold uppercase tracking-widest text-white/80 mb-2 text-center leading-tight">Registered O/S</span>
+            <span className="text-2xl font-black text-white leading-tight text-center">
+              ₹{grandTotalRegOS.toFixed(2)} Cr
+            </span>
+          </div>
+
+          {/* Row 2 Col 1 — Total Balance */}
+          <KPICard
+            title="Outstanding"
+            budget={grandTotalBudgetOS}
+            actual={grandTotalOutstanding}
+            eff={grandTotalOutstanding > 0 ? (grandTotalBudgetOS / grandTotalOutstanding) * 100 : 100}
+            prefix="₹"
+            suffix=" Cr"
+            decimals={2}
+            icon={AlertTriangle}
+            borderStyle="border-l-4 border-l-sky-500"
+            simple={true}
+            bgClass="bg-[#FF9B45]/25"
+          />
+
+          {/* Row 2 Col 2 — Unregistered O/S blue box */}
+          <div className="h-full flex flex-col items-center justify-center bg-[#4A90D9] rounded-2xl shadow-lg px-5 py-4 text-white">
+            <span className="text-[13px] font-extrabold uppercase tracking-widest text-white/80 mb-2 text-center leading-tight">Unregistered O/S</span>
+            <span className="text-2xl font-black text-white leading-tight text-center">
+              ₹{grandTotalUnregOS.toFixed(2)} Cr
+            </span>
+          </div>
+
+        </div>
+
       </div>
 
       {/* SECTION B: CONSOLIDATED PROJECT OUTSTANDING Table */}
@@ -353,10 +496,9 @@ export default function Dashboard2() {
           <table className="w-full text-left text-[13px] text-slate-800 border-collapse min-w-[1280px]">
             <thead>
               <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-900 uppercase tracking-wider font-extrabold border-b border-slate-100 shadow-sm text-[13px]">
-                <th rowSpan={2} className="px-6 py-4 cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-200 min-w-[240px] w-[240px]" onClick={() => handleSort('name')}>
+                <th rowSpan={2} className="px-6 py-4 border-r border-slate-200 min-w-[240px] w-[240px]">
                   <div className="flex items-center gap-1.5 justify-center h-full">
                     <span>Project</span>
-                    {renderSortIcon('name')}
                   </div>
                 </th>
                 <th rowSpan={2} className="px-4 py-4 text-right cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-100 w-[130px] min-w-[130px] max-w-[130px]" onClick={() => handleSort('actualValCr')}>
@@ -570,9 +712,13 @@ export default function Dashboard2() {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis
                       dataKey="name"
-                      tick={{ fill: '#1e293b', fontSize: 11, fontWeight: 700 }}
+                      tick={{ fill: '#1e293b', fontSize: 9, fontWeight: 700 }}
                       axisLine={false}
                       tickLine={false}
+                      interval={0}
+                      angle={-45}
+                      textAnchor="end"
+                      height={75}
                     />
                     <YAxis
                       tick={{ fill: '#1e293b', fontSize: 11, fontWeight: 700 }}

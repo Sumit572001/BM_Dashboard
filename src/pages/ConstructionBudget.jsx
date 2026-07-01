@@ -579,36 +579,40 @@ export default function ConstructionBudget() {
       className="space-y-6 pb-12 pt-2"
     >
 
-      {/* KPI Cards & Charts Row */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-        {/* Left Column: KPI Cards stacked vertically */}
-        <div className="xl:col-span-1 flex flex-col gap-6">
-          <KPICard
-            title={card1Title}
-            budget={totalFYPlanned}
-            actual={totalActualToDate}
-            eff={totalFYPlanned > 0 ? (totalActualToDate / totalFYPlanned) * 100 : 0}
-            prefix="₹"
-            suffix=" Cr"
-            decimals={2}
-            icon={Hammer}
-            borderStyle="border-l-4 border-[#10b981]"
-          />
+      {/* KPI Cards & Charts Row — Cards stacked left, charts right */}
+      <motion.div variants={itemVariants} className="flex gap-6 items-stretch h-[460px]">
 
-          <KPICard
-            title="Overall Completion"
-            budget={100}
-            actual={avgConstComp}
-            eff={avgConstComp}
-            suffix="%"
-            decimals={0}
-            icon={PieChart}
-            borderStyle="border-l-4 border-[#4f46e5]"
-          />
+        {/* LEFT: 2 KPI cards stacked vertically */}
+        <div className="flex flex-col gap-4 w-[295px] shrink-0">
+          <div className="flex-1">
+            <KPICard
+              title={card1Title}
+              budget={totalFYPlanned}
+              actual={totalActualToDate}
+              eff={totalFYPlanned > 0 ? (totalActualToDate / totalFYPlanned) * 100 : 0}
+              prefix="₹"
+              suffix=" Cr"
+              decimals={2}
+              icon={Hammer}
+              borderStyle="border-l-4 border-[#10b981]"
+            />
+          </div>
+          <div className="flex-1">
+            <KPICard
+              title="Overall Completion"
+              budget={100}
+              actual={avgConstComp}
+              eff={avgConstComp}
+              suffix="%"
+              decimals={0}
+              icon={PieChart}
+              borderStyle="border-l-4 border-[#4f46e5]"
+            />
+          </div>
         </div>
 
-        {/* Middle Column: Monthly Progress */}
-        <div className="xl:col-span-2 bg-white rounded-3xl p-6 shadow-premium border border-slate-100 flex flex-col justify-between h-[400px]">
+        {/* Monthly Progress Chart */}
+        <div className="flex-1 bg-white rounded-3xl p-6 shadow-premium border border-slate-100 flex flex-col justify-between h-full">
           <div className="mb-4">
             <h4 className="font-extrabold text-nyati-navy text-base">Monthly Progress — Plan vs Actual (₹ Cr)</h4>
           </div>
@@ -628,8 +632,8 @@ export default function ConstructionBudget() {
           </div>
         </div>
 
-        {/* Right Column: Cumulative Progress */}
-        <div className="xl:col-span-2 bg-white rounded-3xl p-6 shadow-premium border border-slate-100 flex flex-col justify-between h-[400px]">
+        {/* Cumulative Progress Chart */}
+        <div className="flex-1 bg-white rounded-3xl p-6 shadow-premium border border-slate-100 flex flex-col justify-between h-full">
           <div className="mb-4">
             <h4 className="font-extrabold text-nyati-navy text-base">Cumulative Progress — Plan vs Actual (₹ Cr)</h4>
           </div>
@@ -641,13 +645,24 @@ export default function ConstructionBudget() {
                   tick={{ fill: '#1e293b', fontSize: 12, fontWeight: 700 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#1e293b', fontSize: 12, fontWeight: 700 }} axisLine={false} tickLine={false} />
                 <Tooltip content={<CustomTooltip />} />
-                <Legend verticalAlign="top" height={36} iconType="rect" iconSize={12} formatter={(value) => <span className="text-xs font-bold text-slate-800">{value}</span>} />
+                <Legend 
+                  verticalAlign="top" 
+                  height={36} 
+                  iconType="rect" 
+                  iconSize={12} 
+                  formatter={(value) => <span className="text-xs font-bold text-slate-800">{value}</span>}
+                  payload={[
+                    { value: 'Cumulative Planned', type: 'rect', id: 'ID_Planned', color: '#3b82f6' },
+                    { value: 'Cumulative Actual', type: 'rect', id: 'ID_Actual', color: '#10b981' }
+                  ]}
+                />
                 <Line type="monotone" dataKey="Cumulative Planned" name="Cumulative Planned" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 3, strokeWidth: 1 }} activeDot={{ r: 5 }} />
-                <Line type="monotone" dataKey="Cumulative Actual" name="Cumulative Actual" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 3, strokeWidth: 1 }} activeDot={{ r: 5 }} connectNulls={false} />
+                <Line type="monotone" dataKey="Cumulative Actual" name="Cumulative Actual" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3, strokeWidth: 1 }} activeDot={{ r: 5 }} connectNulls={false} />
               </ComposedChart>
             </MountedResponsiveContainer>
           </div>
         </div>
+
       </motion.div>
 
       {/* Monthly Timeline Budget Table Card */}

@@ -360,7 +360,6 @@ export function processRawData(rawData) {
       const statusLabel = row[0] ? String(row[0]).trim() : null;
       const typeLabel = row[1] ? String(row[1]).trim() : null;
       const projName = row[2] ? String(row[2]).trim() : null;
-      
       if (!projName) return;
       
       const nameLower = projName.toLowerCase();
