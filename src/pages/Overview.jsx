@@ -44,35 +44,24 @@ const OverviewMetricRow = ({ label, actual, budget, prefix = '', suffix = '', de
   }
 
   return (
-    <div className="flex items-center justify-between py-2 px-4 bg-slate-50/50 hover:bg-slate-50/80 rounded-xl border border-slate-200 transition-all duration-200">
-      <div className="flex flex-col gap-0.5 min-w-0">
+    <div className="flex flex-col py-1.5 px-3.5 bg-slate-50/50 hover:bg-slate-50/80 rounded-xl border border-slate-200 transition-all duration-200 gap-0.5">
+      <div className="flex items-center justify-between min-w-0 gap-4">
         <div className="flex items-center gap-2">
-          {Icon && <Icon className="w-3.5 h-3.5 text-slate-700 shrink-0" />}
-          <span className="text-[13px] font-extrabold uppercase tracking-wider text-slate-800 select-none whitespace-nowrap">
+          {Icon && <Icon className="w-4 h-4 text-slate-700 shrink-0" />}
+          <span className="text-[14px] font-black uppercase tracking-wider text-slate-800 select-none whitespace-nowrap">
             {label}
           </span>
         </div>
-        <div className="flex items-baseline gap-2">
-          <span className="text-[16px] font-black text-nyati-navy whitespace-nowrap">
-            {prefix}<AnimatedNumber value={actual} decimals={decimals} />{suffix}
-          </span>
-          {budget !== undefined && (
-            <span className="text-[13px] text-slate-800 font-extrabold whitespace-nowrap select-none">
-              Tgt: {prefix}{budget.toLocaleString('en-IN', { maximumFractionDigits: decimals })}{suffix}
-            </span>
-          )}
-        </div>
-      </div>
-      {status && (
-        <span className={`px-2.5 py-0.5 text-[12px] font-extrabold rounded-full border select-none shrink-0 ${
-          isAchieved 
-            ? 'bg-emerald-50 text-emerald-700 border-emerald-155 font-extrabold shadow-sm' 
-            : isProgressing
-              ? 'bg-amber-50 text-amber-700 border-amber-155 font-extrabold shadow-sm' 
-              : 'bg-red-50 text-red-700 border-red-155 font-extrabold shadow-sm'
-        }`}>
-          {status}
+        <span className="text-[17px] font-black text-nyati-navy whitespace-nowrap">
+          {prefix}<AnimatedNumber value={actual} decimals={decimals} />{suffix}
         </span>
+      </div>
+      {budget !== undefined && (
+        <div className={Icon ? 'pl-6' : 'pl-0'} style={{ marginTop: '-2px' }}>
+          <span className="text-[12px] text-slate-800 font-extrabold whitespace-nowrap select-none">
+            Tgt: {prefix}{budget.toLocaleString('en-IN', { maximumFractionDigits: decimals })}{suffix}
+          </span>
+        </div>
       )}
     </div>
   );
@@ -805,7 +794,7 @@ export default function Overview() {
               </div>
               <div>
                 <h3 className="font-extrabold text-nyati-navy text-lg">SALES</h3>
-                <p className="text-slate-700 text-sm font-semibold mt-0.5">FY actuals vs budget targets</p>
+                <p className="text-slate-700 text-sm font-semibold mt-0.5">FY Actuals vs Targets</p>
               </div>
             </div>
 

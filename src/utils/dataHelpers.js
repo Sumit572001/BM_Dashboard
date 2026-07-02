@@ -1870,3 +1870,314 @@ export function getConstructionMonthlyData(rawData, processedProjects) {
     projects: projectsList
   };
 }
+
+export function getAgeingMetrics(filteredProjects, rawData, filters) {
+  // Direct totals sum — does NOT read from the Overview sheet shortcut so
+  // filter-driven zeroing is always reflected correctly.
+  const sumAgeingTotals = (projects) => {
+    const sum = (field) => projects.reduce((s, p) => s + (p[field] || 0), 0);
+    const sumNested = (obj, field) => projects.reduce((s, p) => s + (p[obj]?.[field] || 0), 0);
+    const budgetArea = sum('budgetArea');
+    const actualArea = sum('actualArea');
+    const budgetValCr = sum('budgetValCr');
+    const actualValCr = sum('actualValCr');
+    const budgetCollection = sum('budgetCollection');
+    const actualCollection = sum('actualCollection');
+    const outstanding = sum('outstanding');
+    const dueMilestone = sum('dueMilestone');
+    const registeredOS = sum('registeredOS');
+    const unregisteredOS = sum('unregisteredOS');
+    const budgetRate = budgetArea > 0 ? (budgetValCr * 10000000) / budgetArea : 0;
+    const actualRate = actualArea > 0 ? (actualValCr * 10000000) / actualArea : 0;
+    return {
+      totalUnits: sum('totalUnits'),
+      soldToDate: sum('soldToDate'),
+      balance: sum('balance'),
+      budgetUnits: sum('budgetUnits'),
+      varianceUnits: sum('varianceUnits'),
+      budgetRate,
+      actualRate,
+      rateEff: budgetRate > 0 ? (actualRate / budgetRate) * 100 : 0,
+      budgetArea,
+      actualArea,
+      areaEff: budgetArea > 0 ? (actualArea / budgetArea) * 100 : 0,
+      budgetValCr,
+      actualValCr,
+      budgetCollection,
+      actualCollection,
+      collectionEff: budgetCollection > 0 ? (actualCollection / budgetCollection) * 100 : 0,
+      outstanding,
+      dueMilestone,
+      registeredOS,
+      unregisteredOS,
+      ageing: {
+        '0-30': sumNested('ageing', '0-30'),
+        '31-60': sumNested('ageing', '31-60'),
+        '61-90': sumNested('ageing', '61-90'),
+        '91-120': sumNested('ageing', '91-120'),
+        'gt120': sumNested('ageing', 'gt120'),
+        total: sumNested('ageing', 'total')
+      }
+    };
+  };
+
+  if (!rawData || Array.isArray(rawData)) {
+    return {
+      projects: filteredProjects,
+      totals: calculateGrandTotals(filteredProjects)
+    };
+  }
+
+  // 1. Find all ageing sheet keys in rawData
+  const ageingSheetKeys = Object.keys(rawData).filter(k => k.trim().toLowerCase().startsWith('ageing'));
+  if (ageingSheetKeys.length === 0) {
+    return {
+      projects: filteredProjects,
+      totals: calculateGrandTotals(filteredProjects)
+    };
+  }
+
+  const FY_MONTHS = ['apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec', 'jan', 'feb', 'mar'];
+
+  const getMonthFromSheetName = (sheetName) => {
+    const name = sheetName.toLowerCase();
+    const monthNames = [
+      { key: 'apr', names: ['apr', 'april'] },
+      { key: 'may', names: ['may'] },
+      { key: 'jun', names: ['jun', 'june'] },
+      { key: 'jul', names: ['jul', 'july'] },
+      { key: 'aug', names: ['aug', 'august'] },
+      { key: 'sep', names: ['sep', 'september'] },
+      { key: 'oct', names: ['oct', 'october'] },
+      { key: 'nov', names: ['nov', 'november'] },
+      { key: 'dec', names: ['dec', 'december'] },
+      { key: 'jan', names: ['jan', 'january'] },
+      { key: 'feb', names: ['feb', 'february'] },
+      { key: 'mar', names: ['mar', 'march'] }
+    ];
+    for (const m of monthNames) {
+      if (m.names.some(n => name.includes(n))) {
+        return m.key;
+      }
+    }
+    return null;
+  };
+
+  const getMonthDate = (monthKey) => {
+    const idx = FY_MONTHS.indexOf(monthKey);
+    if (idx === -1) return null;
+    const year = idx < 9 ? 2026 : 2027; // April - December is 2026, January - March is 2027
+    const jsMonth = idx < 9 ? idx + 3 : idx - 9; // Apr is index 3 in JS Date, Jan is index 0
+    return new Date(year, jsMonth, 15);
+  };
+
+  const sheetsList = ageingSheetKeys.map(key => {
+    const monthKey = getMonthFromSheetName(key);
+    const index = monthKey ? FY_MONTHS.indexOf(monthKey) : -1;
+    const quarter = monthKey ? getQuarterFromMonth(monthKey) : null;
+    const date = monthKey ? getMonthDate(monthKey) : null;
+    return { key, monthKey, index, quarter, date };
+  }).filter(s => s.index !== -1);
+
+  // Sort chronologically by financial year index
+  sheetsList.sort((a, b) => a.index - b.index);
+
+  // Filter sheets by date/quarter filter rules
+  let activeSheets = [];
+  const hasDateFilter = filters.dateFrom || filters.dateTo;
+
+  if (hasDateFilter) {
+    activeSheets = sheetsList.filter(s => {
+      if (filters.dateFrom && s.date < new Date(filters.dateFrom)) return false;
+      if (filters.dateTo && s.date > new Date(filters.dateTo)) return false;
+      return true;
+    });
+  } else {
+    const isQuarterFiltered = filters.selectedQuarters && filters.selectedQuarters.length > 0 && filters.selectedQuarters.length < 4;
+    let allowedSheets = sheetsList;
+    if (isQuarterFiltered) {
+      allowedSheets = sheetsList.filter(s => filters.selectedQuarters.includes(s.quarter));
+    }
+    if (allowedSheets.length > 0) {
+      activeSheets = [allowedSheets[allowedSheets.length - 1]];
+    }
+  }
+
+  // If no sheets match filters, return 0s — use direct sum (NOT calculateGrandTotals)
+  // to ensure filter-driven zeroing is reflected in card values.
+  if (activeSheets.length === 0) {
+    const zeroProjects = filteredProjects.map(p => ({
+      ...p,
+      dueMilestone: 0,
+      actualCollection: 0,
+      outstanding: 0,
+      registeredOS: 0,
+      unregisteredOS: 0,
+      ageing: { '0-30': 0, '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: 0 }
+    }));
+    return {
+      projects: zeroProjects,
+      totals: sumAgeingTotals(zeroProjects)
+    };
+  }
+
+  // Build a lookup map of project ageing data from all active sheets in O(N)
+  const projectAgeingLookup = {};
+  const activeProjCleanNames = new Set(filteredProjects.map(p => cleanProjName(p.name)));
+  
+  // Find "Old Projects" matching item (if exists) to group unlisted projects
+  const oldProjectsItem = filteredProjects.find(p => cleanProjName(p.name).includes('old project'));
+  const oldProjectsCleanName = oldProjectsItem ? cleanProjName(oldProjectsItem.name) : 'old projects';
+
+  const isProjectFiltered = filters.selectedProjects && filters.selectedProjects.length > 0;
+  const isTypeFiltered = filters.selectedType && filters.selectedType !== 'All';
+
+  // Legacy totals for projects not explicitly listed in the active projects list
+  let legacyDue = 0;
+  let legacyReceived = 0;
+  let legacyOutstanding = 0;
+  let legacyRegisteredOS = 0;
+  let legacyUnregisteredOS = 0;
+  let legacyAge0_30 = 0;
+  let legacyAge31_60 = 0;
+  let legacyAge61_90 = 0;
+  let legacyAge91_120 = 0;
+  let legacyAgeGt120 = 0;
+
+  activeSheets.forEach(sheetObj => {
+    const rows = rawData[sheetObj.key] || [];
+    rows.forEach(r => {
+      const rawProj = getStringVal(r, ['Project']);
+      if (!rawProj) return;
+      const cleanName = cleanProjName(rawProj);
+      if (!cleanName) return;
+
+      const isActive = activeProjCleanNames.has(cleanName) && cleanName !== oldProjectsCleanName;
+
+      if (isActive) {
+        if (!projectAgeingLookup[cleanName]) {
+          projectAgeingLookup[cleanName] = {
+            dueMilestone: 0,
+            actualCollection: 0,
+            outstanding: 0,
+            registeredOS: 0,
+            unregisteredOS: 0,
+            age0_30: 0,
+            age31_60: 0,
+            age61_90: 0,
+            age91_120: 0,
+            ageGt120: 0
+          };
+        }
+        const pAge = projectAgeingLookup[cleanName];
+
+        pAge.dueMilestone += getVal(r, ['Claimed Value']);
+        pAge.actualCollection += getVal(r, ['Received']);
+        pAge.outstanding += getVal(r, ['Total Outstanding']);
+
+        const status = getStringVal(r, ['Status']).toLowerCase().trim();
+        const rowOutstanding = getVal(r, ['Total Outstanding']);
+        if (status === 'registered') {
+          pAge.registeredOS += rowOutstanding;
+        } else {
+          pAge.unregisteredOS += rowOutstanding;
+        }
+
+        pAge.age0_30 += getVal(r, ['Slab_15']) + getVal(r, ['Slab_30']);
+        pAge.age31_60 += getVal(r, ['Slab_60']);
+        pAge.age61_90 += getVal(r, ['Slab_90']);
+        pAge.age91_120 += getVal(r, ['Slab_120']);
+        pAge.ageGt120 += getVal(r, ['Slab_365']) + getVal(r, ['Slab_MoreThan_365']);
+      } else {
+        // If no project filter is active, accumulate legacy data under Old Projects
+        if (!isProjectFiltered) {
+          const projType = getProjectType(rawProj);
+          if (isTypeFiltered && projType !== filters.selectedType) {
+            return;
+          }
+
+          legacyDue += getVal(r, ['Claimed Value']);
+          legacyReceived += getVal(r, ['Received']);
+          legacyOutstanding += getVal(r, ['Total Outstanding']);
+
+          const status = getStringVal(r, ['Status']).toLowerCase().trim();
+          const rowOutstanding = getVal(r, ['Total Outstanding']);
+          if (status === 'registered') {
+            legacyRegisteredOS += rowOutstanding;
+          } else {
+            legacyUnregisteredOS += rowOutstanding;
+          }
+
+          legacyAge0_30 += getVal(r, ['Slab_15']) + getVal(r, ['Slab_30']);
+          legacyAge31_60 += getVal(r, ['Slab_60']);
+          legacyAge61_90 += getVal(r, ['Slab_90']);
+          legacyAge91_120 += getVal(r, ['Slab_120']);
+          legacyAgeGt120 += getVal(r, ['Slab_365']) + getVal(r, ['Slab_MoreThan_365']);
+        }
+      }
+    });
+  });
+
+  // Assign legacy totals to the "Old Projects" key in the lookup map
+  if (!isProjectFiltered && (oldProjectsItem || legacyDue > 0)) {
+    projectAgeingLookup[oldProjectsCleanName] = {
+      dueMilestone: legacyDue,
+      actualCollection: legacyReceived,
+      outstanding: legacyOutstanding,
+      registeredOS: legacyRegisteredOS,
+      unregisteredOS: legacyUnregisteredOS,
+      age0_30: legacyAge0_30,
+      age31_60: legacyAge31_60,
+      age61_90: legacyAge61_90,
+      age91_120: legacyAge91_120,
+      ageGt120: legacyAgeGt120
+    };
+  }
+
+  // Process data from lookup map for each filtered project in O(1) per project
+  const enrichedProjects = filteredProjects.map(proj => {
+    const targetClean = cleanProjName(proj.name);
+    const pAge = projectAgeingLookup[targetClean];
+
+    // Convert values from Rupees to Crores (dividing by 10,000,000)
+    const toCr = (val) => parseFloat((val / 10000000).toFixed(2));
+
+    if (!pAge) {
+      return {
+        ...proj,
+        dueMilestone: 0,
+        actualCollection: 0,
+        outstanding: 0,
+        registeredOS: 0,
+        unregisteredOS: 0,
+        ageing: { '0-30': 0, '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: 0 }
+      };
+    }
+
+    return {
+      ...proj,
+      dueMilestone: toCr(pAge.dueMilestone),
+      actualCollection: toCr(pAge.actualCollection),
+      outstanding: toCr(pAge.outstanding),
+      registeredOS: toCr(pAge.registeredOS),
+      unregisteredOS: toCr(pAge.unregisteredOS),
+      ageing: {
+        '0-30': toCr(pAge.age0_30),
+        '31-60': toCr(pAge.age31_60),
+        '61-90': toCr(pAge.age61_90),
+        '91-120': toCr(pAge.age91_120),
+        'gt120': toCr(pAge.ageGt120),
+        total: toCr(pAge.outstanding)
+      }
+    };
+  });
+
+  // Use direct sum to correctly reflect ageing sheet values (not Overview sheet shortcut)
+  const totals = sumAgeingTotals(enrichedProjects);
+
+  return {
+    projects: enrichedProjects,
+    totals
+  };
+}
+

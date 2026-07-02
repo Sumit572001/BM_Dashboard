@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useDeferredValue, useMemo } from 'react';
 import { useData } from '../context/DataContext';
-import { calculateGrandTotals } from '../utils/dataHelpers';
+import { calculateGrandTotals, getAgeingMetrics } from '../utils/dataHelpers';
 import AnimatedNumber from '../components/AnimatedNumber';
 import KPICard from '../components/KPICard';
 import { Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
@@ -28,7 +28,22 @@ const AgeingTooltip = ({ active, payload, label }) => {
 };
 
 export default function Dashboard2() {
-  const { filteredProjects, rawData } = useData();
+  const { filteredProjects, rawData, filters } = useData();
+
+  // Defer the heavy ageing computation so filter button clicks (Q1/Q2/Q3/Q4)
+  // register instantly in the UI while data updates in the background.
+  const deferredFilteredProjects = useDeferredValue(filteredProjects);
+  const deferredRawData = useDeferredValue(rawData);
+  const deferredFilters = useDeferredValue(filters);
+  const isPending = deferredFilters !== filters || deferredFilteredProjects !== filteredProjects;
+
+  const ageingResult = useMemo(() => {
+    return getAgeingMetrics(deferredFilteredProjects, deferredRawData, deferredFilters);
+  }, [deferredFilteredProjects, deferredRawData, deferredFilters]);
+
+  const enrichedProjects = ageingResult.projects;
+  const totals = ageingResult.totals;
+
   const [ageingView, setAgeingView] = useState('graph'); // 'table' | 'graph'
 
   // Sorting state for Consolidated Project Outstanding table
@@ -55,7 +70,7 @@ export default function Dashboard2() {
 
   // Sort projects dynamically before rendering rows (following custom sequence and bottom weights)
   const sortedProjects = React.useMemo(() => {
-    const projects = [...filteredProjects];
+    const projects = [...enrichedProjects];
     if (!sortColumn) return projects;
 
     projects.sort((a, b) => {
@@ -144,7 +159,7 @@ export default function Dashboard2() {
     });
 
     return projects;
-  }, [filteredProjects, sortColumn, sortDirection]);
+  }, [enrichedProjects, sortColumn, sortDirection]);
 
 
 
@@ -154,64 +169,30 @@ export default function Dashboard2() {
   const sectionBRef = useRef(null); // Consolidated Outstanding
   const sectionCRef = useRef(null); // Ageing Matrix
 
-  // Derive grand totals
-  const totals = calculateGrandTotals(filteredProjects);
+
 
   // Calculate Consolidated Grand Totals
-  const grandTotalSoldVal = filteredProjects.reduce((s, p) => s + p.actualValCr, 0);
-  const grandTotalDueMilestone = filteredProjects.reduce((s, p) => s + p.dueMilestone, 0);
-  const grandTotalCollection = filteredProjects.reduce((s, p) => s + p.actualCollection, 0);
-  // Dynamic summation of Ageing Apr and Ageing May if they exist in rawData
-  const ageingOutstandingSum = React.useMemo(() => {
-    if (!rawData || Array.isArray(rawData)) return null;
-    let totalSum = 0;
-    let hasAgeingSheets = false;
-    const sheetsToSum = ['Ageing Apr', 'Ageing May'];
-    sheetsToSum.forEach(sheetName => {
-      const actualKey = Object.keys(rawData).find(
-        k => k.trim().toLowerCase() === sheetName.toLowerCase()
-      );
-      if (actualKey) {
-        hasAgeingSheets = true;
-        const rows = rawData[actualKey];
-        if (Array.isArray(rows)) {
-          rows.forEach(row => {
-            const colKey = Object.keys(row).find(
-              k => k.trim().toLowerCase() === 'total outstanding'
-            );
-            if (colKey !== undefined && row[colKey] !== null && row[colKey] !== '') {
-              const val = parseFloat(row[colKey].toString().replace(/,/g, '').replace(/[₹%]/g, '').trim());
-              if (!isNaN(val)) {
-                totalSum += val;
-              }
-            }
-          });
-        }
-      }
-    });
-    return hasAgeingSheets ? (totalSum / 10000000) : null;
-  }, [rawData]);
-
-  const grandTotalOutstanding = ageingOutstandingSum !== null 
-    ? ageingOutstandingSum 
-    : (grandTotalDueMilestone - grandTotalCollection);
-  const grandTotalRegOS = filteredProjects.reduce((s, p) => s + p.registeredOS, 0);
-  const grandTotalUnregOS = filteredProjects.reduce((s, p) => s + p.unregisteredOS, 0);
+  const grandTotalSoldVal = enrichedProjects.reduce((s, p) => s + p.actualValCr, 0);
+  const grandTotalDueMilestone = totals.dueMilestone;
+  const grandTotalCollection = totals.actualCollection;
+  const grandTotalOutstanding = totals.outstanding;
+  const grandTotalRegOS = totals.registeredOS;
+  const grandTotalUnregOS = totals.unregisteredOS;
 
   // Budget calculations for Outstanding KPI Cards
-  const grandTotalBudgetVal = filteredProjects.reduce((s, p) => s + p.budgetValCr, 0);
-  const grandTotalBudgetDue = filteredProjects.reduce((s, p) => s + (p.budgetValCr * 0.85), 0);
-  const grandTotalBudgetCollection = filteredProjects.reduce((s, p) => s + p.budgetCollection, 0);
+  const grandTotalBudgetVal = enrichedProjects.reduce((s, p) => s + p.budgetValCr, 0);
+  const grandTotalBudgetDue = enrichedProjects.reduce((s, p) => s + (p.budgetValCr * 0.85), 0);
+  const grandTotalBudgetCollection = enrichedProjects.reduce((s, p) => s + p.budgetCollection, 0);
   const grandTotalBudgetOS = grandTotalBudgetDue - grandTotalBudgetCollection;
 
   // Extra Details for Sales Card
   const salesExtra = (
     <>
       <div>
-        <span>Residential: <strong>₹{filteredProjects.filter(p => p.type === 'R').reduce((s, p) => s + p.actualValCr, 0).toFixed(2)} Cr</strong></span>
+        <span>Residential: <strong>₹{enrichedProjects.filter(p => p.type === 'R').reduce((s, p) => s + p.actualValCr, 0).toFixed(2)} Cr</strong></span>
       </div>
       <div className="text-right">
-        <span>Luxury/Comm: <strong>₹{filteredProjects.filter(p => p.type !== 'R').reduce((s, p) => s + p.actualValCr, 0).toFixed(2)} Cr</strong></span>
+        <span>Luxury/Comm: <strong>₹{enrichedProjects.filter(p => p.type !== 'R').reduce((s, p) => s + p.actualValCr, 0).toFixed(2)} Cr</strong></span>
       </div>
     </>
   );
@@ -253,16 +234,16 @@ export default function Dashboard2() {
   );
 
   // Ageing columns Grand Totals
-  const grandAgeing0_30 = filteredProjects.reduce((s, p) => s + p.ageing['0-30'], 0);
-  const grandAgeing31_60 = filteredProjects.reduce((s, p) => s + p.ageing['31-60'], 0);
-  const grandAgeing61_90 = filteredProjects.reduce((s, p) => s + p.ageing['61-90'], 0);
-  const grandAgeing91_120 = filteredProjects.reduce((s, p) => s + p.ageing['91-120'], 0);
-  const grandAgeingGt120 = filteredProjects.reduce((s, p) => s + p.ageing['gt120'], 0);
+  const grandAgeing0_30 = enrichedProjects.reduce((s, p) => s + p.ageing['0-30'], 0);
+  const grandAgeing31_60 = enrichedProjects.reduce((s, p) => s + p.ageing['31-60'], 0);
+  const grandAgeing61_90 = enrichedProjects.reduce((s, p) => s + p.ageing['61-90'], 0);
+  const grandAgeing91_120 = enrichedProjects.reduce((s, p) => s + p.ageing['91-120'], 0);
+  const grandAgeingGt120 = enrichedProjects.reduce((s, p) => s + p.ageing['gt120'], 0);
   const grandAgeingTotal = grandAgeing0_30 + grandAgeing31_60 + grandAgeing61_90 + grandAgeing91_120 + grandAgeingGt120;
 
   // Map ageing data to project-wise buckets for Bar Chart
   const chartData = React.useMemo(() => {
-    return filteredProjects
+    return enrichedProjects
       .map(p => ({
         name: p.name,
         '0-30d': p.ageing['0-30'] || 0,
@@ -278,7 +259,7 @@ export default function Dashboard2() {
         item['91-120d'] !== 0 ||
         item['>120d'] !== 0
       );
-  }, [filteredProjects]);
+  }, [enrichedProjects]);
 
   const handleBarClick = (data, bucket) => {
     if (!data) return;
@@ -291,10 +272,10 @@ export default function Dashboard2() {
   };
 
   // Outstanding Highlights Calculations
-  const totalOS = filteredProjects.reduce((s, p) => s + p.outstanding, 0);
-  const regOS = filteredProjects.reduce((s, p) => s + p.registeredOS, 0);
-  const unregOS = filteredProjects.reduce((s, p) => s + p.unregisteredOS, 0);
-  const ageingGt90 = filteredProjects.reduce((s, p) => s + p.ageing['91-120'] + p.ageing['gt120'], 0);
+  const totalOS = enrichedProjects.reduce((s, p) => s + p.outstanding, 0);
+  const regOS = enrichedProjects.reduce((s, p) => s + p.registeredOS, 0);
+  const unregOS = enrichedProjects.reduce((s, p) => s + p.unregisteredOS, 0);
+  const ageingGt90 = enrichedProjects.reduce((s, p) => s + p.ageing['91-120'] + p.ageing['gt120'], 0);
   const ageingRatio = totalOS > 0 ? (ageingGt90 / totalOS) * 100 : 0;
 
   const outstandingPoints = [
@@ -397,7 +378,10 @@ export default function Dashboard2() {
   };
 
   return (
-    <div className="space-y-8 pb-12 pt-2">
+    <div
+      className="space-y-8 pb-12 pt-2"
+      style={{ transition: 'opacity 0.2s ease', opacity: isPending ? 0.6 : 1 }}
+    >
 
       {/* SECTION A: KPI Cards Row */}
       {/*
@@ -663,18 +647,18 @@ export default function Dashboard2() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 font-bold text-slate-800">
-                {filteredProjects.map((p) => (
+                {enrichedProjects.map((p) => (
                   <tr key={p.name} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-3.5 text-left font-bold text-slate-800">{p.name}</td>
                     {['0-30', '31-60', '61-90', '91-120', 'gt120'].map((bucket) => {
                       const value = p.ageing[bucket];
                       return (
                         <td
-                          key={bucket}
-                          onClick={() => handleAgeCellClick(p.name, bucket, value)}
-                          className={`px-4 py-3.5 cursor-pointer font-bold transition-all hover:scale-95 duration-100 ${getAgeingHeatClass(value)}`}
+                           key={bucket}
+                           onClick={() => handleAgeCellClick(p.name, bucket, value)}
+                           className={`px-4 py-3.5 cursor-pointer font-bold transition-all hover:scale-95 duration-100 ${getAgeingHeatClass(value)}`}
                         >
-                          <AnimatedNumber value={value} prefix="₹" decimals={2} />
+                          ₹{value.toFixed(2)}
                         </td>
                       );
                     })}
@@ -700,7 +684,7 @@ export default function Dashboard2() {
           </div>
         ) : (
           <div className="p-6">
-            {filteredProjects.length === 0 ? (
+            {enrichedProjects.length === 0 ? (
               <div className="h-96 flex items-center justify-center text-slate-700 font-bold text-sm">No project aging data to display.</div>
             ) : (
               <div className="h-96 w-full relative">

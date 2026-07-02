@@ -574,7 +574,6 @@ export default function ConstructionBudget() {
   return (
     <motion.div
       variants={containerVariants}
-      initial="hidden"
       animate="show"
       className="space-y-6 pb-12 pt-2"
     >
