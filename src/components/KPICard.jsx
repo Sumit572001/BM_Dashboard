@@ -60,34 +60,33 @@ export default function KPICard({
           {Icon && <Icon className="w-4 h-4 text-nyati-navy" />}
         </div>
       </div>
-
       {!simple && (
         <>
           {/* Target Comparison */}
-          <div className="grid grid-cols-2 gap-2 mb-2 mt-3 border-t border-b border-slate-100 py-2 text-sm">
+          <div className="grid grid-cols-2 gap-3 mb-2.5 mt-3.5 border-t border-b border-slate-200 py-2.5 text-sm">
             <div>
-              <span className="text-slate-500 block text-[11px]">Budget Target</span>
-              <span className="font-semibold text-slate-700 text-[13px]">
+              <span className="text-slate-600 block text-[15px] font-extrabold uppercase tracking-wide">Budget Target</span>
+              <span className="font-black text-slate-850 text-[19px] block mt-0.5">
                 {prefix}{budget.toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}{suffix}
               </span>
             </div>
             <div>
-              <span className="text-slate-500 block text-[11px]">Variance</span>
-              <span className={`font-semibold text-[13px] ${(budget - actual) > 0 ? 'text-nyati-danger' : 'text-nyati-success'}`}>
+              <span className="text-slate-600 block text-[15px] font-extrabold uppercase tracking-wide">Variance</span>
+              <span className={`font-black text-[19px] block mt-0.5 ${(budget - actual) > 0 ? 'text-nyati-danger' : 'text-nyati-success'}`}>
                 {prefix}{(actual - budget).toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}{suffix}
               </span>
             </div>
           </div>
 
           {/* Progress & Efficiency Indicator */}
-          <div className="space-y-2 mt-1">
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-medium text-slate-600">Efficiency Rate</span>
-              <div className="flex items-center gap-2">
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${statusColor}`}>
+          <div className="space-y-2 mt-2">
+            <div className="flex justify-between items-center text-[16px]">
+              <span className="font-bold text-slate-700 uppercase tracking-wide">Efficiency Rate</span>
+              <div className="flex items-center gap-2.5">
+                <span className={`px-2.5 py-0.5 rounded-full text-[12px] font-black uppercase tracking-wider ${statusColor}`}>
                   {statusText}
                 </span>
-                <span className="font-bold text-nyati-navy text-[13px]">
+                <span className="font-black text-nyati-navy text-[19px]">
                   <AnimatedNumber value={eff} suffix="%" decimals={1} />
                 </span>
               </div>

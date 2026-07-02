@@ -1683,28 +1683,39 @@ export function getConstructionMonthlyData(rawData, processedProjects) {
   const sheet2D = rawData && (rawData['Construction Budget'] || rawData['sheet1']);
 
   if (Array.isArray(sheet2D) && sheet2D.length > 2) {
-    // 1. Find the header row
+    // Helper to identify if a cell is a month header
+    const isMonthHeader = (val) => {
+      if (val === undefined || val === null || val === '') return false;
+      const formatted = formatExcelHeader(val);
+      if (!formatted) return false;
+      const clean = formatted.toLowerCase();
+      const monthNames = ['apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec', 'jan', 'feb', 'mar'];
+      return monthNames.some(m => clean.startsWith(m));
+    };
+
+    // 1. Find the header row and detect monthStartCol dynamically
     let headerRowIndex = -1;
-    let isNewColLayout = false;
+    let monthStartCol = -1;
+    
     for (let i = 0; i < sheet2D.length; i++) {
       const row = sheet2D[i];
       if (row) {
-        const val0 = row[0] ? String(row[0]).trim().toLowerCase() : '';
-        const val1 = row[1] ? String(row[1]).trim().toLowerCase() : '';
-        if (val0.startsWith('project') || val0 === 'type') {
-          headerRowIndex = i;
-          if (val0 === 'type' && val1.startsWith('project')) {
-            isNewColLayout = true;
+        // Look for the first column index that is a month header
+        for (let c = 0; c < row.length; c++) {
+          if (isMonthHeader(row[c])) {
+            headerRowIndex = i;
+            monthStartCol = c;
+            break;
           }
-          break;
         }
       }
+      if (headerRowIndex !== -1) break;
     }
 
-    if (headerRowIndex !== -1) {
+    if (headerRowIndex !== -1 && monthStartCol !== -1) {
       const headerRow = sheet2D[headerRowIndex];
       const foundMonths = [];
-      const monthStartCol = isNewColLayout ? 3 : 2;
+
       for (let c = monthStartCol; c < headerRow.length; c++) {
         const val = headerRow[c];
         if (val !== undefined && val !== null && val !== '') {
@@ -1715,6 +1726,11 @@ export function getConstructionMonthlyData(rawData, processedProjects) {
         }
       }
 
+      // Determine layout based on how many columns are before monthStartCol
+      // - monthStartCol >= 5: New layout (has metrics description and value columns)
+      // - monthStartCol < 5: Old layout (no metrics description and value columns)
+      const layoutType = monthStartCol >= 5 ? 'new' : 'old';
+
       if (foundMonths.length > 0) {
         const parsedProjects = [];
         let portfolioTotal = null;
@@ -1724,16 +1740,30 @@ export function getConstructionMonthlyData(rawData, processedProjects) {
           const row = sheet2D[i];
           if (!row || row.length === 0) continue;
 
-          const cell0 = isNewColLayout
-            ? (row[1] !== undefined && row[1] !== null ? String(row[1]).trim() : '')
-            : (row[0] !== undefined && row[0] !== null ? String(row[0]).trim() : '');
-            
-          const typeLabel = isNewColLayout
-            ? (row[2] !== undefined && row[2] !== null ? String(row[2]).trim() : '')
-            : (row[1] !== undefined && row[1] !== null ? String(row[1]).trim() : ''); // "Planned", "Actual", "Effi. %"
+          let cell0 = '';
+          let typeLabel = '';
+          let metricDesc = '';
+          let metricVal = '';
+
+          if (layoutType === 'new') {
+            // General formula for new layout:
+            // - typeLabel is right before months: index (monthStartCol - 1)
+            // - metricVal (Value) is: index (monthStartCol - 2)
+            // - metricDesc (Metrics) is: index (monthStartCol - 3)
+            // - cell0 (Projects name) is: index (monthStartCol - 4)
+            typeLabel = row[monthStartCol - 1] !== undefined && row[monthStartCol - 1] !== null ? String(row[monthStartCol - 1]).trim() : '';
+            metricVal = row[monthStartCol - 2] !== undefined && row[monthStartCol - 2] !== null ? String(row[monthStartCol - 2]).trim() : '';
+            metricDesc = row[monthStartCol - 3] !== undefined && row[monthStartCol - 3] !== null ? String(row[monthStartCol - 3]).trim() : '';
+            cell0 = row[monthStartCol - 4] !== undefined && row[monthStartCol - 4] !== null ? String(row[monthStartCol - 4]).trim() : '';
+          } else {
+            // General formula for old layout:
+            // - typeLabel is right before months: index (monthStartCol - 1)
+            // - cell0 (Projects name) is: index (monthStartCol - 2)
+            typeLabel = row[monthStartCol - 1] !== undefined && row[monthStartCol - 1] !== null ? String(row[monthStartCol - 1]).trim() : '';
+            cell0 = monthStartCol - 2 >= 0 && row[monthStartCol - 2] !== undefined && row[monthStartCol - 2] !== null ? String(row[monthStartCol - 2]).trim() : '';
+          }
 
           if (cell0 || i === headerRowIndex + 1) {
-            // First row or row with name
             const isFirstRowEmptyName = !cell0 && i === headerRowIndex + 1;
             const pName = isFirstRowEmptyName ? 'Portfolio Total' : cell0;
             const cleanKey = cleanProjName(pName);
@@ -1745,7 +1775,10 @@ export function getConstructionMonthlyData(rawData, processedProjects) {
                   type: getProjectType(pName),
                   planned: {},
                   actual: {},
-                  efficiency: {}
+                  efficiency: {},
+                  plannedDesc: '', plannedVal: '',
+                  actualDesc: '', actualVal: '',
+                  efficiencyDesc: '', efficiencyVal: ''
                 };
               }
               currentProject = portfolioTotal;
@@ -1761,7 +1794,10 @@ export function getConstructionMonthlyData(rawData, processedProjects) {
                   type: type,
                   planned: {},
                   actual: {},
-                  efficiency: {}
+                  efficiency: {},
+                  plannedDesc: '', plannedVal: '',
+                  actualDesc: '', actualVal: '',
+                  efficiencyDesc: '', efficiencyVal: ''
                 };
                 parsedProjects.push(existingProj);
               }
@@ -1770,6 +1806,20 @@ export function getConstructionMonthlyData(rawData, processedProjects) {
           }
 
           if (!currentProject) continue;
+
+          // Fill description and value fields
+          if (layoutType === 'new') {
+            if (typeLabel.toLowerCase().includes('planned')) {
+              currentProject.plannedDesc = metricDesc;
+              currentProject.plannedVal = metricVal;
+            } else if (typeLabel.toLowerCase().includes('actual')) {
+              currentProject.actualDesc = metricDesc;
+              currentProject.actualVal = metricVal;
+            } else {
+              currentProject.efficiencyDesc = metricDesc;
+              currentProject.efficiencyVal = metricVal;
+            }
+          }
 
           foundMonths.forEach(m => {
             const val = row[m.colIndex];
@@ -1799,7 +1849,8 @@ export function getConstructionMonthlyData(rawData, processedProjects) {
         return {
           months: foundMonths.map(m => m.formatted),
           portfolioTotal,
-          projects: parsedProjects
+          projects: parsedProjects,
+          layout: layoutType
         };
       }
     }

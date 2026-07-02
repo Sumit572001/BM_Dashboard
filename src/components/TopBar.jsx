@@ -164,13 +164,13 @@ export default function TopBar({ toggleSidebar }) {
       case '/':
         return 'NYATI GROUP - REAL ESTATE DIVISION';
       case '/sales-collection':
-        return 'FY sales achievements, rate analysis, and actual vs budget collection rates';
+        return '';
       case '/outstanding':
-        return 'Milestone dues, collection status, and project ageing matrices';
+        return '';
       case '/construction-budget':
         return '';
       case '/portfolio':
-        return 'Granular view of buildings inventory funnel, RERA timings, and cost details';
+        return '';
       default:
         return 'NYATI GROUP - REAL ESTATE DIVISION';
     }

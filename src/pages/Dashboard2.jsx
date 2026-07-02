@@ -175,6 +175,7 @@ export default function Dashboard2() {
   const grandTotalSoldVal = enrichedProjects.reduce((s, p) => s + p.actualValCr, 0);
   const grandTotalDueMilestone = totals.dueMilestone;
   const grandTotalCollection = totals.actualCollection;
+  const grandTotalSalesCollection = filteredProjects.reduce((s, p) => s + p.actualCollection, 0);
   const grandTotalOutstanding = totals.outstanding;
   const grandTotalRegOS = totals.registeredOS;
   const grandTotalUnregOS = totals.unregisteredOS;
@@ -408,8 +409,8 @@ export default function Dashboard2() {
           <KPICard
             title="Total Collection"
             budget={grandTotalBudgetCollection}
-            actual={grandTotalCollection}
-            eff={grandTotalBudgetCollection > 0 ? (grandTotalCollection / grandTotalBudgetCollection) * 100 : 0}
+            actual={grandTotalSalesCollection}
+            eff={grandTotalBudgetCollection > 0 ? (grandTotalSalesCollection / grandTotalBudgetCollection) * 100 : 0}
             prefix="₹"
             suffix=" Cr"
             decimals={2}
@@ -448,8 +449,8 @@ export default function Dashboard2() {
           <KPICard
             title="Outstanding"
             budget={grandTotalBudgetOS}
-            actual={grandTotalOutstanding}
-            eff={grandTotalOutstanding > 0 ? (grandTotalBudgetOS / grandTotalOutstanding) * 100 : 100}
+            actual={grandTotalRegOS}
+            eff={grandTotalRegOS > 0 ? (grandTotalBudgetOS / grandTotalRegOS) * 100 : 100}
             prefix="₹"
             suffix=" Cr"
             decimals={2}
