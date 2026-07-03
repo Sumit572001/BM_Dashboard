@@ -28,7 +28,8 @@ export default function KPICard({
   extraInfo,
   borderStyle = 'border-l-4 border-nyati-orange',
   simple = false,
-  bgClass = 'bg-white'
+  bgClass = 'bg-white',
+  hideEfficiency = false
 }) {
   // Status Badge Logic
   let statusColor = 'bg-nyati-danger/10 text-nyati-danger';
@@ -46,7 +47,7 @@ export default function KPICard({
     <motion.div
       whileHover={{ y: -6 }}
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-      className={`${bgClass} rounded-2xl p-5 shadow-premium hover:shadow-premium-hover flex flex-col justify-between relative overflow-hidden ${borderStyle} h-full`}
+      className={`${bgClass} rounded-3xl p-5 border border-slate-100/80 shadow-premium hover:shadow-premium-hover flex flex-col justify-between relative overflow-hidden ${borderStyle} h-full`}
     >
       {/* Top Header */}
       <div className="flex justify-between items-start">
@@ -79,29 +80,31 @@ export default function KPICard({
           </div>
 
           {/* Progress & Efficiency Indicator */}
-          <div className="space-y-2 mt-1.5">
-            <div className="flex justify-between items-center text-[12px]">
-              <span className="font-bold text-slate-700 uppercase tracking-wide">Efficiency Rate</span>
-              <div className="flex items-center gap-2">
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${statusColor}`}>
-                  {statusText}
-                </span>
-                <span className="font-black text-nyati-navy text-[15.5px]">
-                  <AnimatedNumber value={eff} suffix="%" decimals={1} />
-                </span>
+          {!hideEfficiency && (
+            <div className="space-y-2 mt-1.5">
+              <div className="flex justify-between items-center text-[12px]">
+                <span className="font-bold text-slate-700 uppercase tracking-wide">Efficiency Rate</span>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${statusColor}`}>
+                    {statusText}
+                  </span>
+                  <span className="font-black text-nyati-navy text-[15.5px]">
+                    <AnimatedNumber value={eff} suffix="%" decimals={1} />
+                  </span>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(100, eff)}%` }}
+                  transition={{ duration: 1.2, ease: 'easeOut' }}
+                  className={`h-full rounded-full ${eff >= 80 ? 'bg-nyati-success' : eff >= 50 ? 'bg-nyati-warning' : 'bg-nyati-danger'}`}
+                />
               </div>
             </div>
-
-            {/* Progress Bar */}
-            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.min(100, eff)}%` }}
-                transition={{ duration: 1.2, ease: 'easeOut' }}
-                className={`h-full rounded-full ${eff >= 80 ? 'bg-nyati-success' : eff >= 50 ? 'bg-nyati-warning' : 'bg-nyati-danger'}`}
-              />
-            </div>
-          </div>
+          )}
         </>
       )}
 

@@ -60,11 +60,11 @@ const getEfficiencyColorClass = (val) => {
   return 'text-emerald-600';
 };
 
-// Helper for styling efficiency cell backgrounds dynamically
+// Helper for styling actual values as teal-colored plain numbers
 const renderActualBadge = (val, isFiltered) => {
   const size = isFiltered ? 'text-[14px]' : 'text-[12px]';
   return (
-    <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md ${size} font-extrabold bg-emerald-100 text-black min-w-[55px] shadow-sm`}>
+    <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md ${size} font-extrabold text-[#0d9488] min-w-[55px]`}>
       {val}
     </span>
   );
@@ -231,15 +231,15 @@ const SyncedScrollTable = ({
                       </td>
                       {isNewLayout && (
                         <>
-                          <td className="sticky left-[185px] bg-[#f8fafc] z-20 px-4 py-3 text-center font-bold text-slate-500 border-l border-r border-slate-200 whitespace-nowrap">
+                          <td className="sticky left-[185px] bg-[#f8fafc] z-20 px-4 py-3 text-left font-bold text-slate-500 border-l border-r border-slate-200 whitespace-nowrap">
                             -
                           </td>
-                          <td className="sticky left-[370px] bg-[#f8fafc] z-20 px-4 py-3 text-center font-bold text-slate-500 border-l border-r border-slate-200 whitespace-nowrap">
+                          <td className="sticky left-[370px] bg-[#f8fafc] z-20 px-4 py-3 text-right font-bold text-slate-500 border-l border-r border-slate-200 whitespace-nowrap">
                             -
                           </td>
                         </>
                       )}
-                      <td className={`sticky ${isNewLayout ? 'left-[455px]' : 'left-[185px]'} bg-[#f8fafc] z-20 px-4 py-3 text-center font-bold text-slate-900 border-l border-r border-slate-200 whitespace-nowrap`}>
+                      <td className={`sticky ${isNewLayout ? 'left-[455px]' : 'left-[185px]'} bg-[#f8fafc] z-20 px-4 py-3 text-right font-bold text-slate-900 border-l border-r border-slate-200 whitespace-nowrap`}>
                         Planned
                       </td>
                       {activeMonths.map(m => (
@@ -257,15 +257,15 @@ const SyncedScrollTable = ({
                     <tr className="bg-slate-50/80 font-bold">
                       {isNewLayout && (
                         <>
-                          <td className="sticky left-[185px] bg-[#f8fafc] z-20 px-4 py-3 text-center font-bold text-slate-500 border-l border-r border-slate-200 whitespace-nowrap">
+                          <td className="sticky left-[185px] bg-[#f8fafc] z-20 px-4 py-3 text-left font-bold text-slate-500 border-l border-r border-slate-200 whitespace-nowrap">
                             -
                           </td>
-                          <td className="sticky left-[370px] bg-[#f8fafc] z-20 px-4 py-3 text-center font-bold text-slate-500 border-l border-r border-slate-200 whitespace-nowrap">
+                          <td className="sticky left-[370px] bg-[#f8fafc] z-20 px-4 py-3 text-right font-bold text-slate-500 border-l border-r border-slate-200 whitespace-nowrap">
                             -
                           </td>
                         </>
                       )}
-                      <td className={`sticky ${isNewLayout ? 'left-[455px]' : 'left-[185px]'} bg-[#f8fafc] z-20 px-4 py-3 text-center font-bold text-slate-800 border-l border-r border-slate-200 whitespace-nowrap`}>
+                      <td className={`sticky ${isNewLayout ? 'left-[455px]' : 'left-[185px]'} bg-[#f8fafc] z-20 px-4 py-3 text-right font-bold text-[#0d9488] border-l border-r border-slate-200 whitespace-nowrap`}>
                         Actual
                       </td>
                       {activeMonths.map(m => {
@@ -293,15 +293,15 @@ const SyncedScrollTable = ({
                     <tr className="bg-slate-50/80 font-bold">
                       {isNewLayout && (
                         <>
-                          <td className="sticky left-[185px] bg-[#f8fafc] z-20 px-4 py-3 text-center font-bold text-slate-500 border-l border-r border-b-2 border-slate-300 whitespace-nowrap">
+                          <td className="sticky left-[185px] bg-[#f8fafc] z-20 px-4 py-3 text-left font-bold text-slate-500 border-l border-r border-b-2 border-slate-300 whitespace-nowrap">
                             -
                           </td>
-                          <td className="sticky left-[370px] bg-[#f8fafc] z-20 px-4 py-3 text-center font-bold text-slate-500 border-l border-r border-b-2 border-slate-300 whitespace-nowrap">
+                          <td className="sticky left-[370px] bg-[#f8fafc] z-20 px-4 py-3 text-right font-bold text-slate-500 border-l border-r border-b-2 border-slate-300 whitespace-nowrap">
                             -
                           </td>
                         </>
                       )}
-                      <td className={`sticky ${isNewLayout ? 'left-[455px]' : 'left-[185px]'} bg-[#f8fafc] z-20 px-4 py-3 text-center font-bold text-slate-955 border-l border-r border-b-2 border-slate-300 whitespace-nowrap`}>
+                      <td className={`sticky ${isNewLayout ? 'left-[455px]' : 'left-[185px]'} bg-[#f8fafc] z-20 px-4 py-3 text-right font-bold text-slate-955 border-l border-r border-b-2 border-slate-300 whitespace-nowrap`}>
                         Eff. %
                       </td>
                       {activeMonths.map(m => {
@@ -341,19 +341,19 @@ const SyncedScrollTable = ({
                       </td>
                       {isNewLayout && (
                         <>
-                          <td className={`sticky left-[185px] z-20 px-4 py-2.5 text-center font-bold text-slate-700 border-l border-r border-slate-200 ${txtDesc} leading-tight whitespace-nowrap`}
+                          <td className={`sticky left-[185px] z-20 px-4 py-2.5 text-left font-bold text-slate-700 border-l border-r border-slate-200 ${txtDesc} leading-tight whitespace-nowrap`}
                             style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
                           >
                             {proj.plannedDesc || '-'}
                           </td>
-                          <td className={`sticky left-[370px] z-20 px-4 py-2.5 text-center font-extrabold text-slate-700 border-l border-r border-slate-200`}
+                          <td className={`sticky left-[370px] z-20 px-4 py-2.5 text-right font-extrabold text-slate-700 border-l border-r border-slate-200`}
                             style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
                           >
                             {formatValue(proj.plannedDesc, proj.plannedVal)}
                           </td>
                         </>
                       )}
-                      <td className={`sticky ${isNewLayout ? 'left-[455px]' : 'left-[185px]'} z-20 px-4 py-2.5 text-center font-bold text-slate-800 border-l border-r border-slate-200 whitespace-nowrap`}
+                      <td className={`sticky ${isNewLayout ? 'left-[455px]' : 'left-[185px]'} z-20 px-4 py-2.5 text-right font-bold text-slate-800 border-l border-r border-slate-200 whitespace-nowrap`}
                         style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
                       >
                         Planned
@@ -375,19 +375,19 @@ const SyncedScrollTable = ({
                     <tr className={`${projIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
                       {isNewLayout && (
                         <>
-                          <td className={`sticky left-[185px] z-20 px-4 py-2.5 text-center font-bold text-slate-700 border-l border-r border-slate-200 ${txtDesc} leading-tight whitespace-nowrap`}
+                          <td className={`sticky left-[185px] z-20 px-4 py-2.5 text-left font-bold text-slate-700 border-l border-r border-slate-200 ${txtDesc} leading-tight whitespace-nowrap`}
                             style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
                           >
                             {proj.actualDesc || '-'}
                           </td>
-                          <td className={`sticky left-[370px] z-20 px-4 py-2.5 text-center font-extrabold text-slate-700 border-l border-r border-slate-200`}
+                          <td className={`sticky left-[370px] z-20 px-4 py-2.5 text-right font-extrabold text-slate-700 border-l border-r border-slate-200`}
                             style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
                           >
                             {formatValue(proj.actualDesc, proj.actualVal)}
                           </td>
                         </>
                       )}
-                      <td className={`sticky ${isNewLayout ? 'left-[455px]' : 'left-[185px]'} z-20 px-4 py-2.5 text-center font-bold text-slate-800 border-l border-r border-slate-200 whitespace-nowrap`}
+                      <td className={`sticky ${isNewLayout ? 'left-[455px]' : 'left-[185px]'} z-20 px-4 py-2.5 text-right font-bold text-[#0d9488] border-l border-r border-slate-200 whitespace-nowrap`}
                         style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
                       >
                         Actual
@@ -420,19 +420,19 @@ const SyncedScrollTable = ({
                     <tr className={`${projIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
                       {isNewLayout && (
                         <>
-                          <td className={`sticky left-[185px] z-20 px-4 py-2.5 text-center font-bold text-slate-700 border-l border-r border-b-2 border-slate-300 ${txtDesc} leading-tight whitespace-nowrap`}
+                          <td className={`sticky left-[185px] z-20 px-4 py-2.5 text-left font-bold text-slate-700 border-l border-r border-b-2 border-slate-300 ${txtDesc} leading-tight whitespace-nowrap`}
                             style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
                           >
                             {proj.efficiencyDesc || '-'}
                           </td>
-                          <td className={`sticky left-[370px] z-20 px-4 py-2.5 text-center font-extrabold text-slate-700 border-l border-r border-b-2 border-slate-300`}
+                          <td className={`sticky left-[370px] z-20 px-4 py-2.5 text-right font-extrabold text-slate-700 border-l border-r border-b-2 border-slate-300`}
                             style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
                           >
                             {formatValue(proj.efficiencyDesc, proj.efficiencyVal)}
                           </td>
                         </>
                       )}
-                      <td className={`sticky ${isNewLayout ? 'left-[455px]' : 'left-[185px]'} z-20 px-4 py-2.5 text-center font-bold text-slate-955 border-l border-r border-b-2 border-slate-300 whitespace-nowrap`}
+                      <td className={`sticky ${isNewLayout ? 'left-[455px]' : 'left-[185px]'} z-20 px-4 py-2.5 text-right font-bold text-slate-955 border-l border-r border-b-2 border-slate-300 whitespace-nowrap`}
                         style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
                       >
                         Eff. %
@@ -732,7 +732,7 @@ export default function ConstructionBudget() {
       <motion.div variants={itemVariants} className="flex gap-6 items-stretch h-[460px]">
 
         {/* LEFT: 2 KPI cards stacked vertically */}
-        <div className="flex flex-col gap-4 w-[295px] shrink-0">
+        <div className="flex flex-col gap-4 w-[340px] shrink-0">
           <div className="flex-1">
             <KPICard
               title={card1Title}
@@ -756,6 +756,7 @@ export default function ConstructionBudget() {
               decimals={0}
               icon={PieChart}
               borderStyle="border-l-4 border-[#4f46e5]"
+              hideEfficiency={true}
             />
           </div>
         </div>
@@ -767,9 +768,9 @@ export default function ConstructionBudget() {
           </div>
           <div className="w-full flex-1">
             <MountedResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+              <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" interval={0} angle={-45} textAnchor="end" height={60}
+                <XAxis dataKey="name" interval={0} angle={-45} textAnchor="end" height={75}
                   tick={{ fill: '#1e293b', fontSize: 12, fontWeight: 700 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#1e293b', fontSize: 12, fontWeight: 700 }} axisLine={false} tickLine={false} />
                 <Tooltip content={<CustomTooltip />} />
@@ -788,9 +789,9 @@ export default function ConstructionBudget() {
           </div>
           <div className="w-full flex-1">
             <MountedResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+              <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" interval={0} angle={-45} textAnchor="end" height={60}
+                <XAxis dataKey="name" interval={0} angle={-45} textAnchor="end" height={75}
                   tick={{ fill: '#1e293b', fontSize: 12, fontWeight: 700 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#1e293b', fontSize: 12, fontWeight: 700 }} axisLine={false} tickLine={false} />
                 <Tooltip content={<CustomTooltip />} />
