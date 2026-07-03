@@ -1,16 +1,152 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useData } from '../context/DataContext';
-import { calculateGrandTotals } from '../utils/dataHelpers';
+import { calculateGrandTotals, getQuarterFromMonth } from '../utils/dataHelpers';
 import KPICard from '../components/KPICard';
 import ProjectTable from '../components/ProjectTable';
 import { ClipboardList, IndianRupee, Maximize, CreditCard, Info, DollarSign, Award, AlertTriangle, PieChart } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function Dashboard1() {
-  const { filteredProjects } = useData();
+  const { filteredProjects, filters, updateFilters } = useData();
 
-  // Get aggregated grand totals across current filtered set
-  const totals = calculateGrandTotals(filteredProjects);
+  // Helper to determine the latest quarter with actual sales/units data
+  const getLatestActualQuarter = (projects) => {
+    const monthsOrder = ['Apr-26', 'May-26', 'Jun-26', 'Jul-26', 'Aug-26', 'Sep-26', 'Oct-26', 'Nov-26', 'Dec-26', 'Jan-27', 'Feb-27', 'Mar-27'];
+    let latestMonth = 'Apr-26';
+    
+    projects.forEach(p => {
+      if (p.monthlyData) {
+        Object.keys(p.monthlyData).forEach(m => {
+          const d = p.monthlyData[m];
+          if (d && (d.unitsActual > 0 || d.salesValueActual > 0)) {
+            const mIdx = monthsOrder.indexOf(m);
+            const latIdx = monthsOrder.indexOf(latestMonth);
+            if (mIdx > latIdx) {
+              latestMonth = m;
+            }
+          }
+        });
+      }
+    });
+    
+    return getQuarterFromMonth(latestMonth) || 'Q1';
+  };
+
+  const latestQuarter = useMemo(() => {
+    return getLatestActualQuarter(filteredProjects);
+  }, [filteredProjects]);
+
+  const [selectedPeriod, setSelectedPeriod] = useState('Q1');
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  // Initialize selectedPeriod to the latest actual quarter on mount/data load
+  useEffect(() => {
+    if (filteredProjects.length > 0 && !hasInitialized) {
+      setSelectedPeriod(latestQuarter);
+      setHasInitialized(true);
+    }
+  }, [filteredProjects, latestQuarter, hasInitialized]);
+
+  // Sync dropdown selection to the global selectedQuarters filter
+  useEffect(() => {
+    let q = 'Q1';
+    if (selectedPeriod === 'Q1' || ['Apr-26', 'May-26', 'Jun-26'].includes(selectedPeriod)) q = 'Q1';
+    else if (selectedPeriod === 'Q2' || ['Jul-26', 'Aug-26', 'Sep-26'].includes(selectedPeriod)) q = 'Q2';
+    else if (selectedPeriod === 'Q3' || ['Oct-26', 'Nov-26', 'Dec-26'].includes(selectedPeriod)) q = 'Q3';
+    else if (selectedPeriod === 'Q4' || ['Jan-27', 'Feb-27', 'Mar-27'].includes(selectedPeriod)) q = 'Q4';
+
+    if (filters.selectedQuarters.length !== 1 || filters.selectedQuarters[0] !== q) {
+      updateFilters({ selectedQuarters: [q] });
+    }
+  }, [selectedPeriod]);
+
+  // Sync global selectedQuarters filter changes back to the selectedPeriod dropdown
+  useEffect(() => {
+    if (filters.selectedQuarters.length === 1) {
+      const q = filters.selectedQuarters[0];
+      let currentQ = 'Q1';
+      if (selectedPeriod === 'Q1' || ['Apr-26', 'May-26', 'Jun-26'].includes(selectedPeriod)) currentQ = 'Q1';
+      else if (selectedPeriod === 'Q2' || ['Jul-26', 'Aug-26', 'Sep-26'].includes(selectedPeriod)) currentQ = 'Q2';
+      else if (selectedPeriod === 'Q3' || ['Oct-26', 'Nov-26', 'Dec-26'].includes(selectedPeriod)) currentQ = 'Q3';
+      else if (selectedPeriod === 'Q4' || ['Jan-27', 'Feb-27', 'Mar-27'].includes(selectedPeriod)) currentQ = 'Q4';
+
+      if (currentQ !== q) {
+        setSelectedPeriod(q);
+      }
+    }
+  }, [filters.selectedQuarters]);
+
+  // Helper to aggregate data for Q1, Q2, Q3, Q4 or specific month
+  const getPeriodTotals = (projects, period) => {
+    let months = [];
+    let fraction = 1/12;
+    if (period === 'Q1') { months = ['Apr-26', 'May-26', 'Jun-26']; fraction = 3/12; }
+    else if (period === 'Q2') { months = ['Jul-26', 'Aug-26', 'Sep-26']; fraction = 3/12; }
+    else if (period === 'Q3') { months = ['Oct-26', 'Nov-26', 'Dec-26']; fraction = 3/12; }
+    else if (period === 'Q4') { months = ['Jan-27', 'Feb-27', 'Mar-27']; fraction = 3/12; }
+    else { months = [period]; fraction = 1/12; }
+
+    let totalUnits = 0;
+    let balance = 0;
+    let unitsTarget = 0;
+    let unitsActual = 0;
+    let areaTarget = 0;
+    let areaActual = 0;
+    let valueTarget = 0;
+    let valueActual = 0;
+    let collectionTarget = 0;
+    let collectionActual = 0;
+
+    projects.forEach(p => {
+      totalUnits += p.totalUnits || 0;
+      balance += p.balance || 0;
+
+      if (p.monthlyData) {
+        months.forEach(m => {
+          const mData = p.monthlyData[m] || {};
+          unitsTarget += mData.unitsTarget || 0;
+          unitsActual += mData.unitsActual || 0;
+          areaTarget += mData.areaTarget || 0;
+          areaActual += mData.areaActual || 0;
+          valueTarget += mData.salesValueTarget || 0;
+          valueActual += mData.salesValueActual || 0;
+          collectionTarget += mData.collectionTarget || 0;
+          collectionActual += mData.collectionActual || 0;
+        });
+      } else {
+        unitsTarget += p.budgetUnits * fraction;
+        unitsActual += p.soldToDate * fraction;
+        areaTarget += p.budgetArea * fraction;
+        areaActual += p.actualArea * fraction;
+        valueTarget += (p.budgetValCr * 10000000) * fraction;
+        valueActual += (p.actualValCr * 10000000) * fraction;
+        collectionTarget += (p.budgetCollection * 10000000) * fraction;
+        collectionActual += (p.actualCollection * 10000000) * fraction;
+      }
+    });
+
+    const rateTarget = areaTarget > 0 ? (valueTarget) / areaTarget : 0;
+    const rateActual = areaActual > 0 ? (valueActual) / areaActual : 0;
+
+    return {
+      totalUnits,
+      balance,
+      budgetUnits: Math.round(unitsTarget),
+      soldToDate: Math.round(unitsActual),
+      budgetRate: rateTarget,
+      actualRate: rateActual,
+      rateEff: rateTarget > 0 ? (rateActual / rateTarget) * 100 : 0,
+      budgetArea: areaTarget,
+      actualArea: areaActual,
+      budgetValCr: parseFloat((valueTarget / 10000000).toFixed(2)),
+      actualValCr: parseFloat((valueActual / 10000000).toFixed(2)),
+      budgetCollection: parseFloat((collectionTarget / 10000000).toFixed(2)),
+      actualCollection: parseFloat((collectionActual / 10000000).toFixed(2))
+    };
+  };
+
+  // Get aggregated grand totals across current filtered set & selected period
+  const totals = getPeriodTotals(filteredProjects, selectedPeriod);
 
   // Extra Details for Units
   const unitsExtra = (
@@ -245,7 +381,7 @@ export default function Dashboard1() {
 
       {/* Project Table Section */}
       <div>
-        <ProjectTable />
+        <ProjectTable selectedPeriod={selectedPeriod} setSelectedPeriod={setSelectedPeriod} />
       </div>
 
       {/* Highlights & AI Recommendations Row */}

@@ -2134,11 +2134,11 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
           pAge.unregisteredOS += rowOutstanding;
         }
 
-        pAge.age0_30 += getVal(r, ['Slab_15']) + getVal(r, ['Slab_30']);
-        pAge.age31_60 += getVal(r, ['Slab_60']);
-        pAge.age61_90 += getVal(r, ['Slab_90']);
-        pAge.age91_120 += getVal(r, ['Slab_120']);
-        pAge.ageGt120 += getVal(r, ['Slab_365']) + getVal(r, ['Slab_MoreThan_365']);
+        pAge.age0_30 += getVal(r, ['0-30 Days', '0-30 Days (₹ Cr)', 'Slab_15', 'Slab_30']);
+        pAge.age31_60 += getVal(r, ['31-60 Days', '31-60 Days (₹ Cr)', 'Slab_60']);
+        pAge.age61_90 += getVal(r, ['61-90 Days', '61-90 Days (₹ Cr)', 'Slab_90']);
+        pAge.age91_120 += getVal(r, ['91-120 Days', '91-120 Days (₹ Cr)', 'Slab_120']);
+        pAge.ageGt120 += getVal(r, ['> 120 Days', '>120 Days (₹ Cr)', 'Slab_365', 'Slab_MoreThan_365']);
       } else {
         // If no project filter is active, accumulate legacy data under Old Projects
         if (!isProjectFiltered) {
@@ -2159,11 +2159,11 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
             legacyUnregisteredOS += rowOutstanding;
           }
 
-          legacyAge0_30 += getVal(r, ['Slab_15']) + getVal(r, ['Slab_30']);
-          legacyAge31_60 += getVal(r, ['Slab_60']);
-          legacyAge61_90 += getVal(r, ['Slab_90']);
-          legacyAge91_120 += getVal(r, ['Slab_120']);
-          legacyAgeGt120 += getVal(r, ['Slab_365']) + getVal(r, ['Slab_MoreThan_365']);
+          legacyAge0_30 += getVal(r, ['0-30 Days', '0-30 Days (₹ Cr)', 'Slab_15', 'Slab_30']);
+          legacyAge31_60 += getVal(r, ['31-60 Days', '31-60 Days (₹ Cr)', 'Slab_60']);
+          legacyAge61_90 += getVal(r, ['61-90 Days', '61-90 Days (₹ Cr)', 'Slab_90']);
+          legacyAge91_120 += getVal(r, ['91-120 Days', '91-120 Days (₹ Cr)', 'Slab_120']);
+          legacyAgeGt120 += getVal(r, ['> 120 Days', '>120 Days (₹ Cr)', 'Slab_365', 'Slab_MoreThan_365']);
         }
       }
     });

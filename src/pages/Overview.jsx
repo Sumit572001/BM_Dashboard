@@ -29,7 +29,7 @@ const OverviewMetricRow = ({ label, actual, budget, prefix = '', suffix = '', de
             </span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-[17px] font-black text-nyati-navy whitespace-nowrap">
+            <span className="text-[17px] font-black text-[#4f46e5] whitespace-nowrap">
               {prefix}<AnimatedNumber value={actual} decimals={decimals} />{suffix}
             </span>
             {budget !== undefined && (
@@ -52,7 +52,7 @@ const OverviewMetricRow = ({ label, actual, budget, prefix = '', suffix = '', de
             {label}
           </span>
         </div>
-        <span className="text-[17px] font-black text-nyati-navy whitespace-nowrap">
+        <span className="text-[17px] font-black text-[#4f46e5] whitespace-nowrap">
           {prefix}<AnimatedNumber value={actual} decimals={decimals} />{suffix}
         </span>
       </div>

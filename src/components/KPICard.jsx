@@ -51,8 +51,8 @@ export default function KPICard({
       {/* Top Header */}
       <div className="flex justify-between items-start">
         <div>
-          <span className={`${simple ? 'text-[13px] font-extrabold' : 'text-[11px] font-semibold'} uppercase tracking-wider text-slate-700`}>{title}</span>
-          <h2 className={`${simple ? 'text-3xl font-black mt-2.5' : 'text-3xl font-black mt-2'} text-nyati-navy`}>
+          <span className="text-[13px] font-extrabold uppercase tracking-wider text-slate-700">{title}</span>
+          <h2 className="text-[25px] font-black mt-1 text-nyati-navy">
             <AnimatedNumber value={actual} prefix={prefix} suffix={suffix} decimals={decimals} />
           </h2>
         </div>
@@ -63,30 +63,30 @@ export default function KPICard({
       {!simple && (
         <>
           {/* Target Comparison */}
-          <div className="grid grid-cols-2 gap-3 mb-2.5 mt-3.5 border-t border-b border-slate-200 py-2.5 text-sm">
+          <div className="grid grid-cols-2 gap-3 mb-2 mt-3 border-t border-b border-slate-200 py-2 text-xs">
             <div>
-              <span className="text-slate-600 block text-[15px] font-extrabold uppercase tracking-wide">Budget Target</span>
-              <span className="font-black text-slate-850 text-[19px] block mt-0.5">
+              <span className="text-slate-600 block text-[12px] font-extrabold uppercase tracking-wide">Budget Target</span>
+              <span className="font-black text-slate-850 text-[15.5px] block mt-0.5">
                 {prefix}{budget.toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}{suffix}
               </span>
             </div>
             <div>
-              <span className="text-slate-600 block text-[15px] font-extrabold uppercase tracking-wide">Variance</span>
-              <span className={`font-black text-[19px] block mt-0.5 ${(budget - actual) > 0 ? 'text-nyati-danger' : 'text-nyati-success'}`}>
+              <span className="text-slate-600 block text-[12px] font-extrabold uppercase tracking-wide">Variance</span>
+              <span className={`font-black text-[15.5px] block mt-0.5 ${(budget - actual) > 0 ? 'text-nyati-danger' : 'text-nyati-success'}`}>
                 {prefix}{(actual - budget).toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}{suffix}
               </span>
             </div>
           </div>
 
           {/* Progress & Efficiency Indicator */}
-          <div className="space-y-2 mt-2">
-            <div className="flex justify-between items-center text-[16px]">
+          <div className="space-y-2 mt-1.5">
+            <div className="flex justify-between items-center text-[12px]">
               <span className="font-bold text-slate-700 uppercase tracking-wide">Efficiency Rate</span>
-              <div className="flex items-center gap-2.5">
-                <span className={`px-2.5 py-0.5 rounded-full text-[12px] font-black uppercase tracking-wider ${statusColor}`}>
+              <div className="flex items-center gap-2">
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${statusColor}`}>
                   {statusText}
                 </span>
-                <span className="font-black text-nyati-navy text-[19px]">
+                <span className="font-black text-nyati-navy text-[15.5px]">
                   <AnimatedNumber value={eff} suffix="%" decimals={1} />
                 </span>
               </div>
