@@ -349,10 +349,88 @@ export function processRawData(rawData) {
     rawData._categoryMap = categoryMap;
     rawData._cleanProjName = cleanProjName;
     
-    // 2. Parse targetSheet rows
+    // 2. Dynamically detect column structure from FY Target Sheet header rows
+    //    The sheet has 2-3 header rows before data:
+    //      Row 0: month labels (e.g. "Apr-26", "May-26", ...) at merged column positions
+    //      Row 1: type labels per column (e.g. "Units Target", "Units Actual", "Rate Target", ...)
+    //    We scan the first few rows to build a column map: colIndex → { month, isActual, fieldName }
     const projectsList = [];
     const months = ['Apr-26', 'May-26', 'Jun-26', 'Jul-26', 'Aug-26', 'Sep-26', 'Oct-26', 'Nov-26', 'Dec-26', 'Jan-27', 'Feb-27', 'Mar-27'];
-    const offsets = [3, 15, 27, 33, 39, 45, 51, 57, 63, 69, 75, 81];
+    
+    // ── Dynamic header detection ──────────────────────────────────────────────
+    // Find header rows: scan first 6 rows for the month-label row (row with a month name like "Apr")
+    // and the field-label row (row with "Units Target" or similar)
+    let monthHeaderRowIdx = -1;
+    let fieldHeaderRowIdx = -1;
+    for (let i = 0; i < Math.min(6, targetSheet.length); i++) {
+      const row = targetSheet[i];
+      if (!Array.isArray(row)) continue;
+      const rowStr = row.map(c => c ? String(c).toLowerCase() : '').join(' ');
+      if (rowStr.includes('units target') || rowStr.includes('units sold') || rowStr.includes('rate target')) {
+        fieldHeaderRowIdx = i;
+        // Month labels are typically one row above the field row
+        if (i > 0) monthHeaderRowIdx = i - 1;
+        break;
+      }
+    }
+    // Fallback: if field header not found, look for row where col[2] is "Projects" or similar
+    if (fieldHeaderRowIdx === -1) {
+      for (let i = 0; i < Math.min(6, targetSheet.length); i++) {
+        const row = targetSheet[i];
+        if (!Array.isArray(row)) continue;
+        const col2 = row[2] ? String(row[2]).toLowerCase().trim() : '';
+        if (col2 === 'projects' || col2 === 'project name') {
+          fieldHeaderRowIdx = i;
+          if (i > 0) monthHeaderRowIdx = i - 1;
+          break;
+        }
+      }
+    }
+    
+    // Build colMap: maps column index → { month, isActual, fieldType }
+    // fieldType: 'units' | 'rate' | 'area' | 'salesValue' | 'collection' | 'construction'
+    const colMap = {};
+    if (monthHeaderRowIdx >= 0 && fieldHeaderRowIdx >= 0) {
+      const monthRow = targetSheet[monthHeaderRowIdx] || [];
+      const fieldRow = targetSheet[fieldHeaderRowIdx] || [];
+      let currentMonth = '';
+      for (let c = 3; c < Math.max(monthRow.length, fieldRow.length); c++) {
+        // Advance month label when non-null value appears in month row
+        if (monthRow[c] !== null && monthRow[c] !== undefined && monthRow[c] !== '') {
+          currentMonth = formatExcelHeader(monthRow[c]);
+        }
+        if (!currentMonth) continue;
+        const fieldRaw = fieldRow[c] ? String(fieldRow[c]).toLowerCase().trim() : '';
+        if (!fieldRaw) continue;
+        const isActual = fieldRaw.includes('actual') || fieldRaw.includes('achieved');
+        let fieldType = 'unknown';
+        if (fieldRaw.includes('unit') || fieldRaw.includes('sold')) fieldType = 'units';
+        else if (fieldRaw.includes('rate') || fieldRaw.includes('psf') || fieldRaw.includes('/sf')) fieldType = 'rate';
+        else if (fieldRaw.includes('area') || fieldRaw.includes('saleable')) fieldType = 'area';
+        else if (fieldRaw.includes('sales value') || fieldRaw.includes('sales amount') || (fieldRaw.includes('sales') && !fieldRaw.includes('collection'))) fieldType = 'salesValue';
+        else if (fieldRaw.includes('collection')) fieldType = 'collection';
+        else if (fieldRaw.includes('construction') || fieldRaw.includes('const')) fieldType = 'construction';
+        colMap[c] = { month: currentMonth, isActual, fieldType };
+      }
+    }
+    
+    // If colMap was populated, use it to build offsets + hasActual dynamically
+    // Otherwise fall back to hardcoded offsets updated for Q1 complete (3 months with actuals)
+    let useColMap = Object.keys(colMap).length > 10;
+    
+    // Fallback offsets — updated for when Jun-26 also has actuals (FY26 Q1 complete)
+    // Layout: Apr-26(12 cols), May-26(12 cols), Jun-26(12 cols), then 6 cols per remaining month
+    const offsets = [3, 15, 27, 39, 45, 51, 57, 63, 69, 75, 81, 87];
+    // Number of months that have actual data columns (12 cols each vs 6 cols for target-only months)
+    // This is determined dynamically from colMap, or defaults to 3 (Apr, May, Jun for 03.07.2026)
+    let numMonthsWithActual = 3; // Default: Q1 complete (Apr, May, Jun)
+    if (useColMap) {
+      // Count distinct months that have at least one isActual=true column
+      const monthsWithActual = new Set(
+        Object.values(colMap).filter(c => c.isActual).map(c => c.month)
+      );
+      numMonthsWithActual = monthsWithActual.size;
+    }
     
     targetSheet.forEach((row) => {
       if (!Array.isArray(row)) return;
@@ -389,51 +467,82 @@ export function processRawData(rawData) {
         type = getProjectType(cleanName);
       }
       
+      const getNum = (colIdx) => {
+        const val = row[colIdx];
+        if (val === null || val === undefined || val === '') return 0;
+        const cleanVal = val.toString().replace(/,/g, '').replace(/[₹%]/g, '').trim();
+        const parsed = parseFloat(cleanVal);
+        return isNaN(parsed) ? 0 : parsed;
+      };
+      
       const monthlyData = {};
-      months.forEach((m, idx) => {
-        const start = offsets[idx];
-        const hasActual = (idx < 2);
-        
-        const getNum = (colIdx) => {
-          const val = row[colIdx];
-          if (val === null || val === undefined || val === '') return 0;
-          const cleanVal = val.toString().replace(/,/g, '').replace(/[₹%]/g, '').trim();
-          const parsed = parseFloat(cleanVal);
-          return isNaN(parsed) ? 0 : parsed;
-        };
-        
-        if (hasActual) {
-          monthlyData[m] = {
-            unitsTarget: getNum(start),
-            unitsActual: getNum(start + 1),
-            rateTarget: getNum(start + 2),
-            rateActual: getNum(start + 3),
-            areaTarget: getNum(start + 4),
-            areaActual: getNum(start + 5),
-            salesValueTarget: getNum(start + 6),
-            salesValueActual: getNum(start + 7),
-            collectionTarget: getNum(start + 8),
-            collectionActual: getNum(start + 9),
-            constructionTarget: getNum(start + 10),
-            constructionActual: getNum(start + 11)
+      
+      if (useColMap) {
+        // ── Dynamic parsing using header-detected column map ──────────────────
+        months.forEach(m => {
+          // Gather all columns for this month
+          const monthCols = Object.entries(colMap).filter(([, info]) => info.month === m);
+          if (monthCols.length === 0) {
+            monthlyData[m] = { unitsTarget: 0, unitsActual: 0, rateTarget: 0, rateActual: 0, areaTarget: 0, areaActual: 0, salesValueTarget: 0, salesValueActual: 0, collectionTarget: 0, collectionActual: 0, constructionTarget: 0, constructionActual: 0 };
+            return;
+          }
+          const get = (fieldType, isActual) => {
+            const entry = monthCols.find(([, info]) => info.fieldType === fieldType && info.isActual === isActual);
+            return entry ? getNum(parseInt(entry[0])) : 0;
           };
-        } else {
           monthlyData[m] = {
-            unitsTarget: getNum(start),
-            unitsActual: 0,
-            rateTarget: getNum(start + 1),
-            rateActual: 0,
-            areaTarget: getNum(start + 2),
-            areaActual: 0,
-            salesValueTarget: getNum(start + 3),
-            salesValueActual: 0,
-            collectionTarget: getNum(start + 4),
-            collectionActual: 0,
-            constructionTarget: getNum(start + 5),
-            constructionActual: 0
+            unitsTarget: get('units', false),
+            unitsActual: get('units', true),
+            rateTarget: get('rate', false),
+            rateActual: get('rate', true),
+            areaTarget: get('area', false),
+            areaActual: get('area', true),
+            salesValueTarget: get('salesValue', false),
+            salesValueActual: get('salesValue', true),
+            collectionTarget: get('collection', false),
+            collectionActual: get('collection', true),
+            constructionTarget: get('construction', false),
+            constructionActual: get('construction', true),
           };
-        }
-      });
+        });
+      } else {
+        // ── Fallback: positional offset parsing ──────────────────────────────
+        months.forEach((m, idx) => {
+          const start = offsets[idx];
+          const hasActual = (idx < numMonthsWithActual);
+          if (hasActual) {
+            monthlyData[m] = {
+              unitsTarget: getNum(start),
+              unitsActual: getNum(start + 1),
+              rateTarget: getNum(start + 2),
+              rateActual: getNum(start + 3),
+              areaTarget: getNum(start + 4),
+              areaActual: getNum(start + 5),
+              salesValueTarget: getNum(start + 6),
+              salesValueActual: getNum(start + 7),
+              collectionTarget: getNum(start + 8),
+              collectionActual: getNum(start + 9),
+              constructionTarget: getNum(start + 10),
+              constructionActual: getNum(start + 11)
+            };
+          } else {
+            monthlyData[m] = {
+              unitsTarget: getNum(start),
+              unitsActual: 0,
+              rateTarget: getNum(start + 1),
+              rateActual: 0,
+              areaTarget: getNum(start + 2),
+              areaActual: 0,
+              salesValueTarget: getNum(start + 3),
+              salesValueActual: 0,
+              collectionTarget: getNum(start + 4),
+              collectionActual: 0,
+              constructionTarget: getNum(start + 5),
+              constructionActual: 0
+            };
+          }
+        });
+      }
       
       let sumUnitsTarget = 0;
       let sumUnitsActual = 0;
