@@ -864,26 +864,31 @@ export function processRawData(rawData) {
                 if (!isNaN(parsed)) val = parsed;
               }
 
-              if (metricType.includes('units target') || metricType.replace(/\s/g, '').includes('unitstarget')) {
-                monthlyData[month].unitsTarget += val;
-              } else if (metricType.includes('rate target') || metricType.replace(/\s/g, '').includes('ratetarget')) {
-                monthlyData[month].rateTarget += val;
-              } else if (metricType.includes('area target') || metricType.replace(/\s/g, '').includes('areatarget')) {
-                monthlyData[month].areaTarget += val;
-              } else if (metricType.includes('sales value target') || metricType.includes('value target') || metricType.replace(/\s/g, '').includes('salesvaluetarget')) {
-                monthlyData[month].salesValueTarget += val;
-              } else if (metricType.includes('collection target') || metricType.replace(/\s/g, '').includes('collectiontarget')) {
+              const mt = metricType; // already lowercased & space-normalized
+              const mtNoSp = mt.replace(/\s/g, '');
+
+              // NOTE: Check MORE SPECIFIC patterns first to avoid false positives.
+              // e.g. check 'collection target' before 'target' alone.
+              if (mt.includes('collection target') || mt.includes('target collection') || mt.includes('collection tgt') || mt.includes('coll target') || mtNoSp.includes('collectiontarget') || mtNoSp.includes('targetcollection')) {
                 monthlyData[month].collectionTarget += val;
-              } else if (metricType.includes('units actual') || metricType.includes('actual units') || metricType.replace(/\s/g, '').includes('unitsactual')) {
-                monthlyData[month].unitsActual += val;
-              } else if (metricType.includes('rate actual') || metricType.includes('actual rate') || metricType.replace(/\s/g, '').includes('rateactual')) {
-                monthlyData[month].rateActual += val;
-              } else if (metricType.includes('area actual') || metricType.includes('actual area') || metricType.replace(/\s/g, '').includes('areaactual')) {
-                monthlyData[month].areaActual += val;
-              } else if (metricType.includes('sales value actual') || metricType.includes('value actual') || metricType.includes('actual sales value') || metricType.replace(/\s/g, '').includes('salesvalueactual')) {
-                monthlyData[month].salesValueActual += val;
-              } else if (metricType.includes('collection actual') || metricType.includes('actual collection') || metricType.replace(/\s/g, '').includes('collectionactual')) {
+              } else if (mt.includes('collection actual') || mt.includes('actual collection') || mt.includes('collection received') || mtNoSp.includes('collectionactual')) {
                 monthlyData[month].collectionActual += val;
+              } else if (mt.includes('sales value target') || mt.includes('value target') || mt.includes('target value') || mt.includes('sales target') || mt.includes('sale value target') || mtNoSp.includes('salesvaluetarget')) {
+                monthlyData[month].salesValueTarget += val;
+              } else if (mt.includes('sales value actual') || mt.includes('value actual') || mt.includes('actual sales') || mt.includes('actual value') || mtNoSp.includes('salesvalueactual')) {
+                monthlyData[month].salesValueActual += val;
+              } else if (mt.includes('units target') || mt.includes('unit target') || mt.includes('no. of units target') || mt.includes('target units') || mt.includes('tgt units') || mtNoSp.includes('unitstarget') || mtNoSp.includes('targetunits')) {
+                monthlyData[month].unitsTarget += val;
+              } else if (mt.includes('units actual') || mt.includes('unit actual') || mt.includes('actual units') || mt.includes('no. of units actual') || mtNoSp.includes('unitsactual') || mtNoSp.includes('actualunits')) {
+                monthlyData[month].unitsActual += val;
+              } else if (mt.includes('rate target') || mt.includes('target rate') || mtNoSp.includes('ratetarget')) {
+                monthlyData[month].rateTarget += val;
+              } else if (mt.includes('rate actual') || mt.includes('actual rate') || mtNoSp.includes('rateactual')) {
+                monthlyData[month].rateActual += val;
+              } else if (mt.includes('area target') || mt.includes('target area') || mtNoSp.includes('areatarget')) {
+                monthlyData[month].areaTarget += val;
+              } else if (mt.includes('area actual') || mt.includes('actual area') || mtNoSp.includes('areaactual')) {
+                monthlyData[month].areaActual += val;
               }
             }
           });
@@ -896,6 +901,33 @@ export function processRawData(rawData) {
               d.rateActual = d.areaActual > 0 ? (d.salesValueActual) / d.areaActual : (d.rateActual / projectSalesRows.length);
             });
           }
+          // Post-processing sanity check:
+          // unitsTarget / unitsActual should be small integers (units sold counts).
+          // If a value > 10,000 ended up there it is almost certainly a rupee value
+          // (e.g. collection or sales value) that was misclassified due to an unexpected
+          // metric type label in the Excel sheet. In that case, move it to salesValueTarget
+          // so it is handled correctly (divided by 10M later) and zero out the units field.
+          Object.keys(monthlyData).forEach(month => {
+            const d = monthlyData[month];
+            if (d.unitsTarget > 10000) {
+              // Likely a rupee value — move to salesValueTarget if nothing is there,
+              // otherwise discard to collectionTarget as a fallback.
+              if (d.salesValueTarget === 0) {
+                d.salesValueTarget = d.unitsTarget;
+              } else if (d.collectionTarget === 0) {
+                d.collectionTarget = d.unitsTarget;
+              }
+              d.unitsTarget = 0;
+            }
+            if (d.unitsActual > 10000) {
+              if (d.salesValueActual === 0) {
+                d.salesValueActual = d.unitsActual;
+              } else if (d.collectionActual === 0) {
+                d.collectionActual = d.unitsActual;
+              }
+              d.unitsActual = 0;
+            }
+          });
         }
       }
 

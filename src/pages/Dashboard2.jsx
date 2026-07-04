@@ -59,6 +59,14 @@ export default function Dashboard2() {
   const enrichedProjects = ageingResult.projects;
   const totals = ageingResult.totals;
 
+  // Exclude "Old Projects" from the Ageing Matrix view (graph + table) because
+  // the Ageing sheet in the Excel has no "Old Projects" row — it's a synthetic
+  // bucket for unlisted legacy data and should not appear in ageing breakdowns.
+  const ageingProjects = React.useMemo(
+    () => enrichedProjects.filter(p => !p.name.trim().toUpperCase().includes('OLD PROJECT')),
+    [enrichedProjects]
+  );
+
   const [ageingView, setAgeingView] = useState('graph'); // 'table' | 'graph'
 
   // Sorting state for Consolidated Project Outstanding table
@@ -250,16 +258,16 @@ export default function Dashboard2() {
   );
 
   // Ageing columns Grand Totals
-  const grandAgeing0_30 = enrichedProjects.reduce((s, p) => s + p.ageing['0-30'], 0);
-  const grandAgeing31_60 = enrichedProjects.reduce((s, p) => s + p.ageing['31-60'], 0);
-  const grandAgeing61_90 = enrichedProjects.reduce((s, p) => s + p.ageing['61-90'], 0);
-  const grandAgeing91_120 = enrichedProjects.reduce((s, p) => s + p.ageing['91-120'], 0);
-  const grandAgeingGt120 = enrichedProjects.reduce((s, p) => s + p.ageing['gt120'], 0);
+  const grandAgeing0_30 = ageingProjects.reduce((s, p) => s + p.ageing['0-30'], 0);
+  const grandAgeing31_60 = ageingProjects.reduce((s, p) => s + p.ageing['31-60'], 0);
+  const grandAgeing61_90 = ageingProjects.reduce((s, p) => s + p.ageing['61-90'], 0);
+  const grandAgeing91_120 = ageingProjects.reduce((s, p) => s + p.ageing['91-120'], 0);
+  const grandAgeingGt120 = ageingProjects.reduce((s, p) => s + p.ageing['gt120'], 0);
   const grandAgeingTotal = grandAgeing0_30 + grandAgeing31_60 + grandAgeing61_90 + grandAgeing91_120 + grandAgeingGt120;
 
-  // Map ageing data to project-wise buckets for Bar Chart
+  // Map ageing data to project-wise buckets for Bar Chart (Old Projects excluded)
   const chartData = React.useMemo(() => {
-    return enrichedProjects
+    return ageingProjects
       .map(p => ({
         name: p.name,
         '0-30d': p.ageing['0-30'] || 0,
@@ -275,7 +283,7 @@ export default function Dashboard2() {
         item['91-120d'] !== 0 ||
         item['>120d'] !== 0
       );
-  }, [enrichedProjects]);
+  }, [ageingProjects]);
 
   const handleBarClick = (data, bucket) => {
     if (!data) return;
@@ -663,7 +671,7 @@ export default function Dashboard2() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 font-bold text-slate-800">
-                {enrichedProjects.map((p) => (
+                {ageingProjects.map((p) => (
                   <tr key={p.name} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-3.5 text-left font-bold text-slate-800">{p.name}</td>
                     {['0-30', '31-60', '61-90', '91-120', 'gt120'].map((bucket) => {

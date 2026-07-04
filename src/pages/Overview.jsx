@@ -29,7 +29,7 @@ const OverviewMetricRow = ({ label, actual, budget, prefix = '', suffix = '', de
             </span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-[17px] font-black text-[#4f46e5] whitespace-nowrap">
+            <span className="text-[17px] font-black text-[#5996FF] whitespace-nowrap">
               {prefix}<AnimatedNumber value={actual} decimals={decimals} />{suffix}
             </span>
             {budget !== undefined && (
@@ -52,7 +52,7 @@ const OverviewMetricRow = ({ label, actual, budget, prefix = '', suffix = '', de
             {label}
           </span>
         </div>
-        <span className="text-[17px] font-black text-[#4f46e5] whitespace-nowrap">
+        <span className="text-[17px] font-black text-[#5996FF] whitespace-nowrap">
           {prefix}<AnimatedNumber value={actual} decimals={decimals} />{suffix}
         </span>
       </div>
@@ -684,16 +684,28 @@ export default function Overview() {
     const data = [];
     const reportingIndex = months.indexOf(latestMonthWithActual);
 
+    // Helper: clamp unit values — units should be small integers (< 10,000 per month
+    // across all projects). Values >= 10,000 indicate a rupee amount got misclassified.
+    const safeUnits = (val) => (val > 0 && val < 10000 ? val : 0);
+
     months.forEach((m, idx) => {
       // Target/Planned units sold in that month
-      const mUnitsTarget = filteredProjects.reduce((sum, p) => sum + (p.monthlyData?.[m]?.unitsTarget || 0), 0);
+      const mUnitsTarget = filteredProjects.reduce(
+        (sum, p) => sum + safeUnits(p.monthlyData?.[m]?.unitsTarget || 0), 0
+      );
       // Actual units sold in that month
-      const mUnitsActual = filteredProjects.reduce((sum, p) => sum + (p.monthlyData?.[m]?.unitsActual || 0), 0);
-      
-      // Target/Planned collection in that month (in Rupees)
-      const mCollectionTarget = filteredProjects.reduce((sum, p) => sum + (p.monthlyData?.[m]?.collectionTarget || 0), 0);
-      // Actual collection in that month (in Rupees)
-      const mCollectionActual = filteredProjects.reduce((sum, p) => sum + (p.monthlyData?.[m]?.collectionActual || 0), 0);
+      const mUnitsActual = filteredProjects.reduce(
+        (sum, p) => sum + safeUnits(p.monthlyData?.[m]?.unitsActual || 0), 0
+      );
+
+      // Target/Planned collection in that month (in Rupees) → convert to Cr
+      const mCollectionTarget = filteredProjects.reduce(
+        (sum, p) => sum + (p.monthlyData?.[m]?.collectionTarget || 0), 0
+      );
+      // Actual collection in that month (in Rupees) → convert to Cr
+      const mCollectionActual = filteredProjects.reduce(
+        (sum, p) => sum + (p.monthlyData?.[m]?.collectionActual || 0), 0
+      );
 
       data.push({
         name: m,
