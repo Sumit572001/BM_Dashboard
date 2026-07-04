@@ -509,44 +509,38 @@ export default function Dashboard2() {
                     <span>Project</span>
                   </div>
                 </th>
-                <th rowSpan={2} className="px-4 py-4 text-center cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-200 w-[120px] min-w-[120px] max-w-[120px]" onClick={() => handleSort('actualValCr')}>
-                  <div className="flex items-center justify-center gap-1.5 h-full">
-                    <span className="text-center">Sold Value <span className="whitespace-nowrap">(₹ Cr)</span></span>
-                    {renderSortIcon('actualValCr')}
-                  </div>
+                <th colSpan={2} className="bg-slate-50 text-slate-900 text-center font-black py-2.5 text-[15px] tracking-wider border-b border-slate-200 border-r border-slate-200 w-[240px] min-w-[240px] max-w-[240px]">
+                  Collection Upto date
                 </th>
                 <th rowSpan={2} className="px-4 py-4 text-center cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-200 w-[120px] min-w-[120px] max-w-[120px]" onClick={() => handleSort('dueMilestone')}>
                   <div className="flex items-center justify-center gap-1.5 h-full">
-                    <span className="text-center">Due as per Milestone <span className="whitespace-nowrap">(₹ Cr)</span></span>
+                    <span className="text-center">Due as per Milestone Upto date <span className="whitespace-nowrap">(₹ Cr)</span></span>
                     {renderSortIcon('dueMilestone')}
                   </div>
                 </th>
                 <th rowSpan={2} className="px-4 py-4 text-center cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-200 w-[120px] min-w-[120px] max-w-[120px]" onClick={() => handleSort('actualCollection')}>
                   <div className="flex items-center justify-center gap-1.5 h-full">
-                    <span className="text-center">Total Collection <span className="whitespace-nowrap">(₹ Cr)</span></span>
+                    <span className="text-center">Total Collection Upto date <span className="whitespace-nowrap">(₹ Cr)</span></span>
                     {renderSortIcon('actualCollection')}
                   </div>
                 </th>
                 <th rowSpan={2} className="px-4 py-4 text-center cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-200 w-[120px] min-w-[120px] max-w-[120px]" onClick={() => handleSort('outstanding')}>
                   <div className="flex items-center justify-center gap-1.5 h-full">
-                    <span className="text-center">Total Outstanding <span className="whitespace-nowrap">(₹ Cr)</span></span>
+                    <span className="text-center">Total Outstanding Upto date <span className="whitespace-nowrap">(₹ Cr)</span></span>
                     {renderSortIcon('outstanding')}
                   </div>
                 </th>
                 <th rowSpan={2} className="px-4 py-4 text-center cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-200 w-[120px] min-w-[120px] max-w-[120px]" onClick={() => handleSort('registeredOS')}>
                   <div className="flex items-center justify-center gap-1.5 h-full">
-                    <span className="text-center">Registered <span className="whitespace-nowrap">O/S</span></span>
+                    <span className="text-center">Registered Upto date <span className="whitespace-nowrap">O/S</span></span>
                     {renderSortIcon('registeredOS')}
                   </div>
                 </th>
                 <th rowSpan={2} className="px-4 py-4 text-center cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-200 w-[120px] min-w-[120px] max-w-[120px]" onClick={() => handleSort('unregisteredOS')}>
                   <div className="flex items-center justify-center gap-1.5 h-full">
-                    <span className="text-center font-extrabold">Unregistered <span className="whitespace-nowrap">O/S</span></span>
+                    <span className="text-center font-extrabold">Unregistered Upto date <span className="whitespace-nowrap">O/S</span></span>
                     {renderSortIcon('unregisteredOS')}
                   </div>
-                </th>
-                <th colSpan={2} className="bg-slate-50 text-slate-900 text-center font-black py-2.5 text-[15px] tracking-wider border-b border-slate-200 border-r border-slate-200 w-[240px] min-w-[240px] max-w-[240px]">
-                  Collection
                 </th>
               </tr>
               <tr className="bg-slate-50 text-slate-900 uppercase tracking-wider font-extrabold select-none text-[14px]">
@@ -562,7 +556,8 @@ export default function Dashboard2() {
               {sortedProjects.map((p, index) => (
                 <tr key={p.name} className="hover:bg-slate-50/50 transition-colors border-b border-slate-200">
                   <td className="px-6 py-3.5 font-bold text-slate-700 min-w-[220px] w-[220px] max-w-[220px] border-r border-slate-200 text-center">{p.name}</td>
-                  <td className="px-4 py-3.5 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.actualValCr.toFixed(2)}</td>
+                  <td className="px-4 py-3.5 text-center text-slate-700 w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.budgetCollection.toFixed(2)}</td>
+                  <td className="px-6 py-3.5 text-center font-bold text-[#0d9488] w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.actualCollection.toFixed(2)}</td>
                   <td className="px-4 py-3.5 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.dueMilestone.toFixed(2)}</td>
                   <td className="px-4 py-3.5 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.actualCollection.toFixed(2)}</td>
                   <td className="px-4 py-3.5 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">
@@ -572,14 +567,13 @@ export default function Dashboard2() {
                   </td>
                   <td className="px-4 py-3.5 text-center text-slate-700 w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.registeredOS.toFixed(2)}</td>
                   <td className="px-4 py-3.5 text-center text-slate-700 w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.unregisteredOS.toFixed(2)}</td>
-                  <td className="px-4 py-3.5 text-center text-slate-700 w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.budgetCollection.toFixed(2)}</td>
-                  <td className="px-6 py-3.5 text-center font-bold text-[#0d9488] w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.actualCollection.toFixed(2)}</td>
                 </tr>
               ))}
               {/* Grand Total Row */}
               <tr className="bg-slate-50/80 font-bold text-nyati-navy border-t-2 border-slate-200 text-[15px]">
                 <td className="px-6 py-4 min-w-[220px] w-[220px] max-w-[220px] border-r border-slate-200 text-center">GRAND TOTAL</td>
-                <td className="px-4 py-4 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalSoldVal.toFixed(2)}</td>
+                <td className="px-4 py-4 text-center text-slate-700 bg-slate-50/50 w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalBudgetCollection.toFixed(2)}</td>
+                <td className="px-6 py-4 text-center text-[#0d9488] font-extrabold bg-slate-50/50 w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalCollection.toFixed(2)}</td>
                 <td className="px-4 py-4 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalDueMilestone.toFixed(2)}</td>
                 <td className="px-4 py-4 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalCollection.toFixed(2)}</td>
                 <td className="px-4 py-4 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">
@@ -589,8 +583,6 @@ export default function Dashboard2() {
                 </td>
                 <td className="px-4 py-4 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalRegOS.toFixed(2)}</td>
                 <td className="px-4 py-4 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalUnregOS.toFixed(2)}</td>
-                <td className="px-4 py-4 text-center text-slate-700 bg-slate-50/50 w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalBudgetCollection.toFixed(2)}</td>
-                <td className="px-6 py-4 text-center text-[#0d9488] font-extrabold bg-slate-50/50 w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalCollection.toFixed(2)}</td>
               </tr>
             </tbody>
           </table>

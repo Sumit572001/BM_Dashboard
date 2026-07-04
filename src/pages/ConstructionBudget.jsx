@@ -4,6 +4,7 @@ import { cleanProjName, getQuarterFromMonth } from '../utils/dataHelpers';
 import { Hammer, AlertTriangle, PieChart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import KPICard from '../components/KPICard';
+import AnimatedNumber from '../components/AnimatedNumber';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -62,7 +63,7 @@ const getEfficiencyColorClass = (val) => {
 
 // Helper for styling actual values as teal-colored plain numbers
 const renderActualBadge = (val, isFiltered) => {
-  const size = isFiltered ? 'text-[14px]' : 'text-[12px]';
+  const size = isFiltered ? 'text-[17px]' : 'text-[15px]';
   return (
     <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md ${size} font-extrabold text-[#0d9488] min-w-[55px]`}>
       {val}
@@ -72,7 +73,7 @@ const renderActualBadge = (val, isFiltered) => {
 
 // Helper for color coding the efficiency percentages inside a pill/badge
 const renderEfficiencyBadge = (val, isFiltered) => {
-  const size = isFiltered ? 'text-[14px]' : 'text-[12px]';
+  const size = isFiltered ? 'text-[17px]' : 'text-[15px]';
   let classes = 'bg-emerald-100';
   if (val < 50) {
     classes = 'bg-rose-100';
@@ -117,20 +118,20 @@ const SyncedScrollTable = ({
     switch (type) {
       case 'L':
         return (
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full ${txtSmall} font-extrabold bg-amber-50 text-amber-700 border border-amber-200 uppercase mt-1 shadow-sm`}>
-            Luxury
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${txtSmall} font-extrabold bg-amber-50 text-amber-700 border border-amber-200 uppercase shadow-sm`}>
+            🏠 LUX
           </span>
         );
       case 'C':
         return (
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full ${txtSmall} font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase mt-1 shadow-sm`}>
-            Commercial
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${txtSmall} font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase shadow-sm`}>
+            🏢 COMM
           </span>
         );
       default:
         return (
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full ${txtSmall} font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase mt-1 shadow-sm`}>
-            Residential
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${txtSmall} font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase shadow-sm`}>
+            🏠 RESI
           </span>
         );
     }
@@ -154,6 +155,11 @@ const SyncedScrollTable = ({
     return num.toFixed(2);
   };
 
+  // Dynamic month column width: wider when fewer months visible (e.g. Q1 = 3 months)
+  const monthColWidth = activeMonths.length <= 3 ? 200 : activeMonths.length <= 6 ? 140 : 90;
+  const leftFixedWidth = isNewLayout ? 550 : 280;
+  const minTableWidth = leftFixedWidth + activeMonths.length * monthColWidth + 95;
+
   return (
     <>
       {/* STICKY COLUMN HEADER */}
@@ -163,24 +169,24 @@ const SyncedScrollTable = ({
         className="sticky top-[54px] z-40 overflow-x-auto overflow-y-clip"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        <table className={`w-full text-left ${txtBase} text-slate-800 border-separate border-spacing-0 table-fixed ${isNewLayout ? 'min-w-[1500px]' : 'min-w-[1100px]'}`}>
+        <table className={`w-full text-left ${txtBase} text-slate-800 border-separate border-spacing-0 table-fixed`} style={{ minWidth: minTableWidth }}>
           <thead>
-            <tr className={`bg-[#4f46e5] text-white uppercase tracking-wider font-extrabold text-center ${txtBase}`}>
+            <tr className={`bg-[#004080] text-white uppercase tracking-wider font-extrabold text-center ${txtBase}`}>
               {isNewLayout ? (
-                <th colSpan={4} className={`sticky left-0 bg-[#4f46e5] z-40 px-6 py-3.5 text-center font-bold w-[550px] border-r border-[#4338ca] border-b border-[#4338ca] select-none ${txtBase}`}>
-                  Months ➔ ➔
+                <th colSpan={4} className={`sticky left-0 bg-[#004080] z-40 px-6 py-3.5 text-center font-bold border-r border-[#003366] border-b border-[#003366] select-none ${txtBase}`} style={{ width: leftFixedWidth }}>
+                  Months ➤ ➤
                 </th>
               ) : (
-                <th colSpan={2} className={`sticky left-0 bg-[#4f46e5] z-40 px-6 py-3.5 text-center font-bold w-[280px] border-r border-[#4338ca] border-b border-[#4338ca] select-none ${txtBase}`}>
-                  Months ➔ ➔
+                <th colSpan={2} className={`sticky left-0 bg-[#004080] z-40 px-6 py-3.5 text-center font-bold border-r border-[#003366] border-b border-[#003366] select-none ${txtBase}`} style={{ width: leftFixedWidth }}>
+                  Months ➤ ➤
                 </th>
               )}
               {activeMonths.map(m => (
-                <th key={m} className="bg-[#4f46e5] px-4 py-3.5 text-center font-bold w-[90px] border-b border-[#4338ca]">
+                <th key={m} className="bg-[#004080] px-4 py-3.5 text-center font-bold border-b border-r border-[#003366]" style={{ width: monthColWidth }}>
                   {m}
                 </th>
               ))}
-              <th className="sticky right-0 bg-[#3730a3] z-40 px-4 py-3.5 text-center font-bold w-[95px] border-l-2 border-[#312e81] border-b border-[#4338ca]">
+              <th className="sticky right-0 bg-[#002d66] z-40 px-4 py-3.5 text-center font-bold w-[95px] border-l-2 border-[#001a4d] border-b border-[#003366]">
                 Total
               </th>
             </tr>
@@ -194,7 +200,7 @@ const SyncedScrollTable = ({
         onScroll={onBodyScroll}
         className="overflow-x-auto w-full"
       >
-        <table className={`w-full text-left ${txtBase} border-separate border-spacing-0 table-fixed ${isNewLayout ? 'min-w-[1500px]' : 'min-w-[1100px]'}`}>
+        <table className={`w-full text-left ${txtBase} border-separate border-spacing-0 table-fixed`} style={{ minWidth: minTableWidth }}>
           <colgroup>
             <col style={{ width: 185 }} />
             {isNewLayout ? (
@@ -206,7 +212,7 @@ const SyncedScrollTable = ({
             ) : (
               <col style={{ width: 95 }} />
             )}
-            {activeMonths.map(m => <col key={m} style={{ width: 90 }} />)}
+            {activeMonths.map(m => <col key={m} style={{ width: monthColWidth }} />)}
             <col style={{ width: 95 }} />
           </colgroup>
           <tbody className="font-bold text-slate-800">
@@ -243,7 +249,7 @@ const SyncedScrollTable = ({
                         Planned
                       </td>
                       {activeMonths.map(m => (
-                        <td key={m} className="px-4 py-3 text-center font-bold text-slate-900">
+                        <td key={m} className="px-4 py-3 text-center font-bold text-slate-900 border-r border-slate-200">
                           {displayPortfolioTotal.planned[m] !== undefined && displayPortfolioTotal.planned[m] !== null
                             ? displayPortfolioTotal.planned[m].toFixed(2)
                             : '-'}
@@ -273,7 +279,7 @@ const SyncedScrollTable = ({
                         const hasVal = !isFutureMonth(m) && val !== undefined && val !== null;
                         const displayVal = hasVal ? val.toFixed(2) : (isFutureMonth(m) ? '-' : '0.00');
                         return (
-                          <td key={m} className="px-4 py-3 text-center align-middle font-bold text-slate-800">
+                          <td key={m} className="px-4 py-3 text-center align-middle font-bold text-slate-800 border-r border-slate-200">
                             {hasVal ? renderActualBadge(displayVal, isFiltered) : displayVal}
                           </td>
                         );
@@ -307,7 +313,7 @@ const SyncedScrollTable = ({
                       {activeMonths.map(m => {
                         const val = isFutureMonth(m) ? null : displayPortfolioTotal.efficiency[m];
                         return (
-                          <td key={m} className="px-4 py-3 text-center align-middle font-bold border-b-2 border-slate-300 text-slate-800">
+                          <td key={m} className="px-4 py-3 text-center align-middle font-bold border-b-2 border-r border-slate-300 text-slate-800">
                             {val !== null && val !== undefined ? renderEfficiencyBadge(val, isFiltered) : '-'}
                           </td>
                         );
@@ -336,8 +342,10 @@ const SyncedScrollTable = ({
                         className={`sticky left-0 z-20 px-5 py-4 font-bold text-slate-900 border-r border-b-2 border-slate-300 text-left align-middle ${txtBase} leading-snug`}
                         style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
                       >
-                        <div className="font-extrabold whitespace-nowrap">{proj.name}</div>
-                        {renderProjectTypeBadge(proj.name)}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-extrabold whitespace-nowrap">{proj.name}</span>
+                          {renderProjectTypeBadge(proj.name)}
+                        </div>
                       </td>
                       {isNewLayout && (
                         <>
@@ -359,7 +367,7 @@ const SyncedScrollTable = ({
                         Planned
                       </td>
                       {activeMonths.map(m => (
-                        <td key={m} className="px-4 py-2.5 text-center text-slate-955 font-bold">
+                        <td key={m} className="px-4 py-2.5 text-center text-slate-955 font-bold border-r border-slate-200">
                           {proj.planned[m] !== undefined && proj.planned[m] !== null
                             ? proj.planned[m].toFixed(2)
                             : '-'}
@@ -396,7 +404,7 @@ const SyncedScrollTable = ({
                         const val = proj.actual[m];
                         const hasVal = !isFutureMonth(m) && val !== undefined && val !== null;
                         return (
-                          <td key={m} className="px-4 py-2.5 text-center align-middle font-bold text-slate-800">
+                          <td key={m} className="px-4 py-2.5 text-center align-middle font-bold text-slate-800 border-r border-slate-200">
                             {hasVal ? renderActualBadge(val.toFixed(2), isFiltered) : '-'}
                           </td>
                         );
@@ -442,7 +450,7 @@ const SyncedScrollTable = ({
                         const act = proj.actual[m] || 0;
                         const eff = isFutureMonth(m) ? null : (plan > 0 ? Math.round((act / plan) * 100) : null);
                         return (
-                          <td key={m} className="px-4 py-2.5 text-center align-middle font-bold border-b-2 border-slate-300 text-slate-800">
+                          <td key={m} className="px-4 py-2.5 text-center align-middle font-bold border-b-2 border-r border-slate-300 text-slate-800">
                             {eff !== null && eff !== undefined ? renderEfficiencyBadge(eff, isFiltered) : '-'}
                           </td>
                         );
@@ -687,12 +695,11 @@ export default function ConstructionBudget() {
 
   const hasRangeFilter = !!(filters?.dateFrom || filters?.dateTo || (filters?.selectedQuarters && filters.selectedQuarters.length < 4));
 
-  const card1Title = hasRangeFilter ? "Planned in Range (₹ Cr)" : "FY Planned (₹ Cr)";
-  const card1Subtitle = hasRangeFilter
-    ? `${activeMonths[0]} to ${activeMonths[activeMonths.length - 1]}`
-    : `${months[0]} to ${months[months.length - 1]}`;
+  // Card titles — always fixed, do not change with quarter/date filters
+  const card1Title = "FY Actual (₹ Cr)";
+  const card1Subtitle = `${months[0]} to ${months[months.length - 1]}`;
 
-  const card2Title = hasRangeFilter ? "Actual in Range (₹ Cr)" : "Actual to Date (₹ Cr)";
+  const card2Title = "Actual to Date (₹ Cr)";
 
   const latestActiveActualMonth = React.useMemo(() => {
     const reportingIndex = months.indexOf(latestMonthWithActual);
@@ -728,36 +735,63 @@ export default function ConstructionBudget() {
       className="space-y-6 pb-12 pt-2"
     >
 
-      {/* KPI Cards & Charts Row — Cards stacked left, charts right */}
-      <motion.div variants={itemVariants} className="flex gap-6 items-stretch h-[460px]">
+      {/* KPI Cards & Charts Row — Merged card left, charts right */}
+      <motion.div variants={itemVariants} className="flex gap-6 items-stretch h-[340px]">
 
-        {/* LEFT: 2 KPI cards stacked vertically */}
-        <div className="flex flex-col gap-4 w-[340px] shrink-0">
-          <div className="flex-1">
-            <KPICard
-              title={card1Title}
-              budget={totalFYPlanned}
-              actual={totalActualToDate}
-              eff={totalFYPlanned > 0 ? (totalActualToDate / totalFYPlanned) * 100 : 0}
-              prefix="₹"
-              suffix=" Cr"
-              decimals={2}
-              icon={Hammer}
-              borderStyle="border-l-4 border-[#10b981]"
-            />
+        {/* LEFT: Single merged card — FY Actual + Overall Completion */}
+        <div className="w-[340px] shrink-0 bg-white rounded-3xl p-5 border-l-4 border-[#10b981] border border-slate-100/80 shadow-premium hover:shadow-premium-hover flex flex-col justify-between relative overflow-hidden">
+          {/* FY Actual section */}
+          <div>
+            <div className="flex justify-between items-start">
+              <span className="text-[12px] font-extrabold uppercase tracking-wider text-slate-700">{card1Title}</span>
+              <div className="p-2 bg-nyati-navy/5 text-nyati-navy rounded-lg">
+                <Hammer className="w-4 h-4 text-nyati-navy" />
+              </div>
+            </div>
+            <h2 className="text-[28px] font-black mt-0.5 text-nyati-navy">
+              ₹<AnimatedNumber value={totalActualToDate} decimals={2} /> Cr
+            </h2>
+            {/* Budget Target & Variance */}
+            <div className="grid grid-cols-2 gap-3 mt-2 border-t border-b border-slate-200 py-2 text-xs">
+              <div>
+                <span className="text-slate-600 block text-[11px] font-extrabold uppercase tracking-wide">Budget Target</span>
+                <span className="font-black text-slate-800 text-[14px] block mt-0.5">₹{totalFYPlanned.toFixed(2)} Cr</span>
+              </div>
+              <div>
+                <span className="text-slate-600 block text-[11px] font-extrabold uppercase tracking-wide">Variance</span>
+                <span className={`font-black text-[14px] block mt-0.5 ${(totalFYPlanned - totalActualToDate) > 0 ? 'text-nyati-danger' : 'text-nyati-success'}`}>
+                  ₹{(totalActualToDate - totalFYPlanned).toFixed(2)} Cr
+                </span>
+              </div>
+            </div>
+            {/* Efficiency bar */}
+            <div className="mt-2 space-y-1">
+              <div className="flex justify-between items-center text-[11px]">
+                <span className="font-bold text-slate-700 uppercase tracking-wide">Efficiency Rate</span>
+                <div className="flex items-center gap-2">
+                  {(() => { const e = totalFYPlanned > 0 ? (totalActualToDate / totalFYPlanned) * 100 : 0; return (<><span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${e >= 80 ? 'bg-nyati-success/10 text-nyati-success' : e >= 50 ? 'bg-nyati-warning/10 text-nyati-warning' : 'bg-nyati-danger/10 text-nyati-danger'}`}>{e >= 80 ? 'On Target' : e >= 50 ? 'Progressing' : 'Critical'}</span><span className="font-black text-nyati-navy text-[14px]"><AnimatedNumber value={e} suffix="%" decimals={1} /></span></>); })()}
+                </div>
+              </div>
+              <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                {(() => { const e = totalFYPlanned > 0 ? (totalActualToDate / totalFYPlanned) * 100 : 0; return (<motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(100, e)}%` }} transition={{ duration: 1.2, ease: 'easeOut' }} className={`h-full rounded-full ${e >= 80 ? 'bg-nyati-success' : e >= 50 ? 'bg-nyati-warning' : 'bg-nyati-danger'}`} />); })()}
+              </div>
+            </div>
           </div>
-          <div className="flex-1">
-            <KPICard
-              title="Overall Completion"
-              budget={100}
-              actual={avgConstComp}
-              eff={avgConstComp}
-              suffix="%"
-              decimals={0}
-              icon={PieChart}
-              borderStyle="border-l-4 border-[#4f46e5]"
-              hideEfficiency={true}
-            />
+
+          {/* Divider */}
+          <div className="border-t border-dashed border-slate-200 my-3" />
+
+          {/* Overall Completion section */}
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-[12px] font-extrabold uppercase tracking-wider text-slate-700">Overall Completion</span>
+              <h2 className="text-[32px] font-black text-[#4f46e5] leading-none mt-0.5">
+                <AnimatedNumber value={avgConstComp} decimals={0} suffix="%" />
+              </h2>
+            </div>
+            <div className="p-2 bg-[#4f46e5]/5 rounded-lg">
+              <PieChart className="w-5 h-5 text-[#4f46e5]" />
+            </div>
           </div>
         </div>
 

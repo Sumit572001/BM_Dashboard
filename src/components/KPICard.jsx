@@ -29,7 +29,8 @@ export default function KPICard({
   borderStyle = 'border-l-4 border-nyati-orange',
   simple = false,
   bgClass = 'bg-white',
-  hideEfficiency = false
+  hideEfficiency = false,
+  hideBudgetTarget = false
 }) {
   // Status Badge Logic
   let statusColor = 'bg-nyati-danger/10 text-nyati-danger';
@@ -53,7 +54,7 @@ export default function KPICard({
       <div className="flex justify-between items-start">
         <div>
           <span className="text-[13px] font-extrabold uppercase tracking-wider text-slate-700">{title}</span>
-          <h2 className="text-[25px] font-black mt-1 text-nyati-navy">
+          <h2 className={`${hideBudgetTarget ? 'text-[38px]' : 'text-[25px]'} font-black mt-1 text-nyati-navy`}>
             <AnimatedNumber value={actual} prefix={prefix} suffix={suffix} decimals={decimals} />
           </h2>
         </div>
@@ -63,21 +64,23 @@ export default function KPICard({
       </div>
       {!simple && (
         <>
-          {/* Target Comparison */}
-          <div className="grid grid-cols-2 gap-3 mb-2 mt-3 border-t border-b border-slate-200 py-2 text-xs">
-            <div>
-              <span className="text-slate-600 block text-[12px] font-extrabold uppercase tracking-wide">Budget Target</span>
-              <span className="font-black text-slate-850 text-[15.5px] block mt-0.5">
-                {prefix}{budget.toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}{suffix}
-              </span>
+          {/* Target Comparison — hidden when hideBudgetTarget is true */}
+          {!hideBudgetTarget && (
+            <div className="grid grid-cols-2 gap-3 mb-2 mt-3 border-t border-b border-slate-200 py-2 text-xs">
+              <div>
+                <span className="text-slate-600 block text-[12px] font-extrabold uppercase tracking-wide">Budget Target</span>
+                <span className="font-black text-slate-850 text-[15.5px] block mt-0.5">
+                  {prefix}{budget.toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}{suffix}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-600 block text-[12px] font-extrabold uppercase tracking-wide">Variance</span>
+                <span className={`font-black text-[15.5px] block mt-0.5 ${(budget - actual) > 0 ? 'text-nyati-danger' : 'text-nyati-success'}`}>
+                  {prefix}{(actual - budget).toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}{suffix}
+                </span>
+              </div>
             </div>
-            <div>
-              <span className="text-slate-600 block text-[12px] font-extrabold uppercase tracking-wide">Variance</span>
-              <span className={`font-black text-[15.5px] block mt-0.5 ${(budget - actual) > 0 ? 'text-nyati-danger' : 'text-nyati-success'}`}>
-                {prefix}{(actual - budget).toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}{suffix}
-              </span>
-            </div>
-          </div>
+          )}
 
           {/* Progress & Efficiency Indicator */}
           {!hideEfficiency && (
