@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { cleanProjName, getQuarterFromMonth } from '../utils/dataHelpers';
-import { Hammer, AlertTriangle, PieChart } from 'lucide-react';
+import { Hammer, AlertTriangle, PieChart, Home, Award } from 'lucide-react';
 import { motion } from 'framer-motion';
 import KPICard from '../components/KPICard';
 import AnimatedNumber from '../components/AnimatedNumber';
@@ -118,20 +118,23 @@ const SyncedScrollTable = ({
     switch (type) {
       case 'L':
         return (
-          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${txtSmall} font-extrabold bg-amber-50 text-amber-700 border border-amber-200 uppercase shadow-sm`}>
-            🏠 LUX
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-100 uppercase shadow-sm`}>
+            <Award className="w-3 h-3 text-amber-600" />
+            Luxe
           </span>
         );
       case 'C':
         return (
-          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${txtSmall} font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase shadow-sm`}>
-            🏢 COMM
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 uppercase shadow-sm`}>
+            <Home className="w-3 h-3 text-indigo-600" />
+            Comm
           </span>
         );
       default:
         return (
-          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${txtSmall} font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase shadow-sm`}>
-            🏠 RESI
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 uppercase shadow-sm`}>
+            <Home className="w-3 h-3 text-emerald-600" />
+            Resi
           </span>
         );
     }
@@ -339,11 +342,11 @@ const SyncedScrollTable = ({
                     <tr className={`${projIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
                       <td
                         rowSpan={3}
-                        className={`sticky left-0 z-20 px-5 py-4 font-bold text-slate-900 border-r border-b-2 border-slate-300 text-left align-middle ${txtBase} leading-snug`}
+                        className={`sticky left-0 z-20 px-4 py-3 font-semibold text-slate-800 border-r border-b-2 border-slate-300 text-left align-middle ${txtBase} leading-snug`}
                         style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
                       >
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-extrabold whitespace-nowrap">{proj.name}</span>
+                        <div className="flex flex-row items-center gap-2 justify-start text-left">
+                          <span className="text-slate-800 text-[14px] font-semibold whitespace-normal break-words">{proj.name}</span>
                           {renderProjectTypeBadge(proj.name)}
                         </div>
                       </td>
@@ -632,9 +635,7 @@ export default function ConstructionBudget() {
   const avgConstEff = filteredProjects.length > 0
     ? filteredProjects.reduce((s, p) => s + p.construction.eff, 0) / filteredProjects.length
     : 0;
-  const avgConstComp = filteredProjects.length > 0
-    ? filteredProjects.reduce((s, p) => s + p.construction.completion, 0) / filteredProjects.length
-    : 0;
+  const avgConstComp = totalFYPlanned > 0 ? (totalActualToDate / totalFYPlanned) * 100 : 0;
 
   const constructionPoints = [
     {

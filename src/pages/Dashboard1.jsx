@@ -36,27 +36,31 @@ export default function Dashboard1() {
     return getLatestActualQuarter(filteredProjects);
   }, [filteredProjects]);
 
-  const [selectedPeriod, setSelectedPeriod] = useState('Q1');
+  const [selectedPeriod, setSelectedPeriod] = useState('Selected');
   const [hasInitialized, setHasInitialized] = useState(false);
 
-  // Initialize selectedPeriod to the latest actual quarter on mount/data load
+  // Initialize selectedPeriod to 'Selected' on mount
   useEffect(() => {
     if (filteredProjects.length > 0 && !hasInitialized) {
-      setSelectedPeriod(latestQuarter);
+      setSelectedPeriod('Selected');
       setHasInitialized(true);
     }
-  }, [filteredProjects, latestQuarter, hasInitialized]);
+  }, [filteredProjects, hasInitialized]);
 
   // Sync dropdown selection to the global selectedQuarters filter
   useEffect(() => {
-    let q = 'Q1';
+    if (selectedPeriod === 'Selected') return;
+
+    let q = '';
     if (selectedPeriod === 'Q1' || ['Apr-26', 'May-26', 'Jun-26'].includes(selectedPeriod)) q = 'Q1';
     else if (selectedPeriod === 'Q2' || ['Jul-26', 'Aug-26', 'Sep-26'].includes(selectedPeriod)) q = 'Q2';
     else if (selectedPeriod === 'Q3' || ['Oct-26', 'Nov-26', 'Dec-26'].includes(selectedPeriod)) q = 'Q3';
     else if (selectedPeriod === 'Q4' || ['Jan-27', 'Feb-27', 'Mar-27'].includes(selectedPeriod)) q = 'Q4';
 
-    if (filters.selectedQuarters.length !== 1 || filters.selectedQuarters[0] !== q) {
-      updateFilters({ selectedQuarters: [q] });
+    if (q) {
+      if (filters.selectedQuarters.length !== 1 || filters.selectedQuarters[0] !== q) {
+        updateFilters({ selectedQuarters: [q] });
+      }
     }
   }, [selectedPeriod]);
 
@@ -73,19 +77,35 @@ export default function Dashboard1() {
       if (currentQ !== q) {
         setSelectedPeriod(q);
       }
+    } else {
+      setSelectedPeriod('Selected');
     }
   }, [filters.selectedQuarters]);
 
   // Helper to aggregate data for Q1, Q2, Q3, Q4 or specific month
-  const getPeriodTotals = (projects, period) => {
+  const getPeriodTotals = (projects, period, selectedQuarters = ['Q1', 'Q2', 'Q3', 'Q4']) => {
     let months = [];
-    let fraction = 1/12;
-    if (period === 'Q1') { months = ['Apr-26', 'May-26', 'Jun-26']; fraction = 3/12; }
-    else if (period === 'Q2') { months = ['Jul-26', 'Aug-26', 'Sep-26']; fraction = 3/12; }
-    else if (period === 'Q3') { months = ['Oct-26', 'Nov-26', 'Dec-26']; fraction = 3/12; }
-    else if (period === 'Q4') { months = ['Jan-27', 'Feb-27', 'Mar-27']; fraction = 3/12; }
-    else { months = [period]; fraction = 1/12; }
+    const qMonths = {
+      'Q1': ['Apr-26', 'May-26', 'Jun-26'],
+      'Q2': ['Jul-26', 'Aug-26', 'Sep-26'],
+      'Q3': ['Oct-26', 'Nov-26', 'Dec-26'],
+      'Q4': ['Jan-27', 'Feb-27', 'Mar-27']
+    };
 
+    if (period && !period.startsWith('Q') && period !== 'Selected' && period !== 'All') {
+      months = [period];
+    } else if (period && period.startsWith('Q') && period !== 'Selected') {
+      months = qMonths[period] || [];
+    } else {
+      const activeQs = selectedQuarters && selectedQuarters.length > 0 ? selectedQuarters : ['Q1', 'Q2', 'Q3', 'Q4'];
+      activeQs.forEach(q => {
+        if (qMonths[q]) {
+          months = [...months, ...qMonths[q]];
+        }
+      });
+    }
+
+    const fraction = months.length / 12;
     let totalUnits = 0;
     let balance = 0;
     let unitsTarget = 0;
@@ -146,7 +166,7 @@ export default function Dashboard1() {
   };
 
   // Get aggregated grand totals across current filtered set & selected period
-  const totals = getPeriodTotals(filteredProjects, selectedPeriod);
+  const totals = getPeriodTotals(filteredProjects, selectedPeriod, filters.selectedQuarters);
 
   // Extra Details for Units
   const unitsExtra = (

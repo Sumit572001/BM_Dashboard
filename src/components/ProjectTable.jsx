@@ -153,11 +153,29 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
   const showMonthlyColumns = salesMonths.length > 0;
 
   const getActiveMonthsForPeriod = (period) => {
-    if (period === 'Q1') return ['Apr-26', 'May-26', 'Jun-26'];
-    if (period === 'Q2') return ['Jul-26', 'Aug-26', 'Sep-26'];
-    if (period === 'Q3') return ['Oct-26', 'Nov-26', 'Dec-26'];
-    if (period === 'Q4') return ['Jan-27', 'Feb-27', 'Mar-27'];
-    return [period];
+    const qMonths = {
+      'Q1': ['Apr-26', 'May-26', 'Jun-26'],
+      'Q2': ['Jul-26', 'Aug-26', 'Sep-26'],
+      'Q3': ['Oct-26', 'Nov-26', 'Dec-26'],
+      'Q4': ['Jan-27', 'Feb-27', 'Mar-27']
+    };
+
+    if (period && !period.startsWith('Q') && period !== 'Selected' && period !== 'All') {
+      return [period];
+    } else if (period && period.startsWith('Q') && period !== 'Selected') {
+      return qMonths[period] || [];
+    } else {
+      const activeQs = filters?.selectedQuarters && filters.selectedQuarters.length > 0
+        ? filters.selectedQuarters
+        : ['Q1', 'Q2', 'Q3', 'Q4'];
+      let months = [];
+      activeQs.forEach(q => {
+        if (qMonths[q]) {
+          months = [...months, ...qMonths[q]];
+        }
+      });
+      return months;
+    }
   };
 
   const getPeriodVal = (p, period, metricKey, format) => {
@@ -389,7 +407,12 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                   onChange={(e) => setSelectedPeriod(e.target.value)}
                   className="bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-1.5 text-sm font-black text-nyati-navy focus:outline-none cursor-pointer hover:bg-slate-100 transition-colors"
                 >
-                  {activeQ === 'Q1' && (
+                  <option value="Selected">
+                    {filters?.selectedQuarters?.length === 4 || filters?.selectedQuarters?.length === 0
+                      ? 'All Quarters'
+                      : `Selected (${[...(filters?.selectedQuarters || [])].sort().join(' + ')})`}
+                  </option>
+                  {(filters?.selectedQuarters || ['Q1', 'Q2', 'Q3', 'Q4']).includes('Q1') && (
                     <optgroup label="Q1">
                       <option value="Q1">Q1 (Apr - Jun)</option>
                       <option value="Apr-26">Apr-26</option>
@@ -397,7 +420,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                       <option value="Jun-26">Jun-26</option>
                     </optgroup>
                   )}
-                  {activeQ === 'Q2' && (
+                  {(filters?.selectedQuarters || ['Q1', 'Q2', 'Q3', 'Q4']).includes('Q2') && (
                     <optgroup label="Q2">
                       <option value="Q2">Q2 (Jul - Sep)</option>
                       <option value="Jul-26">Jul-26</option>
@@ -405,7 +428,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                       <option value="Sep-26">Sep-26</option>
                     </optgroup>
                   )}
-                  {activeQ === 'Q3' && (
+                  {(filters?.selectedQuarters || ['Q1', 'Q2', 'Q3', 'Q4']).includes('Q3') && (
                     <optgroup label="Q3">
                       <option value="Q3">Q3 (Oct - Dec)</option>
                       <option value="Oct-26">Oct-26</option>
@@ -413,7 +436,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                       <option value="Dec-26">Dec-26</option>
                     </optgroup>
                   )}
-                  {activeQ === 'Q4' && (
+                  {(filters?.selectedQuarters || ['Q1', 'Q2', 'Q3', 'Q4']).includes('Q4') && (
                     <optgroup label="Q4">
                       <option value="Q4">Q4 (Jan - Mar)</option>
                       <option value="Jan-27">Jan-27</option>
@@ -670,7 +693,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                         className="px-3 py-1.5 font-normal text-slate-700 min-w-[140px] text-[14px]"
                       >
                         <div className="flex flex-row items-center gap-2 justify-start text-left">
-                          <span className="text-slate-800 text-[14px] font-medium whitespace-normal break-words">{p.name}</span>
+                          <span className="text-slate-800 text-[14px] font-semibold whitespace-normal break-words">{p.name}</span>
                           {renderTypeBadge(p.type)}
                         </div>
                       </td>
@@ -766,7 +789,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                         className="px-3 py-1.5 font-normal text-slate-700 sticky left-0 bg-white group-hover:bg-sky-50 z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200 min-w-[140px] transition-colors text-[14px]"
                       >
                         <div className="flex flex-row items-center gap-2 justify-start text-left">
-                          <span className="text-slate-800 text-[14px] font-medium whitespace-normal break-words">{p.name}</span>
+                          <span className="text-slate-800 text-[14px] font-semibold whitespace-normal break-words">{p.name}</span>
                           {renderTypeBadge(p.type)}
                         </div>
                       </td>

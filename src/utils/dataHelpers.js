@@ -2292,31 +2292,61 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
             age31_60: 0,
             age61_90: 0,
             age91_120: 0,
-            ageGt120: 0
+            ageGt120: 0,
+            age0_30_reg: 0,
+            age31_60_reg: 0,
+            age61_90_reg: 0,
+            age91_120_reg: 0,
+            ageGt120_reg: 0,
+            age0_30_unreg: 0,
+            age31_60_unreg: 0,
+            age61_90_unreg: 0,
+            age91_120_unreg: 0,
+            ageGt120_unreg: 0
           };
         }
         const pAge = projectAgeingLookup[cleanName];
 
         pAge.dueMilestone += getVal(r, ['Claimed Value']);
         pAge.actualCollection += getVal(r, ['Received']);
-        pAge.outstanding += getVal(r, ['Total Outstanding']);
-
-        pAge.soldUnits += 1;
+        
         const status = getStringVal(r, ['Status', 'Regis Status']).toLowerCase().trim();
-        const rowOutstanding = getVal(r, ['Total Outstanding']);
-        if (status === 'registered') {
+        const rawOutstanding = getVal(r, ['Total Outstanding']);
+        const rowOutstanding = rawOutstanding > 0 ? rawOutstanding : 0;
+        
+        pAge.outstanding += rowOutstanding;
+        pAge.soldUnits += 1;
+        const isReg = (status === 'registered');
+
+        const age_0_30_val = rowOutstanding > 0 ? getVal(r, ['0-30 Days', '0-30 Days (₹ Cr)', 'Slab_15', 'Slab_30']) : 0;
+        const age_31_60_val = rowOutstanding > 0 ? getVal(r, ['31-60 Days', '31-60 Days (₹ Cr)', 'Slab_60']) : 0;
+        const age_61_90_val = rowOutstanding > 0 ? getVal(r, ['61-90 Days', '61-90 Days (₹ Cr)', 'Slab_90']) : 0;
+        const age_91_120_val = rowOutstanding > 0 ? getVal(r, ['91-120 Days', '91-120 Days (₹ Cr)', 'Slab_120']) : 0;
+        const age_gt120_val = rowOutstanding > 0 ? getVal(r, ['> 120 Days', '>120 Days (₹ Cr)', 'Slab_365', 'Slab_MoreThan_365']) : 0;
+
+        if (isReg) {
           pAge.registeredOS += rowOutstanding;
           pAge.registeredUnits += 1;
+          pAge.age0_30_reg += age_0_30_val;
+          pAge.age31_60_reg += age_31_60_val;
+          pAge.age61_90_reg += age_61_90_val;
+          pAge.age91_120_reg += age_91_120_val;
+          pAge.ageGt120_reg += age_gt120_val;
         } else {
           pAge.unregisteredOS += rowOutstanding;
           pAge.unregisteredUnits += 1;
+          pAge.age0_30_unreg += age_0_30_val;
+          pAge.age31_60_unreg += age_31_60_val;
+          pAge.age61_90_unreg += age_61_90_val;
+          pAge.age91_120_unreg += age_91_120_val;
+          pAge.ageGt120_unreg += age_gt120_val;
         }
 
-        pAge.age0_30 += getVal(r, ['0-30 Days', '0-30 Days (₹ Cr)', 'Slab_15', 'Slab_30']);
-        pAge.age31_60 += getVal(r, ['31-60 Days', '31-60 Days (₹ Cr)', 'Slab_60']);
-        pAge.age61_90 += getVal(r, ['61-90 Days', '61-90 Days (₹ Cr)', 'Slab_90']);
-        pAge.age91_120 += getVal(r, ['91-120 Days', '91-120 Days (₹ Cr)', 'Slab_120']);
-        pAge.ageGt120 += getVal(r, ['> 120 Days', '>120 Days (₹ Cr)', 'Slab_365', 'Slab_MoreThan_365']);
+        pAge.age0_30 += age_0_30_val;
+        pAge.age31_60 += age_31_60_val;
+        pAge.age61_90 += age_61_90_val;
+        pAge.age91_120 += age_91_120_val;
+        pAge.ageGt120 += age_gt120_val;
       } else {
         // If no project filter is active, accumulate legacy data under Old Projects
         if (!isProjectFiltered) {
@@ -2327,11 +2357,14 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
 
           legacyDue += getVal(r, ['Claimed Value']);
           legacyReceived += getVal(r, ['Received']);
-          legacyOutstanding += getVal(r, ['Total Outstanding']);
-
+          
+          const rawOutstanding = getVal(r, ['Total Outstanding']);
+          const rowOutstanding = rawOutstanding > 0 ? rawOutstanding : 0;
+          
+          legacyOutstanding += rowOutstanding;
           legacySoldUnits += 1;
+          
           const status = getStringVal(r, ['Status', 'Regis Status']).toLowerCase().trim();
-          const rowOutstanding = getVal(r, ['Total Outstanding']);
           if (status === 'registered') {
             legacyRegisteredOS += rowOutstanding;
             legacyRegisteredUnits += 1;
@@ -2340,11 +2373,11 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
             legacyUnregisteredUnits += 1;
           }
 
-          legacyAge0_30 += getVal(r, ['0-30 Days', '0-30 Days (₹ Cr)', 'Slab_15', 'Slab_30']);
-          legacyAge31_60 += getVal(r, ['31-60 Days', '31-60 Days (₹ Cr)', 'Slab_60']);
-          legacyAge61_90 += getVal(r, ['61-90 Days', '61-90 Days (₹ Cr)', 'Slab_90']);
-          legacyAge91_120 += getVal(r, ['91-120 Days', '91-120 Days (₹ Cr)', 'Slab_120']);
-          legacyAgeGt120 += getVal(r, ['> 120 Days', '>120 Days (₹ Cr)', 'Slab_365', 'Slab_MoreThan_365']);
+          legacyAge0_30 += rowOutstanding > 0 ? getVal(r, ['0-30 Days', '0-30 Days (₹ Cr)', 'Slab_15', 'Slab_30']) : 0;
+          legacyAge31_60 += rowOutstanding > 0 ? getVal(r, ['31-60 Days', '31-60 Days (₹ Cr)', 'Slab_60']) : 0;
+          legacyAge61_90 += rowOutstanding > 0 ? getVal(r, ['61-90 Days', '61-90 Days (₹ Cr)', 'Slab_90']) : 0;
+          legacyAge91_120 += rowOutstanding > 0 ? getVal(r, ['91-120 Days', '91-120 Days (₹ Cr)', 'Slab_120']) : 0;
+          legacyAgeGt120 += rowOutstanding > 0 ? getVal(r, ['> 120 Days', '>120 Days (₹ Cr)', 'Slab_365', 'Slab_MoreThan_365']) : 0;
         }
       }
     });
@@ -2389,7 +2422,9 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
         soldUnits: 0,
         registeredUnits: 0,
         unregisteredUnits: 0,
-        ageing: { '0-30': 0, '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: 0 }
+        ageing: { '0-30': 0, '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: 0 },
+        ageing_reg: { '0-30': 0, '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: 0 },
+        ageing_unreg: { '0-30': 0, '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: 0 }
       };
     }
 
@@ -2411,6 +2446,22 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
         '91-120': toCr(pAge.age91_120),
         'gt120': toCr(pAge.ageGt120),
         total: toCr(pAge.outstanding)
+      },
+      ageing_reg: {
+        '0-30': toCr(pAge.age0_30_reg),
+        '31-60': toCr(pAge.age31_60_reg),
+        '61-90': toCr(pAge.age61_90_reg),
+        '91-120': toCr(pAge.age91_120_reg),
+        'gt120': toCr(pAge.ageGt120_reg),
+        total: toCr(pAge.registeredOS)
+      },
+      ageing_unreg: {
+        '0-30': toCr(pAge.age0_30_unreg),
+        '31-60': toCr(pAge.age31_60_unreg),
+        '61-90': toCr(pAge.age61_90_unreg),
+        '91-120': toCr(pAge.age91_120_unreg),
+        'gt120': toCr(pAge.ageGt120_unreg),
+        total: toCr(pAge.unregisteredOS)
       }
     };
   });

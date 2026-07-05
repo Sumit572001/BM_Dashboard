@@ -83,7 +83,9 @@ export default function Dashboard2() {
     return getAgeingMetrics(deferredFilteredProjects, deferredRawData, deferredFilters);
   }, [deferredFilteredProjects, deferredRawData, deferredFilters]);
 
-  const enrichedProjects = ageingResult.projects;
+  const enrichedProjects = useMemo(() => {
+    return ageingResult.projects.filter(p => !p.name.trim().toUpperCase().includes('OLD PROJECT'));
+  }, [ageingResult.projects]);
   const totals = ageingResult.totals;
 
   const [ageingView, setAgeingView] = useState('graph'); // 'table' | 'graph'
@@ -101,8 +103,16 @@ export default function Dashboard2() {
       let projects = enrichedProjects.filter(p => !p.name.trim().toUpperCase().includes('OLD PROJECT'));
       if (ageingRegFilter === 'registered') {
         projects = projects.filter(p => (p.registeredUnits || 0) > 0);
+        projects = projects.map(p => ({
+          ...p,
+          ageing: p.ageing_reg || { '0-30': 0, '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: 0 }
+        }));
       } else if (ageingRegFilter === 'unregistered') {
         projects = projects.filter(p => (p.unregisteredUnits || 0) > 0);
+        projects = projects.map(p => ({
+          ...p,
+          ageing: p.ageing_unreg || { '0-30': 0, '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: 0 }
+        }));
       }
       return projects;
     },
@@ -231,19 +241,23 @@ export default function Dashboard2() {
 
 
   // Calculate Consolidated Grand Totals
-  const grandTotalSoldVal = enrichedProjects.reduce((s, p) => s + p.actualValCr, 0);
-  const grandTotalDueMilestone = totals.dueMilestone;
-  const grandTotalCollection = totals.actualCollection;
-  const grandTotalInceptionCollection = totals.totalCollection || 0;
-  const grandTotalSalesCollection = filteredProjects.reduce((s, p) => s + p.actualCollection, 0);
-  const grandTotalOutstanding = totals.outstanding;
-  const grandTotalRegOS = totals.registeredOS;
-  const grandTotalUnregOS = totals.unregisteredOS;
+  const grandTotalSoldVal = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.actualValCr || 0), 0), [enrichedProjects]);
+  const grandTotalDueMilestone = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.dueMilestone || 0), 0), [enrichedProjects]);
+  const grandTotalCollection = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.actualCollection || 0), 0), [enrichedProjects]);
+  const grandTotalInceptionCollection = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.totalCollection || 0), 0), [enrichedProjects]);
+  const grandTotalSalesCollection = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.actualCollection || 0), 0), [enrichedProjects]);
+  const grandTotalOutstanding = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.outstanding || 0), 0), [enrichedProjects]);
+  const grandTotalRegOS = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.registeredOS || 0), 0), [enrichedProjects]);
+  const grandTotalUnregOS = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.unregisteredOS || 0), 0), [enrichedProjects]);
+
+  const grandTotalSoldUnits = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.soldUnits || 0), 0), [enrichedProjects]);
+  const grandTotalRegisteredUnits = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.registeredUnits || 0), 0), [enrichedProjects]);
+  const grandTotalUnregisteredUnits = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.unregisteredUnits || 0), 0), [enrichedProjects]);
 
   // Budget calculations for Outstanding KPI Cards
-  const grandTotalBudgetVal = enrichedProjects.reduce((s, p) => s + p.budgetValCr, 0);
-  const grandTotalBudgetDue = enrichedProjects.reduce((s, p) => s + (p.budgetValCr * 0.85), 0);
-  const grandTotalBudgetCollection = enrichedProjects.reduce((s, p) => s + p.budgetCollection, 0);
+  const grandTotalBudgetVal = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.budgetValCr || 0), 0), [enrichedProjects]);
+  const grandTotalBudgetDue = useMemo(() => enrichedProjects.reduce((s, p) => s + ((p.budgetValCr || 0) * 0.85), 0), [enrichedProjects]);
+  const grandTotalBudgetCollection = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.budgetCollection || 0), 0), [enrichedProjects]);
   const grandTotalBudgetOS = grandTotalBudgetDue - grandTotalBudgetCollection;
 
   // Extra Details for Sales Card
@@ -465,9 +479,9 @@ export default function Dashboard2() {
         <div className="grid grid-cols-2 gap-4 flex-1">
           <KPICard
             title="Total Sales"
-            budget={totals.budgetValCr}
-            actual={totals.actualValCr}
-            eff={totals.budgetValCr > 0 ? (totals.actualValCr / totals.budgetValCr) * 100 : 0}
+            budget={grandTotalBudgetVal}
+            actual={grandTotalSoldVal}
+            eff={grandTotalBudgetVal > 0 ? (grandTotalSoldVal / grandTotalBudgetVal) * 100 : 0}
             prefix="₹"
             suffix=" Cr"
             decimals={2}
@@ -518,8 +532,8 @@ export default function Dashboard2() {
           <KPICard
             title="Outstanding"
             budget={grandTotalBudgetOS}
-            actual={grandTotalRegOS}
-            eff={grandTotalRegOS > 0 ? (grandTotalBudgetOS / grandTotalRegOS) * 100 : 100}
+            actual={grandTotalOutstanding}
+            eff={grandTotalBudgetOS > 0 ? (grandTotalOutstanding / grandTotalBudgetOS) * 100 : 100}
             prefix="₹"
             suffix=" Cr"
             decimals={2}
@@ -622,7 +636,7 @@ export default function Dashboard2() {
             <tbody className="divide-y divide-slate-200 font-medium text-slate-850">
               {sortedProjects.map((p, index) => (
                 <tr key={p.name} className="hover:bg-slate-50/50 transition-colors border-b border-slate-200">
-                  <td className="px-6 py-3.5 font-bold text-slate-700 min-w-[220px] w-[220px] max-w-[220px] border-r border-slate-200 text-left">
+                  <td className="px-6 py-3.5 font-semibold text-slate-700 min-w-[220px] w-[220px] max-w-[220px] border-r border-slate-200 text-left">
                     <div className="flex flex-col items-start gap-1">
                       <span>{p.name}</span>
                       {renderTypeBadge(p.type)}
@@ -657,9 +671,9 @@ export default function Dashboard2() {
                     ₹{grandTotalCollection.toFixed(2)}
                   </span>
                 </td>
-                <td className="px-4 py-4 text-center text-slate-700 w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{totals.soldUnits || 0}</td>
-                <td className="px-4 py-4 text-center text-slate-700 w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{totals.registeredUnits || 0}</td>
-                <td className="px-4 py-4 text-center text-slate-700 w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{totals.unregisteredUnits || 0}</td>
+                <td className="px-4 py-4 text-center text-slate-700 w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{grandTotalSoldUnits}</td>
+                <td className="px-4 py-4 text-center text-slate-700 w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{grandTotalRegisteredUnits}</td>
+                <td className="px-4 py-4 text-center text-slate-700 w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{grandTotalUnregisteredUnits}</td>
                 <td className="px-4 py-4 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalDueMilestone.toFixed(2)}</td>
                 <td className="px-4 py-4 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalInceptionCollection.toFixed(2)}</td>
                 <td className="px-4 py-4 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">
@@ -769,7 +783,7 @@ export default function Dashboard2() {
               <tbody className="divide-y divide-slate-50 font-bold text-slate-800">
                 {ageingProjects.map((p) => (
                   <tr key={p.name} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-3.5 text-left font-bold text-slate-800">{p.name}</td>
+                    <td className="px-6 py-3.5 text-left font-semibold text-slate-800">{p.name}</td>
                     {['0-30', '31-60', '61-90', '91-120', 'gt120'].map((bucket) => {
                       const value = p.ageing[bucket];
                       return (
