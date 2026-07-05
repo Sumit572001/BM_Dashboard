@@ -438,7 +438,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                 <tr className="bg-slate-50 text-slate-900 uppercase font-black border-b border-slate-100 select-none text-[15px]">
                   <th
                     rowSpan={3}
-                    className="bg-nyati-navy text-white px-3 py-3 min-w-[200px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-white/20 text-center text-[15px]"
+                    className="bg-nyati-navy text-white px-3 py-3 min-w-[140px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-white/20 text-center text-[15px]"
                   >
                     <div className="flex items-center justify-center h-full text-white font-black text-[15px]">
                       Project Name
@@ -531,7 +531,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                 <tr className="bg-nyati-navy text-white uppercase font-black border-b border-white/20 select-none text-[15px]">
                   <th
                     rowSpan={3}
-                    className="bg-nyati-navy text-white px-3 py-3 min-w-[200px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-white/20 text-center text-[15px]"
+                    className="bg-nyati-navy text-white px-3 py-3 min-w-[140px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-white/20 text-center text-[15px]"
                   >
                     <div className="flex items-center justify-center h-full text-white font-black text-[15px]">
                       Project Name
@@ -558,31 +558,24 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                     };
 
                     const getLabel = () => {
-                      if (selectedPeriod === 'Q1') return 'April, May & June (Q1)';
-                      if (selectedPeriod === 'Q2') return 'July, August & September (Q2)';
-                      if (selectedPeriod === 'Q3') return 'October, November & December (Q3)';
-                      if (selectedPeriod === 'Q4') return 'January, February & March (Q4)';
-
-                      if (selectedPeriod && selectedPeriod !== 'All' && !selectedPeriod.startsWith('Q')) {
+                      // 1. If a specific month is selected from the dropdown, show month name
+                      if (selectedPeriod && !selectedPeriod.startsWith('Q') && selectedPeriod !== 'All') {
                         return getFullMonthName(selectedPeriod);
                       }
 
-                      if (salesMonths && salesMonths.length > 0) {
-                        if (salesMonths.length === 1) {
-                          return getFullMonthName(salesMonths[0]);
-                        }
-                        const names = salesMonths.map(m => getFullMonthName(m));
-                        let label = '';
-                        if (names.length === 2) {
-                          label = names.join(' & ');
-                        } else {
-                          label = names.slice(0, -1).join(', ') + ' & ' + names[names.length - 1];
-                        }
-                        const q = getQuarterFromMonth(salesMonths[0]);
-                        return q ? `${label} (${q})` : label;
+                      // 2. Always derive from global filters.selectedQuarters first
+                      //    This handles both single (Q2) and multi-quarter (Q1 + Q2) selections
+                      const activeQs = filters?.selectedQuarters || [];
+                      if (activeQs.length > 0 && activeQs.length < 4) {
+                        return [...activeQs].sort().join(' + ');
                       }
 
-                      return selectedPeriod;
+                      // 3. All quarters selected — fall back to selectedPeriod (the dropdown value)
+                      if (selectedPeriod && selectedPeriod.startsWith('Q')) {
+                        return selectedPeriod;
+                      }
+
+                      return 'All Quarters';
                     };
 
                     return (
@@ -674,7 +667,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                       className="hover:bg-sky-50/40 group transition-all duration-150 select-none text-[15px]"
                     >
                       <td
-                        className="px-3 py-1.5 font-bold text-slate-700 min-w-[160px] text-[15px]"
+                        className="px-3 py-1.5 font-normal text-slate-700 min-w-[140px] text-[14px]"
                       >
                         <div className="flex flex-row items-center gap-2 justify-start text-left">
                           <span className="text-slate-800 text-[14px] font-medium whitespace-normal break-words">{p.name}</span>
@@ -770,7 +763,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                       className="hover:bg-sky-50/40 group transition-all duration-150 select-none text-[15px] border-b border-slate-100"
                     >
                       <td
-                        className="px-3 py-1.5 font-bold text-slate-700 sticky left-0 bg-white group-hover:bg-sky-50 z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200 min-w-[160px] transition-colors text-[15px]"
+                        className="px-3 py-1.5 font-normal text-slate-700 sticky left-0 bg-white group-hover:bg-sky-50 z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200 min-w-[140px] transition-colors text-[14px]"
                       >
                         <div className="flex flex-row items-center gap-2 justify-start text-left">
                           <span className="text-slate-800 text-[14px] font-medium whitespace-normal break-words">{p.name}</span>
