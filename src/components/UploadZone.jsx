@@ -13,6 +13,22 @@ export default function UploadZone() {
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
 
+  React.useEffect(() => {
+    const autoLoadFile = async () => {
+      try {
+        const response = await fetch('/Data MIS for Dashboard 04.07.2026.xlsx');
+        if (!response.ok) return;
+        const blob = await response.blob();
+        const file = new File([blob], 'Data MIS for Dashboard 04.07.2026.xlsx', { type: blob.type });
+        await processFile(file);
+        console.log("=== AUTO LOADED EXCEL FILE ===");
+      } catch (e) {
+        console.error("Auto load error:", e);
+      }
+    };
+    autoLoadFile();
+  }, []);
+
   // File validator and processor
   const processFile = async (file) => {
     if (!file) return;

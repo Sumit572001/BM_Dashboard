@@ -173,6 +173,9 @@ export function aggregateMonthlyFields(p, filters) {
   const outstanding = parseFloat((dueMilestone - actualCollection).toFixed(2));
   const registeredOS = parseFloat((p.registeredOS * multiplier).toFixed(2));
   const unregisteredOS = parseFloat((p.unregisteredOS * multiplier).toFixed(2));
+  const soldUnits = Math.round((p.soldUnits || p.soldToDate || 0) * multiplier);
+  const registeredUnits = Math.round((p.registeredUnits || 0) * multiplier);
+  const unregisteredUnits = soldUnits - registeredUnits;
 
   const ageing = {
     '0-30': parseFloat((p.ageing['0-30'] * multiplier).toFixed(2)),
@@ -207,6 +210,9 @@ export function aggregateMonthlyFields(p, filters) {
     outstanding,
     registeredOS,
     unregisteredOS,
+    soldUnits,
+    registeredUnits,
+    unregisteredUnits,
     ageing
   };
 }
@@ -675,6 +681,7 @@ export function processRawData(rawData) {
         actualCollection,
         collectionEff,
         
+        soldUnits: soldToDate || 0,
         registeredUnits,
         unregisteredUnits,
         
@@ -1237,6 +1244,7 @@ export function processRawData(rawData) {
         actualCollection,
         collectionEff,
 
+        soldUnits: soldToDate || 0,
         registeredUnits,
         unregisteredUnits,
 
@@ -1465,6 +1473,7 @@ export function processRawData(rawData) {
       collectionEff,
 
       // Registrations
+      soldUnits: soldToDate || 0,
       registeredUnits,
       unregisteredUnits,
 
@@ -1618,6 +1627,7 @@ export function calculateGrandTotals(projects) {
       budgetValCr: 0, actualValCr: 0,
       budgetCollection: 0, actualCollection: 0, collectionEff: 0,
       outstanding: 0, dueMilestone: 0, registeredOS: 0, unregisteredOS: 0,
+      soldUnits: 0, registeredUnits: 0, unregisteredUnits: 0,
       ageing: { '0-30': 0, '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: 0 }
     };
   }
@@ -1698,6 +1708,9 @@ export function calculateGrandTotals(projects) {
   const dueMilestone = sum('dueMilestone');
   const registeredOS = sum('registeredOS');
   const unregisteredOS = sum('unregisteredOS');
+  const soldUnits = sum('soldUnits') || soldToDate;
+  const registeredUnits = sum('registeredUnits');
+  const unregisteredUnits = sum('unregisteredUnits');
 
   // Rates
   const budgetRate = budgetArea > 0 ? (budgetValCr * 10000000) / budgetArea : 0;
@@ -1735,6 +1748,9 @@ export function calculateGrandTotals(projects) {
     dueMilestone,
     registeredOS,
     unregisteredOS,
+    soldUnits,
+    registeredUnits,
+    unregisteredUnits,
     ageing
   };
 }
@@ -1802,6 +1818,9 @@ export function filterData(processedProjects, filters) {
       outstanding: scaledOS,
       registeredOS: parseFloat((scaledOS * 0.65).toFixed(2)),
       unregisteredOS: parseFloat((scaledOS * 0.35).toFixed(2)),
+      soldUnits: scaledSold,
+      registeredUnits: Math.round(scaledSold * 0.75),
+      unregisteredUnits: scaledSold - Math.round(scaledSold * 0.75),
       ageing: {
         '0-30': parseFloat((scaledOS * 0.35).toFixed(2)),
         '31-60': parseFloat((scaledOS * 0.25).toFixed(2)),
@@ -2075,6 +2094,7 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
     const actualValCr = sum('actualValCr');
     const budgetCollection = sum('budgetCollection');
     const actualCollection = sum('actualCollection');
+    const totalCollection = sum('totalCollection');
     const outstanding = sum('outstanding');
     const dueMilestone = sum('dueMilestone');
     const registeredOS = sum('registeredOS');
@@ -2097,11 +2117,15 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
       actualValCr,
       budgetCollection,
       actualCollection,
+      totalCollection,
       collectionEff: budgetCollection > 0 ? (actualCollection / budgetCollection) * 100 : 0,
       outstanding,
       dueMilestone,
       registeredOS,
       unregisteredOS,
+      soldUnits: sum('soldUnits'),
+      registeredUnits: sum('registeredUnits'),
+      unregisteredUnits: sum('unregisteredUnits'),
       ageing: {
         '0-30': sumNested('ageing', '0-30'),
         '31-60': sumNested('ageing', '31-60'),
@@ -2201,10 +2225,14 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
     const zeroProjects = filteredProjects.map(p => ({
       ...p,
       dueMilestone: 0,
-      actualCollection: 0,
+      actualCollection: p.actualCollection,
+      totalCollection: 0,
       outstanding: 0,
       registeredOS: 0,
       unregisteredOS: 0,
+      soldUnits: 0,
+      registeredUnits: 0,
+      unregisteredUnits: 0,
       ageing: { '0-30': 0, '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: 0 }
     }));
     return {
@@ -2235,6 +2263,9 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
   let legacyAge61_90 = 0;
   let legacyAge91_120 = 0;
   let legacyAgeGt120 = 0;
+  let legacySoldUnits = 0;
+  let legacyRegisteredUnits = 0;
+  let legacyUnregisteredUnits = 0;
 
   activeSheets.forEach(sheetObj => {
     const rows = rawData[sheetObj.key] || [];
@@ -2254,6 +2285,9 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
             outstanding: 0,
             registeredOS: 0,
             unregisteredOS: 0,
+            soldUnits: 0,
+            registeredUnits: 0,
+            unregisteredUnits: 0,
             age0_30: 0,
             age31_60: 0,
             age61_90: 0,
@@ -2267,12 +2301,15 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
         pAge.actualCollection += getVal(r, ['Received']);
         pAge.outstanding += getVal(r, ['Total Outstanding']);
 
-        const status = getStringVal(r, ['Status']).toLowerCase().trim();
+        pAge.soldUnits += 1;
+        const status = getStringVal(r, ['Status', 'Regis Status']).toLowerCase().trim();
         const rowOutstanding = getVal(r, ['Total Outstanding']);
         if (status === 'registered') {
           pAge.registeredOS += rowOutstanding;
+          pAge.registeredUnits += 1;
         } else {
           pAge.unregisteredOS += rowOutstanding;
+          pAge.unregisteredUnits += 1;
         }
 
         pAge.age0_30 += getVal(r, ['0-30 Days', '0-30 Days (₹ Cr)', 'Slab_15', 'Slab_30']);
@@ -2292,12 +2329,15 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
           legacyReceived += getVal(r, ['Received']);
           legacyOutstanding += getVal(r, ['Total Outstanding']);
 
-          const status = getStringVal(r, ['Status']).toLowerCase().trim();
+          legacySoldUnits += 1;
+          const status = getStringVal(r, ['Status', 'Regis Status']).toLowerCase().trim();
           const rowOutstanding = getVal(r, ['Total Outstanding']);
           if (status === 'registered') {
             legacyRegisteredOS += rowOutstanding;
+            legacyRegisteredUnits += 1;
           } else {
             legacyUnregisteredOS += rowOutstanding;
+            legacyUnregisteredUnits += 1;
           }
 
           legacyAge0_30 += getVal(r, ['0-30 Days', '0-30 Days (₹ Cr)', 'Slab_15', 'Slab_30']);
@@ -2318,6 +2358,9 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
       outstanding: legacyOutstanding,
       registeredOS: legacyRegisteredOS,
       unregisteredOS: legacyUnregisteredOS,
+      soldUnits: legacySoldUnits,
+      registeredUnits: legacyRegisteredUnits,
+      unregisteredUnits: legacyUnregisteredUnits,
       age0_30: legacyAge0_30,
       age31_60: legacyAge31_60,
       age61_90: legacyAge61_90,
@@ -2338,10 +2381,14 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
       return {
         ...proj,
         dueMilestone: 0,
-        actualCollection: 0,
+        actualCollection: proj.actualCollection,
+        totalCollection: 0,
         outstanding: 0,
         registeredOS: 0,
         unregisteredOS: 0,
+        soldUnits: 0,
+        registeredUnits: 0,
+        unregisteredUnits: 0,
         ageing: { '0-30': 0, '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: 0 }
       };
     }
@@ -2349,10 +2396,14 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
     return {
       ...proj,
       dueMilestone: toCr(pAge.dueMilestone),
-      actualCollection: toCr(pAge.actualCollection),
+      actualCollection: proj.actualCollection,
+      totalCollection: toCr(pAge.actualCollection),
       outstanding: toCr(pAge.outstanding),
       registeredOS: toCr(pAge.registeredOS),
       unregisteredOS: toCr(pAge.unregisteredOS),
+      soldUnits: pAge.soldUnits || 0,
+      registeredUnits: pAge.registeredUnits || 0,
+      unregisteredUnits: pAge.unregisteredUnits || 0,
       ageing: {
         '0-30': toCr(pAge.age0_30),
         '31-60': toCr(pAge.age31_60),

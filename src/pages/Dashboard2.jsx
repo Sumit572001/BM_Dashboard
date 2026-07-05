@@ -4,7 +4,7 @@ import { calculateGrandTotals, getAgeingMetrics } from '../utils/dataHelpers';
 import AnimatedNumber from '../components/AnimatedNumber';
 import KPICard from '../components/KPICard';
 import { Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
-import { ChevronDown, Calendar, Percent, Landmark, HelpCircle, X, CheckCircle, Layers, AlertTriangle, PieChart, ArrowUp, ArrowDown, ArrowUpDown, ClipboardList, CreditCard } from 'lucide-react';
+import { ChevronDown, Calendar, Percent, Landmark, HelpCircle, X, CheckCircle, Layers, AlertTriangle, PieChart, ArrowUp, ArrowDown, ArrowUpDown, ClipboardList, CreditCard, Home, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // A wrapper around ResponsiveContainer that delays rendering until layout stabilizes
@@ -42,6 +42,33 @@ const AgeingTooltip = ({ active, payload, label }) => {
   return null;
 };
 
+// Type Badges Helper
+const renderTypeBadge = (type) => {
+  switch (type) {
+    case 'L':
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-100 uppercase">
+          <Award className="w-3 h-3 text-amber-600" />
+          Luxe
+        </span>
+      );
+    case 'C':
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 uppercase">
+          <Home className="w-3 h-3 text-indigo-600" />
+          Comm
+        </span>
+      );
+    default:
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 uppercase">
+          <Home className="w-3 h-3 text-emerald-600" />
+          Resi
+        </span>
+      );
+  }
+};
+
 export default function Dashboard2() {
   const { filteredProjects, rawData, filters } = useData();
 
@@ -59,19 +86,28 @@ export default function Dashboard2() {
   const enrichedProjects = ageingResult.projects;
   const totals = ageingResult.totals;
 
-  // Exclude "Old Projects" from the Ageing Matrix view (graph + table) because
-  // the Ageing sheet in the Excel has no "Old Projects" row — it's a synthetic
-  // bucket for unlisted legacy data and should not appear in ageing breakdowns.
-  const ageingProjects = React.useMemo(
-    () => enrichedProjects.filter(p => !p.name.trim().toUpperCase().includes('OLD PROJECT')),
-    [enrichedProjects]
-  );
-
   const [ageingView, setAgeingView] = useState('graph'); // 'table' | 'graph'
+  const [ageingRegFilter, setAgeingRegFilter] = useState('all'); // 'all' | 'registered' | 'unregistered'
 
   // Sorting state for Consolidated Project Outstanding table
   const [sortColumn, setSortColumn] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
+
+  // Exclude "Old Projects" from the Ageing Matrix view (graph + table) because
+  // the Ageing sheet in the Excel has no "Old Projects" row — it's a synthetic
+  // bucket for unlisted legacy data and should not appear in ageing breakdowns.
+  const ageingProjects = React.useMemo(
+    () => {
+      let projects = enrichedProjects.filter(p => !p.name.trim().toUpperCase().includes('OLD PROJECT'));
+      if (ageingRegFilter === 'registered') {
+        projects = projects.filter(p => (p.registeredUnits || 0) > 0);
+      } else if (ageingRegFilter === 'unregistered') {
+        projects = projects.filter(p => (p.unregisteredUnits || 0) > 0);
+      }
+      return projects;
+    },
+    [enrichedProjects, ageingRegFilter]
+  );
 
   const handleSort = (columnKey) => {
     if (sortColumn === columnKey) {
@@ -84,11 +120,11 @@ export default function Dashboard2() {
 
   const renderSortIcon = (columnKey) => {
     if (sortColumn !== columnKey) {
-      return <ArrowUpDown className="w-3.5 h-3.5 text-slate-700 shrink-0 select-none opacity-60 hover:opacity-100" />;
+      return <ArrowUpDown className="w-3.5 h-3.5 text-white/50 shrink-0 select-none hover:text-white transition-colors" />;
     }
     return sortDirection === 'asc' 
-      ? <ArrowUp className="w-3.5 h-3.5 text-nyati-orange shrink-0 select-none" />
-      : <ArrowDown className="w-3.5 h-3.5 text-nyati-orange shrink-0 select-none" />;
+      ? <ArrowUp className="w-3.5 h-3.5 text-white shrink-0 select-none" />
+      : <ArrowDown className="w-3.5 h-3.5 text-white shrink-0 select-none" />;
   };
 
   // Sort projects dynamically before rendering rows (following custom sequence and bottom weights)
@@ -198,6 +234,7 @@ export default function Dashboard2() {
   const grandTotalSoldVal = enrichedProjects.reduce((s, p) => s + p.actualValCr, 0);
   const grandTotalDueMilestone = totals.dueMilestone;
   const grandTotalCollection = totals.actualCollection;
+  const grandTotalInceptionCollection = totals.totalCollection || 0;
   const grandTotalSalesCollection = filteredProjects.reduce((s, p) => s + p.actualCollection, 0);
   const grandTotalOutstanding = totals.outstanding;
   const grandTotalRegOS = totals.registeredOS;
@@ -349,9 +386,18 @@ export default function Dashboard2() {
 
   // Color-code outstanding amount
   const getOutstandingColor = (val) => {
-    if (val > 20) return 'text-nyati-danger font-extrabold bg-nyati-danger/5 border border-nyati-danger/10';
-    if (val >= 10) return 'text-nyati-warning font-bold bg-nyati-warning/5 border border-nyati-warning/10';
-    return 'text-nyati-success font-semibold bg-nyati-success/5 border border-nyati-success/10';
+    if (val > 20) return 'text-nyati-danger font-extrabold bg-nyati-danger/20 border border-nyati-danger/30';
+    if (val >= 10) return 'text-nyati-warning font-bold bg-nyati-warning/20 border border-nyati-warning/30';
+    return 'text-nyati-success font-semibold bg-nyati-success/20 border border-nyati-success/30';
+  };
+
+  // Color-code collection amount based on % achievement vs target
+  // 0-50% → red, 51-79% → yellow/warning, 80%+ → green
+  const getCollectionColor = (actual, target) => {
+    const pct = target > 0 ? (actual / target) * 100 : 100;
+    if (pct <= 50) return 'text-nyati-danger font-extrabold bg-nyati-danger/20 border border-nyati-danger/30';
+    if (pct <= 79) return 'text-nyati-warning font-bold bg-nyati-warning/20 border border-nyati-warning/30';
+    return 'text-[#059669] font-semibold bg-[#059669]/20 border border-[#059669]/30';
   };
 
   // Get Ageing Class for Heatmap
@@ -501,65 +547,98 @@ export default function Dashboard2() {
           <h3 className="font-bold text-nyati-navy text-lg">Consolidated Project Outstanding</h3>
         </div>
         <div className="lg:overflow-x-visible overflow-x-auto">
-          <table className="w-full text-left text-[15px] text-slate-800 border-collapse min-w-[1180px]">
-            <thead>
-              <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-900 uppercase tracking-wider font-extrabold border-b border-slate-200 shadow-sm text-[15px]">
-                <th rowSpan={2} className="px-6 py-4 border-r border-slate-200 min-w-[220px] w-[220px] max-w-[220px] text-center">
-                  <div className="flex items-center gap-1.5 justify-center h-full">
-                    <span>Project</span>
-                  </div>
+          <table className="w-full text-left text-[15px] text-slate-800 border-collapse min-w-[1360px]">
+            <thead className="sticky top-[85px] z-20 bg-nyati-navy">
+              {/* Row 1 */}
+              <tr className="bg-nyati-navy text-white uppercase tracking-wider font-extrabold text-[15px] border-b border-white">
+                <th rowSpan={3} className="px-4 py-3 border-r border-white text-left bg-nyati-navy align-middle min-w-[220px] w-[220px] max-w-[220px]">
+                  Project
                 </th>
-                <th colSpan={2} className="bg-slate-50 text-slate-900 text-center font-black py-2.5 text-[15px] tracking-wider border-b border-slate-200 border-r border-slate-200 w-[240px] min-w-[240px] max-w-[240px]">
-                  Collection Upto date
+                <th colSpan={2} className="text-center font-black py-2 border-b border-white border-r border-white bg-nyati-navy">
+                  FY
                 </th>
-                <th rowSpan={2} className="px-4 py-4 text-center cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-200 w-[120px] min-w-[120px] max-w-[120px]" onClick={() => handleSort('dueMilestone')}>
+                <th colSpan={8} className="text-center font-black py-2 border-b border-white bg-nyati-navy">
+                  UPTO DATE
+                </th>
+              </tr>
+              {/* Row 2 */}
+              <tr className="bg-nyati-navy text-white uppercase tracking-wider font-extrabold text-[14px] border-b border-white">
+                <th colSpan={2} className="text-center font-black py-2 border-b border-white border-r border-white bg-nyati-navy">
+                  COLLECTION
+                </th>
+                <th colSpan={3} className="text-center font-black py-2 border-b border-white border-r border-white bg-nyati-navy">
+                  REGISTRATION STATUS
+                </th>
+                <th rowSpan={2} className="px-2 py-3 text-center cursor-pointer select-none hover:bg-white/10 transition-colors border-r border-white bg-nyati-navy align-middle w-[120px] min-w-[120px] max-w-[120px]" onClick={() => handleSort('dueMilestone')}>
                   <div className="flex items-center justify-center gap-1.5 h-full">
-                    <span className="text-center">Due as per Milestone Upto date <span className="whitespace-nowrap">(₹ Cr)</span></span>
+                    <span className="leading-tight">Due as per Milestone</span>
                     {renderSortIcon('dueMilestone')}
                   </div>
                 </th>
-                <th rowSpan={2} className="px-4 py-4 text-center cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-200 w-[120px] min-w-[120px] max-w-[120px]" onClick={() => handleSort('actualCollection')}>
+                <th rowSpan={2} className="px-2 py-3 text-center cursor-pointer select-none hover:bg-white/10 transition-colors border-r border-white bg-nyati-navy align-middle w-[120px] min-w-[120px] max-w-[120px]" onClick={() => handleSort('actualCollection')}>
                   <div className="flex items-center justify-center gap-1.5 h-full">
-                    <span className="text-center">Total Collection Upto date <span className="whitespace-nowrap">(₹ Cr)</span></span>
+                    <span className="leading-tight">Total Collection</span>
                     {renderSortIcon('actualCollection')}
                   </div>
                 </th>
-                <th rowSpan={2} className="px-4 py-4 text-center cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-200 w-[120px] min-w-[120px] max-w-[120px]" onClick={() => handleSort('outstanding')}>
+                <th rowSpan={2} className="px-2 py-3 text-center cursor-pointer select-none hover:bg-white/10 transition-colors border-r border-white bg-nyati-navy align-middle w-[120px] min-w-[120px] max-w-[120px]" onClick={() => handleSort('outstanding')}>
                   <div className="flex items-center justify-center gap-1.5 h-full">
-                    <span className="text-center">Total Outstanding Upto date <span className="whitespace-nowrap">(₹ Cr)</span></span>
+                    <span className="leading-tight">Total Outstanding</span>
                     {renderSortIcon('outstanding')}
                   </div>
                 </th>
-                <th rowSpan={2} className="px-4 py-4 text-center cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-200 w-[120px] min-w-[120px] max-w-[120px]" onClick={() => handleSort('registeredOS')}>
+                <th rowSpan={2} className="px-2 py-3 text-center cursor-pointer select-none hover:bg-white/10 transition-colors border-r border-white bg-nyati-navy align-middle w-[120px] min-w-[120px] max-w-[120px]" onClick={() => handleSort('registeredOS')}>
                   <div className="flex items-center justify-center gap-1.5 h-full">
-                    <span className="text-center">Registered Upto date <span className="whitespace-nowrap">O/S</span></span>
+                    <span className="leading-tight">Registered O/S</span>
                     {renderSortIcon('registeredOS')}
                   </div>
                 </th>
-                <th rowSpan={2} className="px-4 py-4 text-center cursor-pointer select-none hover:bg-slate-100/50 transition-colors border-r border-slate-200 w-[120px] min-w-[120px] max-w-[120px]" onClick={() => handleSort('unregisteredOS')}>
+                <th rowSpan={2} className="px-2 py-3 text-center cursor-pointer select-none hover:bg-white/10 transition-colors border-white bg-nyati-navy align-middle w-[120px] min-w-[120px] max-w-[120px]" onClick={() => handleSort('unregisteredOS')}>
                   <div className="flex items-center justify-center gap-1.5 h-full">
-                    <span className="text-center font-extrabold">Unregistered Upto date <span className="whitespace-nowrap">O/S</span></span>
+                    <span className="leading-tight font-extrabold">UNRegistered O/S</span>
                     {renderSortIcon('unregisteredOS')}
                   </div>
                 </th>
               </tr>
-              <tr className="bg-slate-50 text-slate-900 uppercase tracking-wider font-extrabold select-none text-[14px]">
-                <th onClick={() => handleSort('budgetCollection')} className="px-4 py-2 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors border-r border-slate-200 w-[120px] min-w-[120px] max-w-[120px] sticky top-[138px] z-10 bg-slate-50">
+              {/* Row 3 */}
+              <tr className="bg-nyati-navy text-white uppercase tracking-wider font-extrabold text-[13px] border-b border-white">
+                <th onClick={() => handleSort('budgetCollection')} className="px-2 py-2 text-center cursor-pointer hover:bg-white/10 transition-colors border-r border-white bg-nyati-navy w-[120px] min-w-[120px] max-w-[120px]">
                   <div className="flex items-center justify-center gap-1">Target {renderSortIcon('budgetCollection')}</div>
                 </th>
-                <th onClick={() => handleSort('actualCollection')} className="px-6 py-2 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors border-r border-slate-200 w-[120px] min-w-[120px] max-w-[120px] sticky top-[138px] z-10 bg-slate-50">
+                <th onClick={() => handleSort('actualCollection')} className="px-2 py-2 text-center cursor-pointer hover:bg-white/10 transition-colors border-r border-white bg-nyati-navy w-[120px] min-w-[120px] max-w-[120px]">
                   <div className="flex items-center justify-center gap-1">Actual {renderSortIcon('actualCollection')}</div>
+                </th>
+                <th onClick={() => handleSort('soldUnits')} className="px-2 py-2 text-center cursor-pointer hover:bg-white/10 transition-colors border-r border-white bg-nyati-navy w-[100px] min-w-[100px] max-w-[100px]">
+                  <div className="flex items-center justify-center gap-1">Sold {renderSortIcon('soldUnits')}</div>
+                </th>
+                <th onClick={() => handleSort('registeredUnits')} className="px-2 py-2 text-center cursor-pointer hover:bg-white/10 transition-colors border-r border-white bg-nyati-navy w-[100px] min-w-[100px] max-w-[100px]">
+                  <div className="flex items-center justify-center gap-1">Registered {renderSortIcon('registeredUnits')}</div>
+                </th>
+                <th onClick={() => handleSort('unregisteredUnits')} className="px-2 py-2 text-center cursor-pointer hover:bg-white/10 transition-colors border-r border-white bg-nyati-navy w-[100px] min-w-[100px] max-w-[100px]">
+                  <div className="flex items-center justify-center gap-1">Unregistered {renderSortIcon('unregisteredUnits')}</div>
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 font-medium text-slate-850">
               {sortedProjects.map((p, index) => (
                 <tr key={p.name} className="hover:bg-slate-50/50 transition-colors border-b border-slate-200">
-                  <td className="px-6 py-3.5 font-bold text-slate-700 min-w-[220px] w-[220px] max-w-[220px] border-r border-slate-200 text-center">{p.name}</td>
+                  <td className="px-6 py-3.5 font-bold text-slate-700 min-w-[220px] w-[220px] max-w-[220px] border-r border-slate-200 text-left">
+                    <div className="flex flex-col items-start gap-1">
+                      <span>{p.name}</span>
+                      {renderTypeBadge(p.type)}
+                    </div>
+                  </td>
                   <td className="px-4 py-3.5 text-center text-slate-700 w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.budgetCollection.toFixed(2)}</td>
-                  <td className="px-6 py-3.5 text-center font-bold text-[#0d9488] w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.actualCollection.toFixed(2)}</td>
+                  <td className="px-6 py-3.5 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">
+                    <span className={`px-3 py-1 rounded-lg text-[14px] ${getCollectionColor(p.actualCollection, p.budgetCollection)}`}>
+                      ₹{p.actualCollection.toFixed(2)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3.5 text-center text-slate-700 w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{p.soldUnits || 0}</td>
+                  <td className="px-4 py-3.5 text-center text-slate-700 w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{p.registeredUnits || 0}</td>
+                  <td className="px-4 py-3.5 text-center text-slate-700 w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{p.unregisteredUnits || 0}</td>
                   <td className="px-4 py-3.5 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.dueMilestone.toFixed(2)}</td>
-                  <td className="px-4 py-3.5 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.actualCollection.toFixed(2)}</td>
+                  <td className="px-4 py-3.5 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{(p.totalCollection || 0).toFixed(2)}</td>
                   <td className="px-4 py-3.5 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">
                     <span className={`px-3 py-1 rounded-lg text-[14px] ${getOutstandingColor(p.outstanding)}`}>
                       ₹{p.outstanding.toFixed(2)}
@@ -571,14 +650,21 @@ export default function Dashboard2() {
               ))}
               {/* Grand Total Row */}
               <tr className="bg-slate-50/80 font-bold text-nyati-navy border-t-2 border-slate-200 text-[15px]">
-                <td className="px-6 py-4 min-w-[220px] w-[220px] max-w-[220px] border-r border-slate-200 text-center">GRAND TOTAL</td>
+                <td className="px-6 py-4 min-w-[220px] w-[220px] max-w-[220px] border-r border-slate-200 text-left">GRAND TOTAL</td>
                 <td className="px-4 py-4 text-center text-slate-700 bg-slate-50/50 w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalBudgetCollection.toFixed(2)}</td>
-                <td className="px-6 py-4 text-center text-[#0d9488] font-extrabold bg-slate-50/50 w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalCollection.toFixed(2)}</td>
+                <td className="px-6 py-4 text-center bg-slate-50/50 w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">
+                  <span className={`px-4 py-1.5 rounded-lg text-[14px] ${getCollectionColor(grandTotalCollection, grandTotalBudgetCollection)}`}>
+                    ₹{grandTotalCollection.toFixed(2)}
+                  </span>
+                </td>
+                <td className="px-4 py-4 text-center text-slate-700 w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{totals.soldUnits || 0}</td>
+                <td className="px-4 py-4 text-center text-slate-700 w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{totals.registeredUnits || 0}</td>
+                <td className="px-4 py-4 text-center text-slate-700 w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{totals.unregisteredUnits || 0}</td>
                 <td className="px-4 py-4 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalDueMilestone.toFixed(2)}</td>
-                <td className="px-4 py-4 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalCollection.toFixed(2)}</td>
+                <td className="px-4 py-4 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalInceptionCollection.toFixed(2)}</td>
                 <td className="px-4 py-4 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">
-                  <span className={`px-4 py-1.5 rounded-lg text-[14px] border border-nyati-navy/10 ${getOutstandingColor(grandTotalRegOS)}`}>
-                    ₹{grandTotalRegOS.toFixed(2)}
+                  <span className={`px-4 py-1.5 rounded-lg text-[14px] border border-nyati-navy/10 ${getOutstandingColor(grandTotalOutstanding)}`}>
+                    ₹{grandTotalOutstanding.toFixed(2)}
                   </span>
                 </td>
                 <td className="px-4 py-4 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalRegOS.toFixed(2)}</td>
@@ -592,59 +678,77 @@ export default function Dashboard2() {
       {/* SECTION C: AGEING OUTSTANDING Table / Graph */}
       <div ref={sectionCRef} className="bg-white rounded-3xl shadow-premium border border-slate-100">
         <div className="sticky top-0 z-10 bg-white rounded-t-3xl border-b border-slate-100 px-6 py-5 shadow-sm flex items-center justify-between flex-wrap gap-4">
+          {/* Left: Title + Legend */}
           <div>
             <h3 className="font-bold text-nyati-navy text-lg">
               {ageingView === 'graph' ? "Ageing — Project x Bucket" : "Ageing Outstanding Matrix"}
             </h3>
-            <p className="text-slate-700 text-[13px] font-semibold mt-0.5">
-              {ageingView === 'graph'
-                ? "Stacked exposure in ₹ Cr - red dominant where >120d concentrates"
-                : "Click cells to drill down to flat details. Heatmap displays critical delays (>90 days)."
-              }
-            </p>
+            {/* Legend inline below title (table view only) */}
+            {ageingView === 'table' ? (
+              <div className="flex flex-wrap items-center gap-3 mt-1 text-[11px] font-bold text-slate-700">
+                <span className="uppercase tracking-wider text-slate-500 font-extrabold">Legend:</span>
+                <div className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#38A169]" />
+                  <span>&lt; ₹1 Cr</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#D69E2E]" />
+                  <span>₹1 – ₹3 Cr</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#E76F2E]" />
+                  <span>₹3 – ₹6 Cr</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#E53E3E]" />
+                  <span>₹6 – ₹10 Cr</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#b91c1c]" />
+                  <span>&gt; ₹10 Cr</span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-slate-500 text-[13px] font-semibold mt-0.5">
+                Stacked exposure in ₹ Cr - red dominant where &gt;120d concentrates
+              </p>
+            )}
           </div>
-          
-          {/* Legend for Table View */}
-          {ageingView === 'table' && (
-            <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-800 bg-slate-50/80 px-4 py-2 rounded-2xl border border-slate-100">
-              <span className="text-[10px] uppercase tracking-wider text-slate-700 font-extrabold mr-1">Legend:</span>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#38A169]" />
-                <span>&lt; ₹1 Cr</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#D69E2E]" />
-                <span>₹1 – ₹3 Cr</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#E76F2E]" />
-                <span>₹3 – ₹6 Cr</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#E53E3E]" />
-                <span>₹6 – ₹10 Cr</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#b91c1c]" />
-                <span>&gt; ₹10 Cr</span>
-              </div>
-            </div>
-          )}
 
-          {/* View switcher — Graph is default, Table is secondary */}
-          <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold">
-            <button
-              onClick={() => setAgeingView('graph')}
-              className={`px-3 py-1.5 rounded-lg transition-all ${ageingView === 'graph' ? 'bg-white text-nyati-navy shadow-sm font-bold' : 'text-slate-700 hover:text-slate-900 font-bold'}`}
-            >
-              Graph View
-            </button>
-            <button
-              onClick={() => setAgeingView('table')}
-              className={`px-3 py-1.5 rounded-lg transition-all ${ageingView === 'table' ? 'bg-white text-nyati-navy shadow-sm font-bold' : 'text-slate-700 hover:text-slate-900 font-bold'}`}
-            >
-              Table View
-            </button>
+          {/* Right: Reg filter tabs + Graph/Table switcher */}
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Registered / Unregistered filter */}
+            <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+              {['all', 'registered', 'unregistered'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setAgeingRegFilter(tab)}
+                  className={`px-3 py-1.5 rounded-lg transition-all capitalize ${
+                    ageingRegFilter === tab
+                      ? 'bg-nyati-navy text-white shadow-sm font-bold'
+                      : 'text-slate-700 hover:text-slate-900 font-bold'
+                  }`}
+                >
+                  {tab === 'all' ? 'All' : tab === 'registered' ? 'Registered' : 'Unregistered'}
+                </button>
+              ))}
+            </div>
+
+            {/* View switcher */}
+            <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+              <button
+                onClick={() => setAgeingView('graph')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${ageingView === 'graph' ? 'bg-white text-nyati-navy shadow-sm font-bold' : 'text-slate-700 hover:text-slate-900 font-bold'}`}
+              >
+                Graph View
+              </button>
+              <button
+                onClick={() => setAgeingView('table')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${ageingView === 'table' ? 'bg-white text-nyati-navy shadow-sm font-bold' : 'text-slate-700 hover:text-slate-900 font-bold'}`}
+              >
+                Table View
+              </button>
+            </div>
           </div>
         </div>
 

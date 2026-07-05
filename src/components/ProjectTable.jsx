@@ -357,6 +357,18 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
     }
   };
 
+  // Color actual column based on % achievement vs target
+  // 0-50% → red, 51-79% → yellow/warning, 80%+ → green
+  const getActualColor = (actual, target) => {
+    const pct = target > 0 ? (actual / target) * 100 : (actual > 0 ? 100 : 0);
+    if (pct <= 50) return 'text-red-600 font-extrabold bg-red-50 border border-red-200';
+    if (pct <= 79) return 'text-amber-600 font-bold bg-amber-50 border border-amber-200';
+    return 'text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200';
+  };
+
+  // Keep alias for sales value
+  const getSalesValueColor = getActualColor;
+
   const activeQ = getActiveQuarter();
 
   return (
@@ -367,9 +379,6 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h3 className="font-bold text-nyati-navy text-lg">Project-Wise Sales Summary</h3>
-            <p className="text-slate-700 text-sm font-semibold mt-0.5">
-              Click headers to sort.
-            </p>
           </div>
           <div className="flex items-center gap-3">
             {showMonthlyColumns && (
@@ -421,7 +430,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
 
       {/* Table Wrapper with horizontal scrolling */}
       <div className="overflow-x-auto w-full max-w-full rounded-b-3xl">
-        <table ref={tableRef} className="w-full text-left text-[15px] text-slate-800 border-collapse min-w-[1140px]">
+        <table ref={tableRef} className="w-full text-left text-[15px] text-slate-800 border-collapse min-w-[1080px]">
           <thead>
             {!showMonthlyColumns ? (
               // Original Summary View Headers (Grouped like Excel)
@@ -429,9 +438,9 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                 <tr className="bg-slate-50 text-slate-900 uppercase font-black border-b border-slate-100 select-none text-[15px]">
                   <th
                     rowSpan={3}
-                    className="bg-slate-50 px-3 py-3 min-w-[200px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200 text-center text-[15px]"
+                    className="bg-nyati-navy text-white px-3 py-3 min-w-[200px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-white/20 text-center text-[15px]"
                   >
-                    <div className="flex items-center justify-center h-full text-slate-900 font-black text-[15px]">
+                    <div className="flex items-center justify-center h-full text-white font-black text-[15px]">
                       Project Name
                     </div>
                   </th>
@@ -447,7 +456,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                   <th colSpan={2} rowSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black border-r-2 border-slate-300 py-2 text-[15px] tracking-wider sticky top-0 z-20">
                     Sales Value
                   </th>
-                  <th colSpan={8} className="bg-slate-200 text-slate-900 text-center font-black py-2 text-[15px] tracking-wider sticky top-0 z-20">
+                  <th colSpan={8} className="bg-nyati-navy text-white text-center font-black py-2 text-[15px] tracking-wider sticky top-0 z-20">
                     Total{getQuarterText()}
                   </th>
                 </tr>
@@ -465,29 +474,29 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                     Sales Value
                   </th>
                 </tr>
-                <tr className="bg-slate-50 text-slate-900 uppercase tracking-wider font-black border-b border-slate-200 select-none text-[14px]">
-                  <th onClick={() => requestSort('budgetUnits')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[70px] border-r border-slate-100 sticky top-[64px] z-20">
+                <tr className="bg-nyati-navy text-white uppercase tracking-wider font-black border-b border-white/20 select-none text-[14px]">
+                  <th onClick={() => requestSort('budgetUnits')} className="bg-nyati-navy text-white px-2 py-2.5 text-center cursor-pointer hover:bg-nyati-navy/80 transition-colors min-w-[70px] border-r border-white/20 sticky top-[64px] z-20">
                     <div className="flex items-center justify-center gap-0.5">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  <th onClick={() => requestSort('soldToDate')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[70px] border-r-2 border-slate-300 sticky top-[64px] z-20">
+                  <th onClick={() => requestSort('soldToDate')} className="bg-nyati-navy text-white px-2 py-2.5 text-center cursor-pointer hover:bg-nyati-navy/80 transition-colors min-w-[70px] border-r-2 border-white/30 sticky top-[64px] z-20">
                     <div className="flex items-center justify-center gap-0.5">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  <th onClick={() => requestSort('budgetRate')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[90px] border-r border-slate-100 sticky top-[64px] z-20">
+                  <th onClick={() => requestSort('budgetRate')} className="bg-nyati-navy text-white px-2 py-2.5 text-center cursor-pointer hover:bg-nyati-navy/80 transition-colors min-w-[90px] border-r border-white/20 sticky top-[64px] z-20">
                     <div className="flex items-center justify-center gap-0.5">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  <th onClick={() => requestSort('actualRate')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[90px] border-r-2 border-slate-300 sticky top-[64px] z-20">
+                  <th onClick={() => requestSort('actualRate')} className="bg-nyati-navy text-white px-2 py-2.5 text-center cursor-pointer hover:bg-nyati-navy/80 transition-colors min-w-[90px] border-r-2 border-white/30 sticky top-[64px] z-20">
                     <div className="flex items-center justify-center gap-0.5">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  <th onClick={() => requestSort('budgetArea')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[80px] border-r border-slate-100 sticky top-[64px] z-20">
+                  <th onClick={() => requestSort('budgetArea')} className="bg-nyati-navy text-white px-2 py-2.5 text-center cursor-pointer hover:bg-nyati-navy/80 transition-colors min-w-[80px] border-r border-white/20 sticky top-[64px] z-20">
                     <div className="flex items-center justify-center gap-0.5">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  <th onClick={() => requestSort('actualArea')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[80px] border-r-2 border-slate-300 sticky top-[64px] z-20">
+                  <th onClick={() => requestSort('actualArea')} className="bg-nyati-navy text-white px-2 py-2.5 text-center cursor-pointer hover:bg-nyati-navy/80 transition-colors min-w-[80px] border-r-2 border-white/30 sticky top-[64px] z-20">
                     <div className="flex items-center justify-center gap-0.5">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  <th onClick={() => requestSort('budgetValCr')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[85px] border-r border-slate-100 sticky top-[64px] z-20">
+                  <th onClick={() => requestSort('budgetValCr')} className="bg-nyati-navy text-white px-2 py-2.5 text-center cursor-pointer hover:bg-nyati-navy/80 transition-colors min-w-[85px] border-r border-white/20 sticky top-[64px] z-20">
                     <div className="flex items-center justify-center gap-0.5">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
-                  <th onClick={() => requestSort('actualValCr')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[85px] border-r-2 border-slate-300 sticky top-[64px] z-20">
+                  <th onClick={() => requestSort('actualValCr')} className="bg-nyati-navy text-white px-2 py-2.5 text-center cursor-pointer hover:bg-nyati-navy/80 transition-colors min-w-[85px] border-r-2 border-white/30 sticky top-[64px] z-20">
                     <div className="flex items-center justify-center gap-0.5">Actual <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                   </th>
                   <th onClick={() => requestSort('periodTotalUnitsTarget')} className="bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[70px] border-r border-slate-100 sticky top-[64px] z-20">
@@ -519,12 +528,12 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
             ) : (
               // Excel-aligned Month Group Headers (Show only Q1-Q4 Total columns)
               <>
-                <tr className="bg-slate-50 text-slate-900 uppercase font-black border-b border-slate-100 select-none text-[15px]">
+                <tr className="bg-nyati-navy text-white uppercase font-black border-b border-white/20 select-none text-[15px]">
                   <th
                     rowSpan={3}
-                    className="bg-slate-50 px-3 py-3 min-w-[200px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200 text-center text-[15px]"
+                    className="bg-nyati-navy text-white px-3 py-3 min-w-[200px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-white/20 text-center text-[15px]"
                   >
-                    <div className="flex items-center justify-center h-full text-slate-900 font-black text-[15px]">
+                    <div className="flex items-center justify-center h-full text-white font-black text-[15px]">
                       Project Name
                     </div>
                   </th>
@@ -577,7 +586,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                     };
 
                     return (
-                      <th colSpan={8} className="bg-slate-200 text-slate-900 text-center font-black py-2 border-b border-slate-200 text-[15px] tracking-wider sticky top-0 z-20">
+                      <th colSpan={8} className="bg-nyati-navy text-white text-center font-black py-2 border-b border-white/20 text-[15px] tracking-wider sticky top-0 z-20">
                         TOTAL - {getLabel().toUpperCase()}
                       </th>
                     );
@@ -622,7 +631,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                             <th
                               key={metric.sortKey}
                               onClick={() => requestSort(metric.sortKey)}
-                              className={`bg-slate-50 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors ${metric.minW} ${isLastMetric ? 'border-r-2 border-slate-300' : isGroupEnd ? 'border-r-2 border-slate-300' : 'border-r border-slate-100'} sticky top-[64px] z-20 text-[14px]`}
+                              className={`bg-nyati-navy text-white px-2 py-2.5 text-center cursor-pointer hover:bg-nyati-navy/80 transition-colors ${metric.minW} ${isLastMetric ? 'border-r-2 border-white/30' : isGroupEnd ? 'border-r-2 border-white/30' : 'border-r border-white/20'} sticky top-[64px] z-20 text-[14px]`}
                             >
                               <div className="flex items-center justify-center gap-0.5">
                                 {metric.label}
@@ -665,36 +674,44 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                       className="hover:bg-sky-50/40 group transition-all duration-150 select-none text-[15px]"
                     >
                       <td
-                        className="px-3 py-3 font-bold text-slate-700 min-w-[200px] text-[15px]"
+                        className="px-3 py-1.5 font-bold text-slate-700 min-w-[160px] text-[15px]"
                       >
-                        <div className="flex flex-col gap-1 justify-start text-left">
-                          <span className="text-slate-800 text-[15px] font-black whitespace-normal break-words">{p.name}</span>
-                          <div className="flex justify-start">{renderTypeBadge(p.type)}</div>
+                        <div className="flex flex-row items-center gap-2 justify-start text-left">
+                          <span className="text-slate-800 text-[14px] font-medium whitespace-normal break-words">{p.name}</span>
+                          {renderTypeBadge(p.type)}
                         </div>
                       </td>
-                      <td className="px-2 py-3 text-center font-semibold text-slate-700 text-[15px]">
+                      <td className="px-2 py-1.5 text-center font-semibold text-slate-700 text-[15px]">
                         {p.budgetUnits.toLocaleString('en-IN')}
                       </td>
-                      <td className="px-2 py-3 text-center font-bold text-nyati-navy border-r-2 border-slate-300 text-[15px]">
-                        {p.soldToDate.toLocaleString('en-IN')}
+                      <td className="px-2 py-2 text-center font-bold border-r-2 border-slate-300 text-[15px]">
+                        <span className={`px-2 py-0.5 rounded-lg text-[13px] ${getActualColor(p.soldToDate, p.budgetUnits)}`}>
+                          {p.soldToDate.toLocaleString('en-IN')}
+                        </span>
                       </td>
-                      <td className="px-2 py-3 text-right font-semibold text-slate-700 text-[15px]">
+                      <td className="px-2 py-2 text-right font-semibold text-slate-700 text-[15px]">
                         {p.budgetRate > 0 ? `₹${Math.round(p.budgetRate).toLocaleString('en-IN')}/sf` : '0'}
                       </td>
-                      <td className="px-2 py-3 text-right font-bold text-nyati-navy border-r-2 border-slate-300 text-[15px]">
-                        {p.actualRate > 0 ? `₹${Math.round(p.actualRate).toLocaleString('en-IN')}/sf` : '0'}
+                      <td className="px-2 py-2 text-center font-bold border-r-2 border-slate-300 text-[15px]">
+                        <span className={`px-2 py-0.5 rounded-lg text-[13px] ${getActualColor(p.actualRate, p.budgetRate)}`}>
+                          {p.actualRate > 0 ? `₹${Math.round(p.actualRate).toLocaleString('en-IN')}/sf` : '0'}
+                        </span>
                       </td>
-                      <td className="px-2 py-3 text-right font-semibold text-slate-700 text-[15px]">
+                      <td className="px-2 py-2 text-right font-semibold text-slate-700 text-[15px]">
                         {Math.round(p.budgetArea).toLocaleString('en-IN')}
                       </td>
-                      <td className="px-2 py-3 text-right font-bold text-slate-700 border-r-2 border-slate-300 text-[15px]">
-                        {Math.round(p.actualArea).toLocaleString('en-IN')}
+                      <td className="px-2 py-2 text-center font-bold border-r-2 border-slate-300 text-[15px]">
+                        <span className={`px-2 py-0.5 rounded-lg text-[13px] ${getActualColor(p.actualArea, p.budgetArea)}`}>
+                          {Math.round(p.actualArea).toLocaleString('en-IN')}
+                        </span>
                       </td>
-                      <td className="px-2 py-3 text-right font-semibold text-slate-700 text-[15px]">
+                      <td className="px-2 py-1.5 text-right font-semibold text-slate-700 text-[15px]">
                         ₹{p.budgetValCr.toFixed(2)} Cr
                       </td>
-                      <td className="px-2 py-3 text-right font-bold text-slate-700 border-r-2 border-slate-300 text-[15px]">
-                        ₹{p.actualValCr.toFixed(2)} Cr
+                      <td className="px-2 py-1.5 text-center font-bold border-r-2 border-slate-300 text-[15px]">
+                        <span className={`px-2 py-0.5 rounded-lg text-[13px] ${getSalesValueColor(p.actualValCr, p.budgetValCr)}`}>
+                          ₹{p.actualValCr.toFixed(2)} Cr
+                        </span>
                       </td>
                       {(() => {
                         const totalUnitsTarget = getPeriodVal(p, selectedPeriod, 'unitsTarget', 'number');
@@ -708,30 +725,38 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
 
                         return (
                           <>
-                            <td className="px-2 py-3 text-center font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5 text-[15px]">
-                              {totalUnitsTarget.toLocaleString('en-IN')}
-                            </td>
-                            <td className="px-2 py-3 text-center font-bold text-nyati-navy border-r-2 border-slate-200 bg-slate-50/5 text-[15px]">
-                              {totalUnitsActual.toLocaleString('en-IN')}
-                            </td>
-                            <td className="px-2 py-3 text-right font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5 text-[15px]">
-                              {formatCellVal(totalRateTarget, 'rate')}
-                            </td>
-                            <td className="px-2 py-3 text-right font-bold text-nyati-navy border-r-2 border-slate-200 bg-slate-50/5 text-[15px]">
-                              {formatCellVal(totalRateActual, 'rate')}
-                            </td>
-                            <td className="px-2 py-3 text-right font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5 text-[15px]">
-                              {Math.round(totalAreaTarget).toLocaleString('en-IN')}
-                            </td>
-                            <td className="px-2 py-3 text-right font-bold text-slate-700 border-r-2 border-slate-200 bg-slate-50/5 text-[15px]">
-                              {Math.round(totalAreaActual).toLocaleString('en-IN')}
-                            </td>
-                            <td className="px-2 py-3 text-right font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5 text-[15px]">
-                              ₹{(totalValueTarget / 10000000).toFixed(2)} Cr
-                            </td>
-                            <td className="px-2.5 py-3 text-right font-bold text-slate-700 bg-slate-50/5 text-[15px]">
-                              ₹{(totalValueActual / 10000000).toFixed(2)} Cr
-                            </td>
+                             <td className="px-2 py-2 text-center font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5 text-[15px]">
+                               {totalUnitsTarget.toLocaleString('en-IN')}
+                             </td>
+                             <td className="px-2 py-2 text-center font-bold border-r-2 border-slate-200 bg-slate-50/5 text-[15px]">
+                               <span className={`px-2 py-0.5 rounded-lg text-[13px] ${getActualColor(totalUnitsActual, totalUnitsTarget)}`}>
+                                 {totalUnitsActual.toLocaleString('en-IN')}
+                               </span>
+                             </td>
+                             <td className="px-2 py-2 text-right font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5 text-[15px]">
+                               {formatCellVal(totalRateTarget, 'rate')}
+                             </td>
+                             <td className="px-2 py-2 text-center font-bold border-r-2 border-slate-200 bg-slate-50/5 text-[15px]">
+                               <span className={`px-2 py-0.5 rounded-lg text-[13px] ${getActualColor(totalRateActual, totalRateTarget)}`}>
+                                 {formatCellVal(totalRateActual, 'rate')}
+                               </span>
+                             </td>
+                             <td className="px-2 py-2 text-right font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5 text-[15px]">
+                               {Math.round(totalAreaTarget).toLocaleString('en-IN')}
+                             </td>
+                             <td className="px-2 py-2 text-center font-bold border-r-2 border-slate-200 bg-slate-50/5 text-[15px]">
+                               <span className={`px-2 py-0.5 rounded-lg text-[13px] ${getActualColor(totalAreaActual, totalAreaTarget)}`}>
+                                 {Math.round(totalAreaActual).toLocaleString('en-IN')}
+                               </span>
+                             </td>
+                             <td className="px-2 py-1.5 text-right font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5 text-[15px]">
+                               ₹{(totalValueTarget / 10000000).toFixed(2)} Cr
+                             </td>
+                             <td className="px-2.5 py-1.5 text-center font-bold bg-slate-50/5 text-[15px]">
+                               <span className={`px-2 py-0.5 rounded-lg text-[13px] ${getSalesValueColor(totalValueActual / 10000000, totalValueTarget / 10000000)}`}>
+                                 ₹{(totalValueActual / 10000000).toFixed(2)} Cr
+                               </span>
+                             </td>
                           </>
                         );
                       })()}
@@ -745,11 +770,11 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                       className="hover:bg-sky-50/40 group transition-all duration-150 select-none text-[15px] border-b border-slate-100"
                     >
                       <td
-                        className="px-3 py-3 font-bold text-slate-700 sticky left-0 bg-white group-hover:bg-sky-50 z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200 min-w-[200px] transition-colors text-[15px]"
+                        className="px-3 py-1.5 font-bold text-slate-700 sticky left-0 bg-white group-hover:bg-sky-50 z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200 min-w-[160px] transition-colors text-[15px]"
                       >
-                        <div className="flex flex-col gap-1 justify-start text-left">
-                          <span className="text-slate-800 text-[15px] font-black whitespace-normal break-words">{p.name}</span>
-                          <div className="flex justify-start">{renderTypeBadge(p.type)}</div>
+                        <div className="flex flex-row items-center gap-2 justify-start text-left">
+                          <span className="text-slate-800 text-[14px] font-medium whitespace-normal break-words">{p.name}</span>
+                          {renderTypeBadge(p.type)}
                         </div>
                       </td>
                       {showMonthlyColumns && (() => {
@@ -761,12 +786,25 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                               const isLastMetric = mIdx === metrics.length - 1;
                               const isGroupEnd = mIdx % 2 === 1;
                               const isActual = metric.key.toLowerCase().includes('actual');
+                              const isSalesValue = metric.key === 'salesValueActual';
+                              // For any actual column, get corresponding target
+                              const targetKey = metric.key.replace('Actual', 'Target').replace('actual', 'target');
+                              const targetVal = isActual ? getPeriodVal(p, selectedPeriod, targetKey, metric.format) : null;
                               return (
                                 <td
                                   key={`total_${selectedPeriod}_${metric.key}`}
-                                  className={`px-2 py-3 text-center text-[15px] ${isActual ? 'font-bold text-nyati-navy' : 'font-semibold text-slate-700'} ${isLastMetric ? 'border-r-2 border-slate-300 bg-slate-50/5' : isGroupEnd ? 'border-r-2 border-slate-300' : 'border-r border-slate-100'}`}
+                                  className={`px-2 py-2 text-center text-[15px] ${isActual ? '' : 'font-semibold text-slate-700'} ${isLastMetric ? 'border-r-2 border-slate-300 bg-slate-50/5' : isGroupEnd ? 'border-r-2 border-slate-300' : 'border-r border-slate-100'}`}
                                 >
-                                  {formatCellVal(val, metric.format)}
+                                  {isActual ? (
+                                    <span className={`px-2 py-0.5 rounded-lg text-[13px] ${getActualColor(
+                                      isSalesValue ? val / 10000000 : val,
+                                      isSalesValue ? targetVal / 10000000 : targetVal
+                                    )}`}>
+                                      {formatCellVal(val, metric.format)}
+                                    </span>
+                                  ) : (
+                                    formatCellVal(val, metric.format)
+                                  )}
                                 </td>
                               );
                             })}
