@@ -313,6 +313,114 @@ export function getPortfolioKpiOverrides(rawData) {
   return result;
 }
 
+export function getOutstandingDataFromLatestAgeingSheet(rawData) {
+  if (!rawData || Array.isArray(rawData)) return [];
+  const keys = Object.keys(rawData);
+  const ageingSheetKeys = keys.filter(k => k.trim().toLowerCase().startsWith('ageing'));
+  if (ageingSheetKeys.length === 0) return [];
+
+  const FY_MONTHS = ['apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec', 'jan', 'feb', 'mar'];
+  const getMonthFromSheetName = (sheetName) => {
+    const name = sheetName.toLowerCase();
+    const monthNames = [
+      { key: 'apr', names: ['apr', 'april'] },
+      { key: 'may', names: ['may'] },
+      { key: 'jun', names: ['jun', 'june'] },
+      { key: 'jul', names: ['jul', 'july'] },
+      { key: 'aug', names: ['aug', 'august'] },
+      { key: 'sep', names: ['sep', 'september'] },
+      { key: 'oct', names: ['oct', 'october'] },
+      { key: 'nov', names: ['nov', 'november'] },
+      { key: 'dec', names: ['dec', 'december'] },
+      { key: 'jan', names: ['jan', 'january'] },
+      { key: 'feb', names: ['feb', 'february'] },
+      { key: 'mar', names: ['mar', 'march'] }
+    ];
+    for (const m of monthNames) {
+      if (m.names.some(n => name.includes(n))) {
+        return m.key;
+      }
+    }
+    return null;
+  };
+
+  const sheetsList = ageingSheetKeys.map(key => {
+    const monthKey = getMonthFromSheetName(key);
+    const index = monthKey ? FY_MONTHS.indexOf(monthKey) : -1;
+    return { key, index };
+  }).filter(s => s.index !== -1);
+
+  sheetsList.sort((a, b) => a.index - b.index);
+  if (sheetsList.length === 0) return [];
+  const latestKey = sheetsList[sheetsList.length - 1].key;
+  const rows = rawData[latestKey] || [];
+
+  const projectMap = {};
+  rows.forEach(r => {
+    const rawProj = getStringVal(r, ['Project']);
+    if (!rawProj) return;
+    const cleanName = cleanProjName(rawProj);
+    if (!cleanName) return;
+
+    if (!projectMap[cleanName]) {
+      projectMap[cleanName] = {
+        'Project Name': rawProj,
+        'Milestone Dues (₹ Cr)': 0,
+        'Total Collection (₹ Cr)': 0,
+        'Total Outstanding (₹ Cr)': 0,
+        'Registered Outstanding (₹ Cr)': 0,
+        'Unregistered Outstanding (₹ Cr)': 0,
+        '0-30 Days (₹ Cr)': 0,
+        '31-60 Days (₹ Cr)': 0,
+        '61-90 Days (₹ Cr)': 0,
+        '91-120 Days (₹ Cr)': 0,
+        '>120 Days (₹ Cr)': 0
+      };
+    }
+
+    const pOut = projectMap[cleanName];
+
+    const claimed = getVal(r, ['Claimed Value']);
+    const received = getVal(r, ['Received']);
+    const rawOutstanding = getVal(r, ['Total Outstanding']);
+    const rowOutstanding = rawOutstanding > 0 ? rawOutstanding : 0;
+    
+    pOut['Milestone Dues (₹ Cr)'] += claimed;
+    pOut['Total Collection (₹ Cr)'] += received;
+    pOut['Total Outstanding (₹ Cr)'] += rowOutstanding;
+
+    const status = getStringVal(r, ['Status', 'Regis Status']).toLowerCase().trim();
+    const isReg = (status === 'registered');
+
+    if (isReg) {
+      pOut['Registered Outstanding (₹ Cr)'] += rowOutstanding;
+    } else {
+      pOut['Unregistered Outstanding (₹ Cr)'] += rowOutstanding;
+    }
+
+    pOut['0-30 Days (₹ Cr)'] += rowOutstanding > 0 ? getVal(r, ['0-30 Days', '0-30 Days (₹ Cr)', 'Slab_15', 'Slab_30']) : 0;
+    pOut['31-60 Days (₹ Cr)'] += rowOutstanding > 0 ? getVal(r, ['31-60 Days', '31-60 Days (₹ Cr)', 'Slab_60']) : 0;
+    pOut['61-90 Days (₹ Cr)'] += rowOutstanding > 0 ? getVal(r, ['61-90 Days', '61-90 Days (₹ Cr)', 'Slab_90']) : 0;
+    pOut['91-120 Days (₹ Cr)'] += rowOutstanding > 0 ? getVal(r, ['91-120 Days', '91-120 Days (₹ Cr)', 'Slab_120']) : 0;
+    pOut['>120 Days (₹ Cr)'] += rowOutstanding > 0 ? getVal(r, ['> 120 Days', '>120 Days (₹ Cr)', 'Slab_365', 'Slab_MoreThan_365']) : 0;
+  });
+
+  Object.values(projectMap).forEach(pOut => {
+    pOut['Milestone Dues (₹ Cr)'] = parseFloat((pOut['Milestone Dues (₹ Cr)'] / 10000000).toFixed(2));
+    pOut['Total Collection (₹ Cr)'] = parseFloat((pOut['Total Collection (₹ Cr)'] / 10000000).toFixed(2));
+    pOut['Total Outstanding (₹ Cr)'] = parseFloat((pOut['Total Outstanding (₹ Cr)'] / 10000000).toFixed(2));
+    pOut['Registered Outstanding (₹ Cr)'] = parseFloat((pOut['Registered Outstanding (₹ Cr)'] / 10000000).toFixed(2));
+    pOut['Unregistered Outstanding (₹ Cr)'] = parseFloat((pOut['Unregistered Outstanding (₹ Cr)'] / 10000000).toFixed(2));
+    pOut['0-30 Days (₹ Cr)'] = parseFloat((pOut['0-30 Days (₹ Cr)'] / 10000000).toFixed(2));
+    pOut['31-60 Days (₹ Cr)'] = parseFloat((pOut['31-60 Days (₹ Cr)'] / 10000000).toFixed(2));
+    pOut['61-90 Days (₹ Cr)'] = parseFloat((pOut['61-90 Days (₹ Cr)'] / 10000000).toFixed(2));
+    pOut['91-120 Days (₹ Cr)'] = parseFloat((pOut['91-120 Days (₹ Cr)'] / 10000000).toFixed(2));
+    pOut['>120 Days (₹ Cr)'] = parseFloat((pOut['>120 Days (₹ Cr)'] / 10000000).toFixed(2));
+  });
+
+  return Object.values(projectMap);
+}
+
 let lastRawData = null;
 
 
@@ -732,7 +840,8 @@ export function processRawData(rawData) {
 
   if (isMultiSheet) {
     const salesCollection = getSheetDataCaseInsensitive(rawData, ['Sales & Collection', 'Sales', 'Sales_Collection', 'SalesCollection']);
-    const outstanding = getSheetDataCaseInsensitive(rawData, ['Outstanding', 'Outstanding & Collection', 'Outstanding_Collection', 'OutstandingCollection']);
+    const outstandingRaw = getSheetDataCaseInsensitive(rawData, ['Outstanding', 'Outstanding & Collection', 'Outstanding_Collection', 'OutstandingCollection']);
+    const outstanding = (outstandingRaw && outstandingRaw.length > 0) ? outstandingRaw : getOutstandingDataFromLatestAgeingSheet(rawData);
     const construction = getSheetDataCaseInsensitive(rawData, ['Construction Budget', 'Construction', 'ConstructionBudget']);
     const portfolio = getSheetDataCaseInsensitive(rawData, ['Project Portfolio Details', 'Portfolio', 'Portfolio Details', 'Project Portfolio', 'ProjectPortfolioDetails']);
 
@@ -1147,16 +1256,16 @@ export function processRawData(rawData) {
       let ageing0_30 = 0, ageing31_60 = 0, ageing61_90 = 0, ageing91_120 = 0, ageingGt120 = 0;
       
       if (pOutstandingRows.length > 0) {
-        dueMilestone = pOutstanding.milestoneDues || parseFloat((actualValCr * 0.85).toFixed(2));
-        outstandingVal = pOutstanding.totalOutstanding || parseFloat((dueMilestone - actualCollection).toFixed(2));
-        registeredOS = pOutstanding.registeredOS || parseFloat((outstandingVal * 0.65).toFixed(2));
-        unregisteredOS = pOutstanding.unregisteredOS || parseFloat((outstandingVal * 0.35).toFixed(2));
+        dueMilestone = pOutstanding.milestoneDues;
+        outstandingVal = pOutstanding.totalOutstanding;
+        registeredOS = pOutstanding.registeredOS;
+        unregisteredOS = pOutstanding.unregisteredOS;
         
-        ageing0_30 = pOutstanding.ageing0_30 || parseFloat((outstandingVal * 0.35).toFixed(2));
-        ageing31_60 = pOutstanding.ageing31_60 || parseFloat((outstandingVal * 0.25).toFixed(2));
-        ageing61_90 = pOutstanding.ageing61_90 || parseFloat((outstandingVal * 0.18).toFixed(2));
-        ageing91_120 = pOutstanding.ageing91_120 || parseFloat((outstandingVal * 0.12).toFixed(2));
-        ageingGt120 = pOutstanding.ageingGt120 || parseFloat((outstandingVal * 0.10).toFixed(2));
+        ageing0_30 = pOutstanding.ageing0_30;
+        ageing31_60 = pOutstanding.ageing31_60;
+        ageing61_90 = pOutstanding.ageing61_90;
+        ageing91_120 = pOutstanding.ageing91_120;
+        ageingGt120 = pOutstanding.ageingGt120;
       } else {
         dueMilestone = parseFloat((actualValCr * 0.85).toFixed(2));
         outstandingVal = parseFloat((dueMilestone - actualCollection).toFixed(2));
@@ -2465,6 +2574,65 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
       }
     };
   });
+
+  // Safe fallback: if there is legacy data but "Old Projects" wasn't in filteredProjects, append it
+  const hasOldProjects = enrichedProjects.some(p => cleanProjName(p.name) === oldProjectsCleanName);
+  if (!isProjectFiltered && !hasOldProjects && legacyOutstanding > 0) {
+    const toCr = (val) => parseFloat((val / 10000000).toFixed(2));
+    enrichedProjects.push({
+      id: 'old-projects',
+      name: 'Old Projects',
+      type: 'R',
+      status: 'Completed',
+      buildings: [],
+      monthlyData: null,
+      totalUnits: 0,
+      soldToDate: legacySoldUnits,
+      balance: 0,
+      soldMar31: 0,
+      unsoldApr1: 0,
+      monthSold: 0,
+      periodSold: legacySoldUnits,
+      budgetUnits: 0,
+      salesEff: 0,
+      varianceUnits: 0,
+      budgetRate: 0,
+      actualRate: 0,
+      rateEff: 0,
+      budgetArea: 0,
+      actualArea: 0,
+      areaEff: 0,
+      budgetValCr: 0,
+      actualValCr: 0,
+      aggAmount: 0,
+      aggArea: 0,
+      budgetCollection: 0,
+      actualCollection: toCr(legacyReceived),
+      collectionEff: 0,
+      soldUnits: legacySoldUnits,
+      registeredUnits: legacyRegisteredUnits,
+      unregisteredUnits: legacyUnregisteredUnits,
+      dueMilestone: toCr(legacyDue),
+      outstanding: toCr(legacyOutstanding),
+      registeredOS: toCr(legacyRegisteredOS),
+      unregisteredOS: toCr(legacyUnregisteredOS),
+      ageing: {
+        '0-30': toCr(legacyAge0_30),
+        '31-60': toCr(legacyAge31_60),
+        '61-90': toCr(legacyAge61_90),
+        '91-120': toCr(legacyAge91_120),
+        'gt120': toCr(legacyAgeGt120),
+        total: toCr(legacyOutstanding)
+      },
+      ageing_reg: {
+        '0-30': toCr(legacyAge0_30),
+        '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: toCr(legacyRegisteredOS)
+      },
+      ageing_unreg: {
+        '0-30': 0, '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: toCr(legacyUnregisteredOS)
+      }
+    });
+  }
 
   // Use direct sum to correctly reflect ageing sheet values (not Overview sheet shortcut)
   const totals = sumAgeingTotals(enrichedProjects);

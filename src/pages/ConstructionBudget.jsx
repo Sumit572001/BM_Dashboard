@@ -240,11 +240,9 @@ const SyncedScrollTable = ({
                       </td>
                       {isNewLayout && (
                         <>
-                          <td className="sticky left-[185px] bg-[#f8fafc] z-20 px-4 py-3 text-left font-bold text-slate-500 border-l border-r border-slate-200 whitespace-nowrap">
-                            -
+                          <td className="sticky left-[185px] bg-[#e0f2fe] z-20 px-4 py-3 text-left font-bold text-slate-500 border-l border-r border-slate-200 whitespace-nowrap">
                           </td>
-                          <td className="sticky left-[370px] bg-[#f8fafc] z-20 px-4 py-3 text-right font-bold text-slate-500 border-l border-r border-slate-200 whitespace-nowrap">
-                            -
+                          <td className="sticky left-[370px] bg-[#e0f2fe] z-20 px-4 py-3 text-right font-bold text-slate-500 border-l border-r border-slate-200 whitespace-nowrap">
                           </td>
                         </>
                       )}
@@ -258,7 +256,7 @@ const SyncedScrollTable = ({
                             : '-'}
                         </td>
                       ))}
-                      <td className="sticky right-0 bg-[#eef2ff] z-20 px-4 py-3 text-center font-extrabold text-slate-900 border-l-2 border-[#c7d2fe]">
+                      <td className="sticky right-0 bg-[#e0f2fe] z-20 px-4 py-3 text-center font-extrabold text-slate-900 border-l-2 border-[#bae6fd]">
                         {activeMonths.reduce((s, m) => s + (displayPortfolioTotal.planned[m] || 0), 0).toFixed(2)}
                       </td>
                     </tr>
@@ -266,11 +264,9 @@ const SyncedScrollTable = ({
                     <tr className="bg-slate-50/80 font-bold">
                       {isNewLayout && (
                         <>
-                          <td className="sticky left-[185px] bg-[#f8fafc] z-20 px-4 py-3 text-left font-bold text-slate-500 border-l border-r border-slate-200 whitespace-nowrap">
-                            -
+                          <td className="sticky left-[185px] bg-[#e0f2fe] z-20 px-4 py-3 text-left font-bold text-slate-500 border-l border-r border-slate-200 whitespace-nowrap">
                           </td>
-                          <td className="sticky left-[370px] bg-[#f8fafc] z-20 px-4 py-3 text-right font-bold text-slate-500 border-l border-r border-slate-200 whitespace-nowrap">
-                            -
+                          <td className="sticky left-[370px] bg-[#e0f2fe] z-20 px-4 py-3 text-right font-bold text-slate-500 border-l border-r border-slate-200 whitespace-nowrap">
                           </td>
                         </>
                       )}
@@ -292,7 +288,7 @@ const SyncedScrollTable = ({
                           .filter(m => !isFutureMonth(m))
                           .reduce((s, m) => s + (displayPortfolioTotal.actual[m] || 0), 0);
                         return (
-                          <td className="sticky right-0 bg-[#eef2ff] z-20 px-4 py-3 text-center align-middle font-extrabold text-slate-900 border-l-2 border-[#c7d2fe]">
+                          <td className="sticky right-0 bg-[#e0f2fe] z-20 px-4 py-3 text-center align-middle font-extrabold text-slate-900 border-l-2 border-[#bae6fd]">
                             {renderActualBadge(totalAct.toFixed(2), isFiltered)}
                           </td>
                         );
@@ -302,11 +298,9 @@ const SyncedScrollTable = ({
                     <tr className="bg-slate-50/80 font-bold">
                       {isNewLayout && (
                         <>
-                          <td className="sticky left-[185px] bg-[#f8fafc] z-20 px-4 py-3 text-left font-bold text-slate-500 border-l border-r border-b-2 border-slate-300 whitespace-nowrap">
-                            -
+                          <td className="sticky left-[185px] bg-[#e0f2fe] z-20 px-4 py-3 text-left font-bold text-slate-500 border-l border-r border-b-2 border-slate-300 whitespace-nowrap">
                           </td>
-                          <td className="sticky left-[370px] bg-[#f8fafc] z-20 px-4 py-3 text-right font-bold text-slate-500 border-l border-r border-b-2 border-slate-300 whitespace-nowrap">
-                            -
+                          <td className="sticky left-[370px] bg-[#e0f2fe] z-20 px-4 py-3 text-right font-bold text-slate-500 border-l border-r border-b-2 border-slate-300 whitespace-nowrap">
                           </td>
                         </>
                       )}
@@ -326,7 +320,7 @@ const SyncedScrollTable = ({
                         const totalAct  = activeMonths.filter(m => !isFutureMonth(m)).reduce((s, m) => s + (displayPortfolioTotal.actual[m] || 0), 0);
                         const totalEff  = totalPlan > 0 ? Math.round((totalAct / totalPlan) * 100) : null;
                         return (
-                          <td className="sticky right-0 bg-[#eef2ff] z-20 px-4 py-3 text-center align-middle font-extrabold border-l-2 border-b-2 border-[#c7d2fe] border-b-slate-300 text-slate-900">
+                          <td className="sticky right-0 bg-[#e0f2fe] z-20 px-4 py-3 text-center align-middle font-extrabold border-l-2 border-b-2 border-[#bae6fd] border-b-slate-300 text-slate-900">
                             {totalEff !== null ? renderEfficiencyBadge(totalEff, isFiltered) : '-'}
                           </td>
                         );
@@ -339,11 +333,11 @@ const SyncedScrollTable = ({
                 {activeProjects.map((proj, projIdx) => (
                   <React.Fragment key={proj.name}>
                     {/* Planned Row */}
-                    <tr className={`${projIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
+                    <tr className="bg-white">
                       <td
                         rowSpan={3}
                         className={`sticky left-0 z-20 px-4 py-3 font-semibold text-slate-800 border-r border-b-2 border-slate-300 text-left align-middle ${txtBase} leading-snug`}
-                        style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
+                        style={{ backgroundColor: '#ffffff' }}
                       >
                         <div className="flex flex-row items-center gap-2 justify-start text-left">
                           <span className="text-slate-800 text-[14px] font-semibold whitespace-normal break-words">{proj.name}</span>
@@ -353,19 +347,19 @@ const SyncedScrollTable = ({
                       {isNewLayout && (
                         <>
                           <td className={`sticky left-[185px] z-20 px-4 py-2.5 text-left font-bold text-slate-700 border-l border-r border-slate-200 ${txtDesc} leading-tight whitespace-nowrap`}
-                            style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
+                            style={{ backgroundColor: '#e0f2fe' }}
                           >
                             {proj.plannedDesc || '-'}
                           </td>
                           <td className={`sticky left-[370px] z-20 px-4 py-2.5 text-right font-extrabold text-slate-700 border-l border-r border-slate-200`}
-                            style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
+                            style={{ backgroundColor: '#e0f2fe' }}
                           >
                             {formatValue(proj.plannedDesc, proj.plannedVal)}
                           </td>
                         </>
                       )}
                       <td className={`sticky ${isNewLayout ? 'left-[455px]' : 'left-[185px]'} z-20 px-4 py-2.5 text-right font-bold text-slate-800 border-l border-r border-slate-200 whitespace-nowrap`}
-                        style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
+                        style={{ backgroundColor: '#ffffff' }}
                       >
                         Planned
                       </td>
@@ -376,30 +370,30 @@ const SyncedScrollTable = ({
                             : '-'}
                         </td>
                       ))}
-                      <td className="sticky right-0 z-20 px-4 py-2.5 text-center font-extrabold text-slate-900 border-l-2 border-[#c7d2fe]"
-                        style={{ backgroundColor: projIdx % 2 === 0 ? '#eef2ff' : '#e8edff' }}
+                      <td className="sticky right-0 z-20 px-4 py-2.5 text-center font-extrabold text-slate-900 border-l-2 border-[#bae6fd]"
+                        style={{ backgroundColor: '#e0f2fe' }}
                       >
                         {activeMonths.reduce((s, m) => s + (proj.planned[m] || 0), 0).toFixed(2)}
                       </td>
                     </tr>
                     {/* Actual Row */}
-                    <tr className={`${projIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
+                    <tr className="bg-white">
                       {isNewLayout && (
                         <>
                           <td className={`sticky left-[185px] z-20 px-4 py-2.5 text-left font-bold text-slate-700 border-l border-r border-slate-200 ${txtDesc} leading-tight whitespace-nowrap`}
-                            style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
+                            style={{ backgroundColor: '#e0f2fe' }}
                           >
                             {proj.actualDesc || '-'}
                           </td>
                           <td className={`sticky left-[370px] z-20 px-4 py-2.5 text-right font-extrabold text-slate-700 border-l border-r border-slate-200`}
-                            style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
+                            style={{ backgroundColor: '#e0f2fe' }}
                           >
                             {formatValue(proj.actualDesc, proj.actualVal)}
                           </td>
                         </>
                       )}
                       <td className={`sticky ${isNewLayout ? 'left-[455px]' : 'left-[185px]'} z-20 px-4 py-2.5 text-right font-bold text-[#0d9488] border-l border-r border-slate-200 whitespace-nowrap`}
-                        style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
+                        style={{ backgroundColor: '#ffffff' }}
                       >
                         Actual
                       </td>
@@ -416,10 +410,10 @@ const SyncedScrollTable = ({
                         const totalAct = activeMonths
                           .filter(m => !isFutureMonth(m))
                           .reduce((s, m) => s + (proj.actual[m] || 0), 0);
-                        const cellBg = projIdx % 2 === 0 ? '#eef2ff' : '#e8edff';
+                        const cellBg = '#e0f2fe';
                         return (
                           <td
-                            className="sticky right-0 z-20 px-4 py-2.5 text-center align-middle font-extrabold text-slate-900 border-l-2 border-[#c7d2fe]"
+                            className="sticky right-0 z-20 px-4 py-2.5 text-center align-middle font-extrabold text-slate-900 border-l-2 border-[#bae6fd]"
                             style={{ backgroundColor: cellBg }}
                           >
                             {renderActualBadge(totalAct.toFixed(2), isFiltered)}
@@ -428,23 +422,23 @@ const SyncedScrollTable = ({
                       })()}
                     </tr>
                     {/* Efficiency Row */}
-                    <tr className={`${projIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
+                    <tr className="bg-white">
                       {isNewLayout && (
                         <>
                           <td className={`sticky left-[185px] z-20 px-4 py-2.5 text-left font-bold text-slate-700 border-l border-r border-b-2 border-slate-300 ${txtDesc} leading-tight whitespace-nowrap`}
-                            style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
+                            style={{ backgroundColor: '#e0f2fe' }}
                           >
                             {proj.efficiencyDesc || '-'}
                           </td>
                           <td className={`sticky left-[370px] z-20 px-4 py-2.5 text-right font-extrabold text-slate-700 border-l border-r border-b-2 border-slate-300`}
-                            style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
+                            style={{ backgroundColor: '#e0f2fe' }}
                           >
                             {formatValue(proj.efficiencyDesc, proj.efficiencyVal)}
                           </td>
                         </>
                       )}
                       <td className={`sticky ${isNewLayout ? 'left-[455px]' : 'left-[185px]'} z-20 px-4 py-2.5 text-right font-bold text-slate-955 border-l border-r border-b-2 border-slate-300 whitespace-nowrap`}
-                        style={{ backgroundColor: projIdx % 2 === 0 ? '#ffffff' : '#f9fafb' }}
+                        style={{ backgroundColor: '#ffffff' }}
                       >
                         Eff. %
                       </td>
@@ -462,9 +456,9 @@ const SyncedScrollTable = ({
                         const totalPlan = activeMonths.reduce((s, m) => s + (proj.planned[m] || 0), 0);
                         const totalAct  = activeMonths.filter(m => !isFutureMonth(m)).reduce((s, m) => s + (proj.actual[m] || 0), 0);
                         const totalEff  = totalPlan > 0 ? Math.round((totalAct / totalPlan) * 100) : null;
-                        const cellBg = projIdx % 2 === 0 ? '#eef2ff' : '#e8edff';
+                        const cellBg = '#e0f2fe';
                         return (
-                          <td className="sticky right-0 z-20 px-4 py-2.5 text-center align-middle font-extrabold border-l-2 border-b-2 border-[#c7d2fe] border-b-slate-300 text-slate-900"
+                          <td className="sticky right-0 z-20 px-4 py-2.5 text-center align-middle font-extrabold border-l-2 border-b-2 border-[#bae6fd] border-b-slate-300 text-slate-900"
                             style={{ backgroundColor: cellBg }}
                           >
                             {totalEff !== null ? renderEfficiencyBadge(totalEff, isFiltered) : '-'}
@@ -584,6 +578,15 @@ export default function ConstructionBudget() {
     return sum;
   }, [activeProjects, activeMonths]);
 
+  // Calculate total Planned for all 12 months of active projects (Full Year Budget)
+  const totalFullYearPlanned = React.useMemo(() => {
+    let sum = 0;
+    activeProjects.forEach(p => {
+      months.forEach(m => { sum += p.planned[m] || 0; });
+    });
+    return sum;
+  }, [activeProjects, months]);
+
   const totalActualToDate = React.useMemo(() => {
     let sum = 0;
     activeProjects.forEach(p => {
@@ -635,7 +638,7 @@ export default function ConstructionBudget() {
   const avgConstEff = filteredProjects.length > 0
     ? filteredProjects.reduce((s, p) => s + p.construction.eff, 0) / filteredProjects.length
     : 0;
-  const avgConstComp = totalFYPlanned > 0 ? (totalActualToDate / totalFYPlanned) * 100 : 0;
+  const avgConstComp = totalFullYearPlanned > 0 ? (totalActualToDate / totalFullYearPlanned) * 100 : 0;
 
   const constructionPoints = [
     {
@@ -645,7 +648,7 @@ export default function ConstructionBudget() {
     },
     {
       title: "Overall Engineering Completion",
-      text: `Average project site completion rate is ${avgConstComp.toFixed(0)}%, reflecting on-time milestone delivery across the core concrete structures and finishing stages.`,
+      text: `Average project site completion rate is ${avgConstComp.toFixed(2)}%, reflecting on-time milestone delivery across the core concrete structures and finishing stages.`,
       status: avgConstComp >= 70 ? 'success' : avgConstComp >= 50 ? 'warning' : 'danger'
     },
     {
@@ -787,7 +790,7 @@ export default function ConstructionBudget() {
             <div>
               <span className="text-[12px] font-extrabold uppercase tracking-wider text-slate-700">Overall Completion</span>
               <h2 className="text-[32px] font-black text-[#4f46e5] leading-none mt-0.5">
-                <AnimatedNumber value={avgConstComp} decimals={0} suffix="%" />
+                <AnimatedNumber value={avgConstComp} decimals={2} suffix="%" />
               </h2>
             </div>
             <div className="p-2 bg-[#4f46e5]/5 rounded-lg">

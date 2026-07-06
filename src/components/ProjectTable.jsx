@@ -389,6 +389,10 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
 
   const activeQ = getActiveQuarter();
 
+  const visibleProjects = React.useMemo(() => {
+    return sortedProjects.filter(p => !p.name.trim().toUpperCase().includes('OLD PROJECT'));
+  }, [sortedProjects]);
+
   return (
     <div className="bg-white rounded-3xl shadow-premium border border-slate-100">
 
@@ -681,7 +685,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
               <>
                 {!showMonthlyColumns ? (
                   // Original 10 Columns Row Rendering
-                  sortedProjects.map((p, index) => (
+                  visibleProjects.map((p, index) => (
                     <motion.tr
                       key={p.name}
                       initial={{ opacity: 0 }}
@@ -780,7 +784,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                   ))
                 ) : (
                   // Excel-aligned Month Group Row Rendering
-                  sortedProjects.map((p, index) => (
+                  visibleProjects.map((p, index) => (
                     <tr
                       key={p.name}
                       className="hover:bg-sky-50/40 group transition-all duration-150 select-none text-[15px] border-b border-slate-100"

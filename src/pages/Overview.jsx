@@ -598,40 +598,7 @@ export default function Overview() {
   const areaEff = totals.areaEff;
 
   // --- Outstanding & Cost derived ---
-  // Dynamic summation of Ageing Apr and Ageing May if they exist in rawData
-  const ageingOutstandingSum = React.useMemo(() => {
-    if (!rawData || Array.isArray(rawData)) return null;
-    let totalSum = 0;
-    let hasAgeingSheets = false;
-    const sheetsToSum = ['Ageing Apr', 'Ageing May'];
-    sheetsToSum.forEach(sheetName => {
-      const actualKey = Object.keys(rawData).find(
-        k => k.trim().toLowerCase() === sheetName.toLowerCase()
-      );
-      if (actualKey) {
-        hasAgeingSheets = true;
-        const rows = rawData[actualKey];
-        if (Array.isArray(rows)) {
-          rows.forEach(row => {
-            const colKey = Object.keys(row).find(
-              k => k.trim().toLowerCase() === 'total outstanding'
-            );
-            if (colKey !== undefined && row[colKey] !== null && row[colKey] !== '') {
-              const val = parseFloat(row[colKey].toString().replace(/,/g, '').replace(/[₹%]/g, '').trim());
-              if (!isNaN(val)) {
-                totalSum += val;
-              }
-            }
-          });
-        }
-      }
-    });
-    return hasAgeingSheets ? (totalSum / 10000000) : null;
-  }, [rawData]);
-
-  const grandTotalOutstanding = ageingOutstandingSum !== null 
-    ? ageingOutstandingSum 
-    : filteredProjects.reduce((s, p) => s + p.outstanding, 0);
+  const grandTotalOutstanding = filteredProjects.reduce((s, p) => s + p.outstanding, 0);
   const grandTotalDueMilestone = filteredProjects.reduce((s, p) => s + p.dueMilestone, 0);
   const grandTotalCollection = filteredProjects.reduce((s, p) => s + p.actualCollection, 0);
   const grandAgeingGt120 = filteredProjects.reduce((s, p) => s + p.ageing['gt120'], 0);
