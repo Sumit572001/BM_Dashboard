@@ -1,6 +1,6 @@
 import React from 'react';
 import { useData } from '../context/DataContext';
-import { calculateGrandTotals, getAgeingMetrics } from '../utils/dataHelpers';
+import { calculateGrandTotals, getAgeingMetrics, cleanProjName, getQuarterFromMonth } from '../utils/dataHelpers';
 import { useNavigate } from 'react-router-dom';
 import AnimatedNumber from '../components/AnimatedNumber';
 import {
@@ -122,12 +122,40 @@ const MountedResponsiveContainer = ({ children, ...props }) => {
   );
 };
 
-// Sales cumulative progress line graph displaying Units (Green)
+// Sales cumulative progress line graph displaying Units (Green) & Rate (Blue)
 const SalesLineChart = ({ data }) => {
+  const [activeTab, setActiveTab] = React.useState('Unit'); // 'Unit' or 'Collection'
+
+  const hideUnits = activeTab === 'Collection';
+  const hideCollection = activeTab === 'Unit';
+
   return (
     <div className="w-full h-full flex flex-col relative">
+      {/* Custom toggle button & chart legend */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mb-3 px-2">
-        <h4 className="font-extrabold text-nyati-navy text-sm">Unit</h4>
+        <div className="flex items-center gap-1 bg-slate-100/80 border border-slate-200/50 rounded-2xl p-1 shrink-0">
+          <button
+            onClick={() => setActiveTab('Unit')}
+            className={`${
+              activeTab === 'Unit'
+                ? 'bg-white text-nyati-navy font-bold shadow-sm'
+                : 'text-slate-600 font-semibold hover:text-nyati-navy'
+            } rounded-xl px-4 py-1.5 transition-all text-xs cursor-pointer`}
+          >
+            Unit
+          </button>
+          <button
+            onClick={() => setActiveTab('Collection')}
+            className={`${
+              activeTab === 'Collection'
+                ? 'bg-white text-nyati-navy font-bold shadow-sm'
+                : 'text-slate-600 font-semibold hover:text-nyati-navy'
+            } rounded-xl px-4 py-1.5 transition-all text-xs cursor-pointer`}
+          >
+            Collection
+          </button>
+        </div>
+
         {/* Color Legend indicator */}
         <div className="flex items-center gap-4 text-[11px] font-extrabold uppercase tracking-wider text-slate-700 bg-slate-100/50 px-3.5 py-1.5 rounded-2xl border border-slate-200/30">
           <div className="flex items-center gap-1.5">
@@ -146,7 +174,7 @@ const SalesLineChart = ({ data }) => {
         <MountedResponsiveContainer width="100%" height="100%">
           <LineChart
             data={data}
-            margin={{ top: 15, right: 15, left: -20, bottom: 25 }}
+            margin={{ top: 15, right: hideCollection ? 15 : 30, left: hideUnits ? 30 : 15, bottom: 25 }}
           >
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
             <XAxis 
@@ -160,30 +188,61 @@ const SalesLineChart = ({ data }) => {
               tick={{ fontSize: 10, fontWeight: 800, fill: '#1e293b' }} 
             />
             <YAxis 
+              yAxisId="left"
               axisLine={false}
               tickLine={false}
               tick={{ fontSize: 11, fontWeight: 800, fill: '#1e293b' }}
               tickFormatter={(val) => `${val}`}
+              hide={hideUnits}
+            />
+            <YAxis 
+              yAxisId="right"
+              orientation="right"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 11, fontWeight: 800, fill: '#1e293b' }}
+              tickFormatter={(val) => `₹${val.toFixed(1)}`}
+              hide={hideCollection}
             />
             <Tooltip 
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
                   const unitsActual = payload.find(p => p.dataKey === "UnitsActual")?.value;
                   const unitsTarget = payload.find(p => p.dataKey === "UnitsTarget")?.value;
+                  const collectionActual = payload.find(p => p.dataKey === "CollectionActual")?.value;
+                  const collectionTarget = payload.find(p => p.dataKey === "CollectionTarget")?.value;
                   
                   return (
                     <div className="bg-slate-900/95 text-white px-2.5 py-2 rounded-xl text-[10px] shadow-xl border border-slate-800 space-y-1 font-sans">
                       <p className="font-extrabold text-slate-300 uppercase tracking-wider text-[11px]">{payload[0].payload.name}</p>
-                      <div className="space-y-0.5 pb-0.5">
-                        <p className="font-bold flex items-center justify-between gap-4 text-slate-200">
-                          <span>Actual Units:</span>
-                          <span className="font-black text-white">{unitsActual !== undefined && unitsActual !== null ? `${unitsActual} units` : '-'}</span>
-                        </p>
-                        <p className="font-bold flex items-center justify-between gap-4 text-slate-200">
-                          <span>Target Units:</span>
-                          <span className="font-black text-slate-300">{unitsTarget} units</span>
-                        </p>
-                      </div>
+                      
+                      {!hideUnits && (
+                        <div className="space-y-0.5 pb-0.5">
+                          <p className="font-extrabold text-[#10b981] tracking-wide text-[9px]">UNIT</p>
+                          <p className="font-bold flex items-center justify-between gap-4 text-slate-200">
+                            <span>Actual:</span>
+                            <span className="font-black text-white">{unitsActual !== undefined && unitsActual !== null ? `${unitsActual} units` : '-'}</span>
+                          </p>
+                          <p className="font-bold flex items-center justify-between gap-4 text-slate-200">
+                            <span>Target:</span>
+                            <span className="font-black text-slate-300">{unitsTarget} units</span>
+                          </p>
+                        </div>
+                      )}
+                      
+                      {!hideCollection && (
+                        <div className="space-y-0.5 pt-0.5">
+                          <p className="font-extrabold text-[#3b82f6] tracking-wide text-[9px]">COLLECTION</p>
+                          <p className="font-bold flex items-center justify-between gap-4 text-slate-200">
+                            <span>Actual:</span>
+                            <span className="font-black text-white">{collectionActual !== undefined && collectionActual !== null ? `₹${collectionActual.toFixed(2)} Cr` : '-'}</span>
+                          </p>
+                          <p className="font-bold flex items-center justify-between gap-4 text-slate-200">
+                            <span>Target:</span>
+                            <span className="font-black text-slate-300">₹{collectionTarget.toFixed(2)} Cr</span>
+                          </p>
+                        </div>
+                      )}
                     </div>
                   );
                 }
@@ -192,6 +251,7 @@ const SalesLineChart = ({ data }) => {
             />
             {/* Units Sold lines */}
             <Line 
+              yAxisId="left"
               type="monotone" 
               dataKey="UnitsTarget" 
               name="Units Target" 
@@ -201,8 +261,10 @@ const SalesLineChart = ({ data }) => {
               dot={{ r: 2 }} 
               activeDot={false}
               legendType="none"
+              hide={hideUnits}
             />
             <Line 
+              yAxisId="left"
               type="monotone" 
               dataKey="UnitsActual" 
               name="Units Sold" 
@@ -210,6 +272,33 @@ const SalesLineChart = ({ data }) => {
               strokeWidth={2.5} 
               dot={{ r: 4, strokeWidth: 1, fill: '#ffffff', stroke: '#10b981' }} 
               activeDot={{ r: 5 }} 
+              hide={hideUnits}
+            />
+            {/* Collection lines */}
+            <Line 
+              yAxisId="right"
+              type="monotone" 
+              dataKey="CollectionTarget" 
+              name="Collection Target" 
+              stroke="#3b82f6" 
+              strokeWidth={1.5} 
+              strokeDasharray="4 4"
+              dot={{ r: 2 }} 
+              activeDot={false}
+              legendType="none"
+              hide={hideCollection}
+            />
+            <Line 
+              yAxisId="right"
+              type="monotone" 
+              dataKey="CollectionActual" 
+              name="Total Collection" 
+              stroke="#10b981" 
+              strokeWidth={2.5} 
+              dot={{ r: 4, strokeWidth: 1, fill: '#ffffff', stroke: '#10b981' }} 
+              activeDot={{ r: 5 }} 
+              connectNulls={false} 
+              hide={hideCollection}
             />
           </LineChart>
         </MountedResponsiveContainer>
@@ -294,7 +383,7 @@ const CollectionLineChart = ({ data }) => {
   return (
     <div className="w-full h-full flex flex-col justify-between">
       <div className="flex justify-between items-center mb-2 px-2">
-        <h4 className="font-extrabold text-nyati-navy text-sm">Collection (₹ Cr)</h4>
+        <h4 className="font-extrabold text-nyati-navy text-sm">Collection Trend (₹ Cr)</h4>
         {/* Color Legend indicator */}
         <div className="flex items-center gap-4 text-[10px] font-extrabold uppercase tracking-wider text-slate-700 bg-slate-100/50 px-3 py-1.5 rounded-2xl border border-slate-200/30">
           <div className="flex items-center gap-1.5">
@@ -614,7 +703,50 @@ export default function Overview() {
   const grandTotalRegOS = ageingTotals.registeredOS || 0;
   const grandTotalUnregOS = ageingTotals.unregisteredOS || 0;
   const grandConstTarget = filteredProjects.reduce((s, p) => s + p.construction.target, 0);
-  const grandConstAchieved = filteredProjects.reduce((s, p) => s + p.construction.achieved, 0);
+  const grandConstAchieved = React.useMemo(() => {
+    if (!constructionMonthly || !constructionMonthly.projects) return 0;
+    const activeCleanNames = new Set(filteredProjects.map(p => cleanProjName(p.name)));
+    const activeConstProjects = constructionMonthly.projects.filter(p => activeCleanNames.has(cleanProjName(p.name)));
+    
+    const months = constructionMonthly.months || [
+      'Apr-26', 'May-26', 'Jun-26', 'Jul-26', 'Aug-26', 'Sep-26',
+      'Oct-26', 'Nov-26', 'Dec-26', 'Jan-27', 'Feb-27', 'Mar-27'
+    ];
+    
+    // Get active months based on filters (matching the helper in ConstructionBudget)
+    let activeMs = months;
+    if (filters) {
+      const startLimit = filters.dateFrom ? new Date(filters.dateFrom) : new Date('2000-01-01');
+      const endLimit = filters.dateTo ? new Date(filters.dateTo) : new Date('2099-12-31');
+      const monthsMap = {
+        'Apr': 3, 'May': 4, 'Jun': 5, 'Jul': 6, 'Aug': 7, 'Sep': 8,
+        'Oct': 9, 'Nov': 10, 'Dec': 11, 'Jan': 0, 'Feb': 1, 'Mar': 2
+      };
+      activeMs = months.filter(mStr => {
+        const [mon, yrStr] = mStr.split('-');
+        const yr = 2000 + parseInt(yrStr, 10);
+        const monthIdx = monthsMap[mon];
+        const monthStart = new Date(yr, monthIdx, 1);
+        const monthEnd = new Date(yr, monthIdx + 1, 0, 23, 59, 59, 999);
+        const inDateRange = monthStart <= endLimit && monthEnd >= startLimit;
+        if (!inDateRange) return false;
+        if (filters.selectedQuarters && filters.selectedQuarters.length > 0) {
+          const q = getQuarterFromMonth(mStr);
+          if (q && !filters.selectedQuarters.includes(q)) return false;
+        }
+        return true;
+      });
+      if (activeMs.length === 0) activeMs = months;
+    }
+    
+    let sum = 0;
+    activeConstProjects.forEach(p => {
+      activeMs.forEach(m => {
+        sum += p.actual[m] || 0;
+      });
+    });
+    return sum;
+  }, [constructionMonthly, filteredProjects, filters]);
   const constEff = grandConstTarget > 0 ? (grandConstAchieved / grandConstTarget) * 100 : 0;
 
   // --- Portfolio derived ---
