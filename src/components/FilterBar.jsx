@@ -3,7 +3,7 @@ import { useData } from '../context/DataContext';
 import { ChevronDown, Filter, Calendar, Check, Search, RotateCcw } from 'lucide-react';
 
 export default function FilterBar() {
-  const { projectList, filters, updateFilters } = useData();
+  const { projectList, filters, updateFilters, defaultQuarter } = useData();
   const [projectDropdownOpen, setProjectDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef(null);
@@ -59,7 +59,7 @@ export default function FilterBar() {
       selectedProjects: [],
       dateFrom: '',
       dateTo: '',
-      selectedQuarters: ['Q1', 'Q2', 'Q3', 'Q4'],
+      selectedQuarters: [defaultQuarter || 'Q1'],
       selectedType: 'All'
     });
     setSearchQuery('');

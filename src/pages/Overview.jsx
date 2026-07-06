@@ -1,6 +1,6 @@
 import React from 'react';
 import { useData } from '../context/DataContext';
-import { calculateGrandTotals } from '../utils/dataHelpers';
+import { calculateGrandTotals, getAgeingMetrics } from '../utils/dataHelpers';
 import { useNavigate } from 'react-router-dom';
 import AnimatedNumber from '../components/AnimatedNumber';
 import {
@@ -122,40 +122,12 @@ const MountedResponsiveContainer = ({ children, ...props }) => {
   );
 };
 
-// Sales cumulative progress line graph displaying Units (Green) & Rate (Blue)
+// Sales cumulative progress line graph displaying Units (Green)
 const SalesLineChart = ({ data }) => {
-  const [activeTab, setActiveTab] = React.useState('Unit'); // 'Unit' or 'Collection'
-
-  const hideUnits = activeTab === 'Collection';
-  const hideCollection = activeTab === 'Unit';
-
   return (
     <div className="w-full h-full flex flex-col relative">
-      {/* Custom toggle button & chart legend */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mb-3 px-2">
-        <div className="flex items-center gap-1 bg-slate-100/80 border border-slate-200/50 rounded-2xl p-1 shrink-0">
-          <button
-            onClick={() => setActiveTab('Unit')}
-            className={`${
-              activeTab === 'Unit'
-                ? 'bg-white text-nyati-navy font-bold shadow-sm'
-                : 'text-slate-600 font-semibold hover:text-nyati-navy'
-            } rounded-xl px-4 py-1.5 transition-all text-xs cursor-pointer`}
-          >
-            Unit
-          </button>
-          <button
-            onClick={() => setActiveTab('Collection')}
-            className={`${
-              activeTab === 'Collection'
-                ? 'bg-white text-nyati-navy font-bold shadow-sm'
-                : 'text-slate-600 font-semibold hover:text-nyati-navy'
-            } rounded-xl px-4 py-1.5 transition-all text-xs cursor-pointer`}
-          >
-            Collection
-          </button>
-        </div>
-
+        <h4 className="font-extrabold text-nyati-navy text-sm">Unit</h4>
         {/* Color Legend indicator */}
         <div className="flex items-center gap-4 text-[11px] font-extrabold uppercase tracking-wider text-slate-700 bg-slate-100/50 px-3.5 py-1.5 rounded-2xl border border-slate-200/30">
           <div className="flex items-center gap-1.5">
@@ -174,7 +146,7 @@ const SalesLineChart = ({ data }) => {
         <MountedResponsiveContainer width="100%" height="100%">
           <LineChart
             data={data}
-            margin={{ top: 15, right: hideCollection ? 15 : 30, left: hideUnits ? 30 : 15, bottom: 25 }}
+            margin={{ top: 15, right: 15, left: -20, bottom: 25 }}
           >
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
             <XAxis 
@@ -188,61 +160,30 @@ const SalesLineChart = ({ data }) => {
               tick={{ fontSize: 10, fontWeight: 800, fill: '#1e293b' }} 
             />
             <YAxis 
-              yAxisId="left"
               axisLine={false}
               tickLine={false}
               tick={{ fontSize: 11, fontWeight: 800, fill: '#1e293b' }}
               tickFormatter={(val) => `${val}`}
-              hide={hideUnits}
-            />
-            <YAxis 
-              yAxisId="right"
-              orientation="right"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 11, fontWeight: 800, fill: '#1e293b' }}
-              tickFormatter={(val) => `₹${val.toFixed(1)}`}
-              hide={hideCollection}
             />
             <Tooltip 
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
                   const unitsActual = payload.find(p => p.dataKey === "UnitsActual")?.value;
                   const unitsTarget = payload.find(p => p.dataKey === "UnitsTarget")?.value;
-                  const collectionActual = payload.find(p => p.dataKey === "CollectionActual")?.value;
-                  const collectionTarget = payload.find(p => p.dataKey === "CollectionTarget")?.value;
                   
                   return (
                     <div className="bg-slate-900/95 text-white px-2.5 py-2 rounded-xl text-[10px] shadow-xl border border-slate-800 space-y-1 font-sans">
                       <p className="font-extrabold text-slate-300 uppercase tracking-wider text-[11px]">{payload[0].payload.name}</p>
-                      
-                      {!hideUnits && (
-                        <div className="space-y-0.5 pb-0.5">
-                          <p className="font-extrabold text-[#10b981] tracking-wide text-[9px]">UNIT</p>
-                          <p className="font-bold flex items-center justify-between gap-4 text-slate-200">
-                            <span>Actual:</span>
-                            <span className="font-black text-white">{unitsActual !== undefined && unitsActual !== null ? `${unitsActual} units` : '-'}</span>
-                          </p>
-                          <p className="font-bold flex items-center justify-between gap-4 text-slate-200">
-                            <span>Target:</span>
-                            <span className="font-black text-slate-300">{unitsTarget} units</span>
-                          </p>
-                        </div>
-                      )}
-                      
-                      {!hideCollection && (
-                        <div className="space-y-0.5 pt-0.5">
-                          <p className="font-extrabold text-[#3b82f6] tracking-wide text-[9px]">COLLECTION</p>
-                          <p className="font-bold flex items-center justify-between gap-4 text-slate-200">
-                            <span>Actual:</span>
-                            <span className="font-black text-white">{collectionActual !== undefined && collectionActual !== null ? `₹${collectionActual.toFixed(2)} Cr` : '-'}</span>
-                          </p>
-                          <p className="font-bold flex items-center justify-between gap-4 text-slate-200">
-                            <span>Target:</span>
-                            <span className="font-black text-slate-300">₹{collectionTarget.toFixed(2)} Cr</span>
-                          </p>
-                        </div>
-                      )}
+                      <div className="space-y-0.5 pb-0.5">
+                        <p className="font-bold flex items-center justify-between gap-4 text-slate-200">
+                          <span>Actual Units:</span>
+                          <span className="font-black text-white">{unitsActual !== undefined && unitsActual !== null ? `${unitsActual} units` : '-'}</span>
+                        </p>
+                        <p className="font-bold flex items-center justify-between gap-4 text-slate-200">
+                          <span>Target Units:</span>
+                          <span className="font-black text-slate-300">{unitsTarget} units</span>
+                        </p>
+                      </div>
                     </div>
                   );
                 }
@@ -251,7 +192,6 @@ const SalesLineChart = ({ data }) => {
             />
             {/* Units Sold lines */}
             <Line 
-              yAxisId="left"
               type="monotone" 
               dataKey="UnitsTarget" 
               name="Units Target" 
@@ -261,10 +201,8 @@ const SalesLineChart = ({ data }) => {
               dot={{ r: 2 }} 
               activeDot={false}
               legendType="none"
-              hide={hideUnits}
             />
             <Line 
-              yAxisId="left"
               type="monotone" 
               dataKey="UnitsActual" 
               name="Units Sold" 
@@ -272,33 +210,6 @@ const SalesLineChart = ({ data }) => {
               strokeWidth={2.5} 
               dot={{ r: 4, strokeWidth: 1, fill: '#ffffff', stroke: '#10b981' }} 
               activeDot={{ r: 5 }} 
-              hide={hideUnits}
-            />
-            {/* Collection lines */}
-            <Line 
-              yAxisId="right"
-              type="monotone" 
-              dataKey="CollectionTarget" 
-              name="Collection Target" 
-              stroke="#3b82f6" 
-              strokeWidth={1.5} 
-              strokeDasharray="4 4"
-              dot={{ r: 2 }} 
-              activeDot={false}
-              legendType="none"
-              hide={hideCollection}
-            />
-            <Line 
-              yAxisId="right"
-              type="monotone" 
-              dataKey="CollectionActual" 
-              name="Total Collection" 
-              stroke="#10b981" 
-              strokeWidth={2.5} 
-              dot={{ r: 4, strokeWidth: 1, fill: '#ffffff', stroke: '#10b981' }} 
-              activeDot={{ r: 5 }} 
-              connectNulls={false} 
-              hide={hideCollection}
             />
           </LineChart>
         </MountedResponsiveContainer>
@@ -372,6 +283,99 @@ const OutstandingLineChart = ({ data }) => {
               connectNulls={false} 
             />
           </AreaChart>
+        </MountedResponsiveContainer>
+      </div>
+    </div>
+  );
+};
+
+// Collection line graph representing monthly trend of collection targets vs actuals
+const CollectionLineChart = ({ data }) => {
+  return (
+    <div className="w-full h-full flex flex-col justify-between">
+      <div className="flex justify-between items-center mb-2 px-2">
+        <h4 className="font-extrabold text-nyati-navy text-sm">Collection (₹ Cr)</h4>
+        {/* Color Legend indicator */}
+        <div className="flex items-center gap-4 text-[10px] font-extrabold uppercase tracking-wider text-slate-700 bg-slate-100/50 px-3 py-1.5 rounded-2xl border border-slate-200/30">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#3b82f6] inline-block shadow-sm"></span>
+            <span>Target</span>
+          </div>
+          <div className="h-2.5 w-px bg-slate-300"></div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#10b981] inline-block shadow-sm"></span>
+            <span>Actual</span>
+          </div>
+        </div>
+      </div>
+      <div className="w-full flex-1 min-h-[220px]">
+        <MountedResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={data}
+            margin={{ top: 15, right: 15, left: -20, bottom: 25 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+            <XAxis 
+              dataKey="name" 
+              axisLine={false} 
+              tickLine={false} 
+              interval={0}
+              angle={-45}
+              textAnchor="end"
+              height={45}
+              tick={{ fontSize: 10, fontWeight: 700, fill: '#1e293b' }} 
+            />
+            <YAxis 
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 10, fontWeight: 700, fill: '#1e293b' }}
+              tickFormatter={(val) => `₹${val.toFixed(0)}Cr`}
+            />
+            <Tooltip 
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  const collectionActual = payload.find(p => p.dataKey === "CollectionActual")?.value;
+                  const collectionTarget = payload.find(p => p.dataKey === "CollectionTarget")?.value;
+                  return (
+                    <div className="bg-slate-900/95 text-white px-2.5 py-2 rounded-xl text-[10px] shadow-xl border border-slate-800 space-y-1 font-sans">
+                      <p className="font-extrabold text-slate-300 uppercase tracking-wider text-[11px]">{payload[0].payload.name}</p>
+                      <div className="space-y-0.5">
+                        <p className="font-bold flex items-center justify-between gap-4 text-slate-200">
+                          <span>Actual:</span>
+                          <span className="font-black text-white">{collectionActual !== undefined && collectionActual !== null ? `₹${collectionActual.toFixed(2)} Cr` : '-'}</span>
+                        </p>
+                        <p className="font-bold flex items-center justify-between gap-4 text-slate-200">
+                          <span>Target:</span>
+                          <span className="font-black text-slate-300">₹{collectionTarget.toFixed(2)} Cr</span>
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="CollectionTarget" 
+              name="Collection Target" 
+              stroke="#3b82f6" 
+              strokeWidth={1.5} 
+              strokeDasharray="4 4"
+              dot={{ r: 2 }} 
+              activeDot={false}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="CollectionActual" 
+              name="Total Collection" 
+              stroke="#10b981" 
+              strokeWidth={2.5} 
+              dot={{ r: 4, strokeWidth: 1, fill: '#ffffff', stroke: '#10b981' }} 
+              activeDot={{ r: 5 }} 
+              connectNulls={false} 
+            />
+          </LineChart>
         </MountedResponsiveContainer>
       </div>
     </div>
@@ -577,7 +581,7 @@ const PortfolioPieChart = ({ activeProjects, newlyStarted, inProcess, nearingCom
 };
 
 export default function Overview() {
-  const { filteredProjects, portfolioKpiOverrides, updateFilters, constructionMonthly, rawData } = useData();
+  const { filteredProjects, portfolioKpiOverrides, updateFilters, constructionMonthly, rawData, filters } = useData();
   const navigate = useNavigate();
 
   const handleResetFilters = () => {
@@ -591,6 +595,11 @@ export default function Overview() {
   };
   const totals = calculateGrandTotals(filteredProjects);
 
+  const ageingResult = React.useMemo(() => {
+    return getAgeingMetrics(filteredProjects, rawData, filters);
+  }, [filteredProjects, rawData, filters]);
+  const ageingTotals = ageingResult.totals;
+
   // --- Sales & Collection derived ---
   const unitsEff = totals.budgetUnits > 0 ? (totals.soldToDate / totals.budgetUnits) * 100 : 0;
   const rateEff = totals.rateEff;
@@ -598,12 +607,12 @@ export default function Overview() {
   const areaEff = totals.areaEff;
 
   // --- Outstanding & Cost derived ---
-  const grandTotalOutstanding = filteredProjects.reduce((s, p) => s + p.outstanding, 0);
-  const grandTotalDueMilestone = filteredProjects.reduce((s, p) => s + p.dueMilestone, 0);
-  const grandTotalCollection = filteredProjects.reduce((s, p) => s + p.actualCollection, 0);
-  const grandAgeingGt120 = filteredProjects.reduce((s, p) => s + p.ageing['gt120'], 0);
-  const grandTotalRegOS = filteredProjects.reduce((s, p) => s + p.registeredOS, 0);
-  const grandTotalUnregOS = filteredProjects.reduce((s, p) => s + p.unregisteredOS, 0);
+  const grandTotalOutstanding = ageingTotals.outstanding || 0;
+  const grandTotalDueMilestone = ageingTotals.dueMilestone || 0;
+  const grandTotalCollection = ageingTotals.actualCollection || 0;
+  const grandAgeingGt120 = ageingTotals.ageing?.gt120 || 0;
+  const grandTotalRegOS = ageingTotals.registeredOS || 0;
+  const grandTotalUnregOS = ageingTotals.unregisteredOS || 0;
   const grandConstTarget = filteredProjects.reduce((s, p) => s + p.construction.target, 0);
   const grandConstAchieved = filteredProjects.reduce((s, p) => s + p.construction.achieved, 0);
   const constEff = grandConstTarget > 0 ? (grandConstAchieved / grandConstTarget) * 100 : 0;
@@ -888,9 +897,9 @@ export default function Overview() {
               />
             </div>
 
-            {/* Right Side: Outstanding Line Chart */}
+            {/* Right Side: Collection Line Chart */}
             <div className="flex-1 w-full h-full min-h-0 md:pl-4">
-              <OutstandingLineChart data={outstandingLineChartData} />
+              <CollectionLineChart data={salesLineChartData} />
             </div>
           </div>
         </motion.div>

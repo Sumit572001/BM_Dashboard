@@ -383,7 +383,7 @@ export function getOutstandingDataFromLatestAgeingSheet(rawData) {
     const claimed = getVal(r, ['Claimed Value']);
     const received = getVal(r, ['Received']);
     const rawOutstanding = getVal(r, ['Total Outstanding']);
-    const rowOutstanding = rawOutstanding > 0 ? rawOutstanding : 0;
+    const rowOutstanding = rawOutstanding;
     
     pOut['Milestone Dues (₹ Cr)'] += claimed;
     pOut['Total Collection (₹ Cr)'] += received;
@@ -2421,7 +2421,7 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
         
         const status = getStringVal(r, ['Status', 'Regis Status']).toLowerCase().trim();
         const rawOutstanding = getVal(r, ['Total Outstanding']);
-        const rowOutstanding = rawOutstanding > 0 ? rawOutstanding : 0;
+        const rowOutstanding = rawOutstanding;
         
         pAge.outstanding += rowOutstanding;
         pAge.soldUnits += 1;
@@ -2468,7 +2468,7 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
           legacyReceived += getVal(r, ['Received']);
           
           const rawOutstanding = getVal(r, ['Total Outstanding']);
-          const rowOutstanding = rawOutstanding > 0 ? rawOutstanding : 0;
+          const rowOutstanding = rawOutstanding;
           
           legacyOutstanding += rowOutstanding;
           legacySoldUnits += 1;
@@ -2634,8 +2634,41 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
     });
   }
 
+  // ── Direct sheet totals: sum ALL rows in the latest ageing sheet ──────────
+  // This overrides the project-name-matched totals so that cards always match
+  // the Excel sheet exactly, even when some project names are not in the FY sheet.
+  let directTotalOS = 0;
+  let directRegisteredOS = 0;
+  let directUnregisteredOS = 0;
+
+  // Only compute direct totals when no project/type filter is active
+  const canUseDirectTotals = !isProjectFiltered && !isTypeFiltered;
+
+  if (canUseDirectTotals && activeSheets.length > 0) {
+    const latestSheet = activeSheets[activeSheets.length - 1];
+    const latestRows = rawData[latestSheet.key] || [];
+    latestRows.forEach(r => {
+      const rawOS = getVal(r, ['Total Outstanding']);
+      directTotalOS += rawOS;
+      const rowStatus = getStringVal(r, ['Status', 'Regis Status']).toLowerCase().trim();
+      if (rowStatus === 'registered') {
+        directRegisteredOS += rawOS;
+      } else {
+        directUnregisteredOS += rawOS;
+      }
+    });
+  }
+
   // Use direct sum to correctly reflect ageing sheet values (not Overview sheet shortcut)
   const totals = sumAgeingTotals(enrichedProjects);
+
+  // Override outstanding figures with direct sheet totals (converts Rupees → Crores)
+  if (canUseDirectTotals && directTotalOS !== 0) {
+    const toCr = (val) => parseFloat((val / 10000000).toFixed(2));
+    totals.outstanding = toCr(directTotalOS);
+    totals.registeredOS = toCr(directRegisteredOS);
+    totals.unregisteredOS = toCr(directUnregisteredOS);
+  }
 
   return {
     projects: enrichedProjects,

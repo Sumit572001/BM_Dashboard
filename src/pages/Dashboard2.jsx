@@ -246,9 +246,10 @@ export default function Dashboard2() {
   const grandTotalCollection = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.actualCollection || 0), 0), [enrichedProjects]);
   const grandTotalInceptionCollection = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.totalCollection || 0), 0), [enrichedProjects]);
   const grandTotalSalesCollection = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.actualCollection || 0), 0), [enrichedProjects]);
-  const grandTotalOutstanding = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.outstanding || 0), 0), [enrichedProjects]);
-  const grandTotalRegOS = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.registeredOS || 0), 0), [enrichedProjects]);
-  const grandTotalUnregOS = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.unregisteredOS || 0), 0), [enrichedProjects]);
+  // Use direct sheet totals from getAgeingMetrics (sums ALL ageing sheet rows, not just matched projects)
+  const grandTotalOutstanding = totals.outstanding || 0;
+  const grandTotalRegOS = totals.registeredOS || 0;
+  const grandTotalUnregOS = totals.unregisteredOS || 0;
 
   const grandTotalSoldUnits = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.soldUnits || 0), 0), [enrichedProjects]);
   const grandTotalRegisteredUnits = useMemo(() => enrichedProjects.reduce((s, p) => s + (p.registeredUnits || 0), 0), [enrichedProjects]);
@@ -346,10 +347,10 @@ export default function Dashboard2() {
     handleAgeCellClick(projectName, bucket, value);
   };
 
-  // Outstanding Highlights Calculations
-  const totalOS = enrichedProjects.reduce((s, p) => s + p.outstanding, 0);
-  const regOS = enrichedProjects.reduce((s, p) => s + p.registeredOS, 0);
-  const unregOS = enrichedProjects.reduce((s, p) => s + p.unregisteredOS, 0);
+  // Outstanding Highlights Calculations — use direct sheet totals (same as table grand totals)
+  const totalOS = totals.outstanding || 0;
+  const regOS = totals.registeredOS || 0;
+  const unregOS = totals.unregisteredOS || 0;
   const ageingGt90 = enrichedProjects.reduce((s, p) => s + p.ageing['91-120'] + p.ageing['gt120'], 0);
   const ageingRatio = totalOS > 0 ? (ageingGt90 / totalOS) * 100 : 0;
 
@@ -471,6 +472,7 @@ export default function Dashboard2() {
       style={{ transition: 'opacity 0.2s ease', opacity: isPending ? 0.6 : 1 }}
     >
 
+
       {/* SECTION A: KPI Cards Row */}
       {/*
           Layout (like Sales page — all equal column widths, left cards natural height):
@@ -562,7 +564,7 @@ export default function Dashboard2() {
       {/* SECTION B: CONSOLIDATED PROJECT OUTSTANDING Table */}
       <div ref={sectionBRef} className="bg-white rounded-3xl shadow-premium border border-slate-100">
         <div className="sticky top-0 z-10 bg-white rounded-t-3xl border-b border-slate-100 px-6 py-5 shadow-sm">
-          <h3 className="font-bold text-nyati-navy text-lg">Consolidated Project Outstanding</h3>
+          <h3 className="font-bold text-nyati-navy text-lg">Consolidated Project Outstanding (₹ Cr)</h3>
         </div>
         <div className="lg:overflow-x-visible overflow-x-auto">
           <table className="w-full text-left text-[15px] text-slate-800 border-collapse min-w-[1360px]">
@@ -637,56 +639,56 @@ export default function Dashboard2() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 font-medium text-slate-850">
+            <tbody className="divide-y divide-slate-200 font-medium text-black">
               {visibleProjects.map((p, index) => (
                 <tr key={p.name} className="hover:bg-slate-50/50 transition-colors border-b border-slate-200">
-                  <td className="px-4 py-2 font-semibold text-slate-700 min-w-[320px] w-[320px] max-w-[320px] border-r border-slate-200 text-left">
+                  <td className="px-4 py-2 font-semibold text-black min-w-[320px] w-[320px] max-w-[320px] border-r border-slate-200 text-left">
                     <div className="flex flex-row items-center gap-2 flex-wrap">
-                      <span className="text-slate-800 text-[14px] font-bold">{p.name}</span>
+                      <span className="text-black text-[14px] font-bold">{p.name}</span>
                       {renderTypeBadge(p.type)}
                     </div>
                   </td>
-                  <td className="px-4 py-2 text-center text-slate-700 w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.budgetCollection.toFixed(2)}</td>
+                  <td className="px-4 py-2 text-center text-black w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.budgetCollection.toFixed(2)}</td>
                   <td className="px-4 py-2 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">
                     <span className={`px-3 py-0.5 rounded-lg text-[14px] ${getCollectionColor(p.actualCollection, p.budgetCollection)}`}>
                       ₹{p.actualCollection.toFixed(2)}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-center text-slate-700 w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{p.soldUnits || 0}</td>
-                  <td className="px-4 py-2 text-center text-slate-700 w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{p.registeredUnits || 0}</td>
-                  <td className="px-4 py-2 text-center text-slate-700 w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{p.unregisteredUnits || 0}</td>
-                  <td className="px-4 py-2 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.dueMilestone.toFixed(2)}</td>
-                  <td className="px-4 py-2 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{(p.totalCollection || 0).toFixed(2)}</td>
+                  <td className="px-4 py-2 text-center text-black w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{p.soldUnits || 0}</td>
+                  <td className="px-4 py-2 text-center text-black w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{p.registeredUnits || 0}</td>
+                  <td className="px-4 py-2 text-center text-black w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{p.unregisteredUnits || 0}</td>
+                  <td className="px-4 py-2 text-center text-black w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.dueMilestone.toFixed(2)}</td>
+                  <td className="px-4 py-2 text-center text-black w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{(p.totalCollection || 0).toFixed(2)}</td>
                   <td className="px-4 py-2 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">
                     <span className={`px-3 py-0.5 rounded-lg text-[14px] ${getOutstandingColor(p.outstanding)}`}>
                       ₹{p.outstanding.toFixed(2)}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-center text-slate-700 w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.registeredOS.toFixed(2)}</td>
-                  <td className="px-4 py-2 text-center text-slate-700 w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.unregisteredOS.toFixed(2)}</td>
+                  <td className="px-4 py-2 text-center text-black w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.registeredOS.toFixed(2)}</td>
+                  <td className="px-4 py-2 text-center text-black w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{p.unregisteredOS.toFixed(2)}</td>
                 </tr>
               ))}
               {/* Grand Total Row */}
               <tr className="bg-slate-50/80 font-bold text-nyati-navy border-t-2 border-slate-200 text-[15px]">
                 <td className="px-4 py-2.5 min-w-[320px] w-[320px] max-w-[320px] border-r border-slate-200 text-left">GRAND TOTAL</td>
-                <td className="px-4 py-2.5 text-center text-slate-700 bg-slate-50/50 w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalBudgetCollection.toFixed(2)}</td>
+                <td className="px-4 py-2.5 text-center text-black bg-slate-50/50 w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalBudgetCollection.toFixed(2)}</td>
                 <td className="px-4 py-2.5 text-center bg-slate-50/50 w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">
                   <span className={`px-4 py-1 rounded-lg text-[14px] ${getCollectionColor(grandTotalCollection, grandTotalBudgetCollection)}`}>
                     ₹{grandTotalCollection.toFixed(2)}
                   </span>
                 </td>
-                <td className="px-4 py-2.5 text-center text-slate-700 w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{grandTotalSoldUnits}</td>
-                <td className="px-4 py-2.5 text-center text-slate-700 w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{grandTotalRegisteredUnits}</td>
-                <td className="px-4 py-2.5 text-center text-slate-700 w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{grandTotalUnregisteredUnits}</td>
-                <td className="px-4 py-2.5 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalDueMilestone.toFixed(2)}</td>
-                <td className="px-4 py-2.5 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalInceptionCollection.toFixed(2)}</td>
+                <td className="px-4 py-2.5 text-center text-black w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{grandTotalSoldUnits}</td>
+                <td className="px-4 py-2.5 text-center text-black w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{grandTotalRegisteredUnits}</td>
+                <td className="px-4 py-2.5 text-center text-black w-[100px] min-w-[100px] max-w-[100px] border-r border-slate-200">{grandTotalUnregisteredUnits}</td>
+                <td className="px-4 py-2.5 text-center text-black w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalDueMilestone.toFixed(2)}</td>
+                <td className="px-4 py-2.5 text-center text-black w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalInceptionCollection.toFixed(2)}</td>
                 <td className="px-4 py-2.5 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">
                   <span className={`px-4 py-1 rounded-lg text-[14px] border border-nyati-navy/10 ${getOutstandingColor(grandTotalOutstanding)}`}>
                     ₹{grandTotalOutstanding.toFixed(2)}
                   </span>
                 </td>
-                <td className="px-4 py-2.5 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalRegOS.toFixed(2)}</td>
-                <td className="px-4 py-2.5 text-center w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalUnregOS.toFixed(2)}</td>
+                <td className="px-4 py-2.5 text-center text-black w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalRegOS.toFixed(2)}</td>
+                <td className="px-4 py-2.5 text-center text-black w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200">₹{grandTotalUnregOS.toFixed(2)}</td>
               </tr>
             </tbody>
           </table>
