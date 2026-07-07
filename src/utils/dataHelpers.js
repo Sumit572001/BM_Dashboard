@@ -254,12 +254,6 @@ export function cleanProjName(name) {
   clean = clean.replace(/\s*\([rlc]\)\s*/g, '');
   // Normalize specific word mismatches
   clean = clean.replace(/\bdefence enclave\b/g, 'defence');
-  
-  // Custom merge for Enthral and Plaza
-  if (clean === 'enthral i' || clean === 'plaza' || clean === 'enthral & plaza' || clean === 'enthral & nyati plaza') {
-    return 'enthral & plaza';
-  }
-  
   return clean.trim();
 }
 
@@ -1668,8 +1662,8 @@ function parseTotalsFromOverviewSheet(overviewSheet, projects) {
   const budgetArea = parseVal(areaRow, ['Target/Budget', 'Target', 'Budget'], sum('budgetArea'));
   const actualArea = parseVal(areaRow, ['Actual/Achieved', 'Actual', 'Achieved'], sum('actualArea'));
   
-  const budgetCollection = parseVal(collRow, ['Target/Budget', 'Target', 'Budget'], sum('budgetCollection'));
-  const actualCollection = parseVal(collRow, ['Actual/Achieved', 'Actual', 'Achieved'], sum('actualCollection'));
+  const budgetCollection = sum('budgetCollection');
+  const actualCollection = sum('actualCollection');
 
   const outstanding = parseVal(osRow, ['Actual/Achieved', 'Actual', 'Achieved'], sum('outstanding'));
   const registeredOS = parseVal(regOSRow, ['Actual/Achieved', 'Actual', 'Achieved'], sum('registeredOS'));
@@ -2537,18 +2531,19 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
       };
     }
 
+    const isOldProj = targetClean === oldProjectsCleanName;
     return {
       ...proj,
-      dueMilestone: toCr(pAge.dueMilestone),
+      dueMilestone: isOldProj ? 0 : toCr(pAge.dueMilestone),
       actualCollection: proj.actualCollection,
-      totalCollection: toCr(pAge.actualCollection),
-      outstanding: toCr(pAge.outstanding),
-      registeredOS: toCr(pAge.registeredOS),
-      unregisteredOS: toCr(pAge.unregisteredOS),
-      soldUnits: pAge.soldUnits || 0,
-      registeredUnits: pAge.registeredUnits || 0,
-      unregisteredUnits: pAge.unregisteredUnits || 0,
-      ageing: {
+      totalCollection: isOldProj ? 0 : toCr(pAge.actualCollection),
+      outstanding: isOldProj ? 0 : toCr(pAge.outstanding),
+      registeredOS: isOldProj ? 0 : toCr(pAge.registeredOS),
+      unregisteredOS: isOldProj ? 0 : toCr(pAge.unregisteredOS),
+      soldUnits: isOldProj ? 0 : (pAge.soldUnits || 0),
+      registeredUnits: isOldProj ? 0 : (pAge.registeredUnits || 0),
+      unregisteredUnits: isOldProj ? 0 : (pAge.unregisteredUnits || 0),
+      ageing: isOldProj ? { '0-30': 0, '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: 0 } : {
         '0-30': toCr(pAge.age0_30),
         '31-60': toCr(pAge.age31_60),
         '61-90': toCr(pAge.age61_90),
@@ -2556,7 +2551,7 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
         'gt120': toCr(pAge.ageGt120),
         total: toCr(pAge.outstanding)
       },
-      ageing_reg: {
+      ageing_reg: isOldProj ? { '0-30': 0, '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: 0 } : {
         '0-30': toCr(pAge.age0_30_reg),
         '31-60': toCr(pAge.age31_60_reg),
         '61-90': toCr(pAge.age61_90_reg),
@@ -2564,7 +2559,7 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
         'gt120': toCr(pAge.ageGt120_reg),
         total: toCr(pAge.registeredOS)
       },
-      ageing_unreg: {
+      ageing_unreg: isOldProj ? { '0-30': 0, '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: 0 } : {
         '0-30': toCr(pAge.age0_30_unreg),
         '31-60': toCr(pAge.age31_60_unreg),
         '61-90': toCr(pAge.age61_90_unreg),
@@ -2587,12 +2582,12 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
       buildings: [],
       monthlyData: null,
       totalUnits: 0,
-      soldToDate: legacySoldUnits,
+      soldToDate: 0,
       balance: 0,
       soldMar31: 0,
       unsoldApr1: 0,
       monthSold: 0,
-      periodSold: legacySoldUnits,
+      periodSold: 0,
       budgetUnits: 0,
       salesEff: 0,
       varianceUnits: 0,
@@ -2609,27 +2604,26 @@ export function getAgeingMetrics(filteredProjects, rawData, filters) {
       budgetCollection: 0,
       actualCollection: toCr(legacyReceived),
       collectionEff: 0,
-      soldUnits: legacySoldUnits,
-      registeredUnits: legacyRegisteredUnits,
-      unregisteredUnits: legacyUnregisteredUnits,
-      dueMilestone: toCr(legacyDue),
-      outstanding: toCr(legacyOutstanding),
-      registeredOS: toCr(legacyRegisteredOS),
-      unregisteredOS: toCr(legacyUnregisteredOS),
+      soldUnits: 0,
+      registeredUnits: 0,
+      unregisteredUnits: 0,
+      dueMilestone: 0,
+      outstanding: 0,
+      registeredOS: 0,
+      unregisteredOS: 0,
       ageing: {
-        '0-30': toCr(legacyAge0_30),
-        '31-60': toCr(legacyAge31_60),
-        '61-90': toCr(legacyAge61_90),
-        '91-120': toCr(legacyAge91_120),
-        'gt120': toCr(legacyAgeGt120),
-        total: toCr(legacyOutstanding)
+        '0-30': 0,
+        '31-60': 0,
+        '61-90': 0,
+        '91-120': 0,
+        'gt120': 0,
+        total: 0
       },
       ageing_reg: {
-        '0-30': toCr(legacyAge0_30),
-        '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: toCr(legacyRegisteredOS)
+        '0-30': 0, '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: 0
       },
       ageing_unreg: {
-        '0-30': 0, '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: toCr(legacyUnregisteredOS)
+        '0-30': 0, '31-60': 0, '61-90': 0, '91-120': 0, 'gt120': 0, total: 0
       }
     });
   }

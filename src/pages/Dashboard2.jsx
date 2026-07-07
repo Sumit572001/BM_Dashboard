@@ -146,11 +146,11 @@ export default function Dashboard2() {
       // 1. Identify bottom projects and assign relative weights
       const getBottomWeight = (name) => {
         const uName = name.trim().toUpperCase();
-        if (uName.includes('OLD PROJECTS')) return 1000;
         if (uName.includes('EKATVA')) return 1001;
         if (uName.includes('ELARIS')) return 1002;
         if (uName.includes('PATRAKARNAGAR') || uName.includes('PATRAKARNAGR')) return 1003;
         if (uName.includes('ETHOS') || uName.includes('ETHOSE')) return 1004;
+        if (uName.includes('OLD PROJECTS') || uName.includes('OLD PROJECT')) return 1005;
         return null;
       };
 
@@ -183,7 +183,8 @@ export default function Dashboard2() {
             "NYATI EXUBERANCE IV",
             "NYATI ESTEBAN II",
             "NYATI ESTEBAN III",
-            "NYATI PLAZA & NYATI ENTHRAL I",
+            "NYATI PLAZA",
+            "NYATI ENTHRAL I",
             "NYATI EMPRESS",
             "NYATI EVOQUE",
             "NYATI EVANIA",
@@ -463,7 +464,7 @@ export default function Dashboard2() {
   };
 
   const visibleProjects = React.useMemo(() => {
-    return sortedProjects.filter(p => !p.name.trim().toUpperCase().includes('OLD PROJECT'));
+    return sortedProjects;
   }, [sortedProjects]);
 
   return (
