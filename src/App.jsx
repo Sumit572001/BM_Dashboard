@@ -8,6 +8,7 @@ import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
 import FilterBar from './components/FilterBar';
 import UploadZone from './components/UploadZone';
+import AIFloatingAgent from './components/AIFloatingAgent';
 
 // Pages
 import Dashboard1 from './pages/Dashboard1';
@@ -138,6 +139,7 @@ function AppContent() {
             </Routes>
           </ErrorBoundary>
         </main>
+        <AIFloatingAgent />
       </motion.div>
     </div>
   );
