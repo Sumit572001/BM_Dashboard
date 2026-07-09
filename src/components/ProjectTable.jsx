@@ -124,7 +124,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
           periodTargetKey: 'unitsTarget',
           periodActualKey: 'unitsActual',
           bgHeader: 'bg-[#ffff00]',
-          textHeader: 'text-slate-900 font-extrabold',
+          textHeader: 'text-black font-extrabold',
           colName: 'UNITS'
         };
       case 'value':
@@ -136,7 +136,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
           periodTargetKey: 'salesValueTarget',
           periodActualKey: 'salesValueActual',
           bgHeader: 'bg-[#fabf8f]',
-          textHeader: 'text-slate-900 font-extrabold',
+          textHeader: 'text-black font-extrabold',
           colName: 'VALUE-WISE'
         };
       case 'collection':
@@ -148,7 +148,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
           periodTargetKey: 'collectionTarget',
           periodActualKey: 'collectionActual',
           bgHeader: 'bg-[#ccc1ff]',
-          textHeader: 'text-slate-900 font-extrabold',
+          textHeader: 'text-black font-extrabold',
           colName: 'COLLECTION'
         };
       default:
@@ -580,6 +580,16 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
   // Keep alias for sales value
   const getSalesValueColor = getActualColor;
 
+  // Color percentage column based on value
+  // 0-50% → red, 51-79% → yellow/warning, 80%+ → green
+  const getPercentColor = (pct) => {
+    const num = parseFloat(pct);
+    if (isNaN(num)) return 'text-black';
+    if (num <= 50) return 'text-red-600 font-extrabold bg-red-50 border border-red-200';
+    if (num <= 79) return 'text-amber-600 font-bold bg-amber-50 border border-amber-200';
+    return 'text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200';
+  };
+
   const activeQ = getActiveQuarter();
 
   const visibleProjects = React.useMemo(() => {
@@ -611,7 +621,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                   onClick={() => setSalesTab(tab.id)}
                   className={`px-4 py-1.5 rounded-lg transition-all cursor-pointer font-bold ${isActive
                     ? 'bg-nyati-navy text-white shadow-sm font-black'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/30'
+                    : 'text-black/60 hover:text-black hover:bg-white/30'
                     }`}
                 >
                   {tab.label}
@@ -623,7 +633,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
           <div className="flex items-center gap-3">
             {showMonthlyColumns && (
               <div className="flex items-center gap-2 shrink-0">
-                <span className="text-slate-855 text-sm font-extrabold select-none">Period:</span>
+                <span className="text-black text-sm font-extrabold select-none">Period:</span>
                 <select
                   value={selectedPeriod}
                   onChange={(e) => setSelectedPeriod(e.target.value)}
@@ -674,54 +684,54 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
       </div>
       {/* Table Wrapper with horizontal scrolling */}
       <div className="overflow-x-auto w-full max-w-full rounded-b-3xl">
-        <table ref={tableRef} className="w-full text-left text-[15px] text-slate-800 border-collapse">
+        <table ref={tableRef} className="w-full text-left text-[15px] text-black border-collapse">
           <thead>
             {salesTab === 'all' ? (
               !showMonthlyColumns ? (
                 // Original Summary View Headers (Grouped like Excel)
                 <>
-                  <tr className="bg-slate-50 text-slate-900 uppercase font-black border-b border-slate-100 select-none text-[15px]">
+                  <tr className="bg-slate-50 text-black uppercase font-black border-b border-slate-100 select-none text-[15px]">
                     <th
                       rowSpan={3}
-                      className="bg-nyati-navy text-white px-3 py-3 min-w-[140px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-white/20 text-center text-[15px]"
+                      className="bg-nyati-navy text-white px-3 py-3 w-[260px] min-w-[260px] max-w-[260px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-white/20 text-center text-[15px]"
                     >
                       <div className="flex items-center justify-center h-full text-white font-black text-[15px]">
                         Project Name
                       </div>
                     </th>
-                    <th colSpan={2} rowSpan={2} className="bg-[#ffff00] text-slate-900 text-center font-black border-r-2 border-slate-300 py-2 text-[15px] tracking-wider sticky top-0 z-20" style={getCellStyle(showUnits)}>
+                    <th colSpan={2} rowSpan={2} className="bg-[#ffff00] text-black text-center font-black border-r-2 border-slate-300 py-2 text-[15px] tracking-wider sticky top-0 z-20" style={getCellStyle(showUnits)}>
                       Units
                     </th>
-                    <th colSpan={2} rowSpan={2} className="bg-[#8db4e2] text-slate-900 text-center font-black border-r-2 border-slate-300 py-2 text-[15px] tracking-wider sticky top-0 z-20" style={getCellStyle(showRate)}>
+                    <th colSpan={2} rowSpan={2} className="bg-[#8db4e2] text-black text-center font-black border-r-2 border-slate-300 py-2 text-[15px] tracking-wider sticky top-0 z-20" style={getCellStyle(showRate)}>
                       Rate
                     </th>
-                    <th colSpan={2} rowSpan={2} className="bg-[#c4d79b] text-slate-900 text-center font-black border-r-2 border-slate-300 py-2 text-[15px] tracking-wider sticky top-0 z-20" style={getCellStyle(showArea)}>
+                    <th colSpan={2} rowSpan={2} className="bg-[#c4d79b] text-black text-center font-black border-r-2 border-slate-300 py-2 text-[15px] tracking-wider sticky top-0 z-20" style={getCellStyle(showArea)}>
                       Area
                     </th>
-                    <th colSpan={2} rowSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black border-r-2 border-slate-300 py-2 text-[15px] tracking-wider sticky top-0 z-20" style={getCellStyle(showValue)}>
+                    <th colSpan={2} rowSpan={2} className="bg-[#fabf8f] text-black text-center font-black border-r-2 border-slate-300 py-2 text-[15px] tracking-wider sticky top-0 z-20" style={getCellStyle(showValue)}>
                       Sales Value
                     </th>
-                    <th colSpan={2} rowSpan={2} className="bg-[#ccc1ff] text-slate-900 text-center font-black border-r-2 border-slate-300 py-2 text-[15px] tracking-wider sticky top-0 z-20" style={getCellStyle(showCollection)}>
+                    <th colSpan={2} rowSpan={2} className="bg-[#ccc1ff] text-black text-center font-black border-r-2 border-slate-300 py-2 text-[15px] tracking-wider sticky top-0 z-20" style={getCellStyle(showCollection)}>
                       Collection
                     </th>
                     <th colSpan={periodColSpan} className="bg-nyati-navy text-white text-center font-black py-2 text-[15px] tracking-wider sticky top-0 z-20" style={getCellStyle(periodColSpan > 0)}>
                       Total{getQuarterText()}
                     </th>
                   </tr>
-                  <tr className="bg-slate-50 text-slate-900 uppercase font-black border-b border-slate-100 select-none text-[15px]">
-                    <th colSpan={2} className="bg-[#ffff00] text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[15px] sticky top-[36px] z-20" style={getCellStyle(showUnits)}>
+                  <tr className="bg-slate-50 text-black uppercase font-black border-b border-slate-100 select-none text-[15px]">
+                    <th colSpan={2} className="bg-[#ffff00] text-black text-center font-black border-r-2 border-slate-300 py-1.5 text-[15px] sticky top-[36px] z-20" style={getCellStyle(showUnits)}>
                       Units
                     </th>
-                    <th colSpan={2} className="bg-[#8db4e2] text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[15px] sticky top-[36px] z-20" style={getCellStyle(showRate)}>
+                    <th colSpan={2} className="bg-[#8db4e2] text-black text-center font-black border-r-2 border-slate-300 py-1.5 text-[15px] sticky top-[36px] z-20" style={getCellStyle(showRate)}>
                       Rate
                     </th>
-                    <th colSpan={2} className="bg-[#c4d79b] text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[15px] sticky top-[36px] z-20" style={getCellStyle(showArea)}>
+                    <th colSpan={2} className="bg-[#c4d79b] text-black text-center font-black border-r-2 border-slate-300 py-1.5 text-[15px] sticky top-[36px] z-20" style={getCellStyle(showArea)}>
                       Area
                     </th>
-                    <th colSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[15px] sticky top-[36px] z-20" style={getCellStyle(showValue)}>
+                    <th colSpan={2} className="bg-[#fabf8f] text-black text-center font-black border-r-2 border-slate-300 py-1.5 text-[15px] sticky top-[36px] z-20" style={getCellStyle(showValue)}>
                       Sales Value
                     </th>
-                    <th colSpan={2} className="bg-[#ccc1ff] text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[15px] sticky top-[36px] z-20" style={getCellStyle(showCollection)}>
+                    <th colSpan={2} className="bg-[#ccc1ff] text-black text-center font-black border-r-2 border-slate-300 py-1.5 text-[15px] sticky top-[36px] z-20" style={getCellStyle(showCollection)}>
                       Collection
                     </th>
                   </tr>
@@ -794,7 +804,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                   <tr className="bg-nyati-navy text-white uppercase font-black border-b border-white/20 select-none text-[15px]">
                     <th
                       rowSpan={3}
-                      className="bg-nyati-navy text-white px-3 py-3 min-w-[140px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-white/20 text-center text-[15px]"
+                      className="bg-nyati-navy text-white px-3 py-3 w-[260px] min-w-[260px] max-w-[260px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-white/20 text-center text-[15px]"
                     >
                       <div className="flex items-center justify-center h-full text-white font-black text-[15px]">
                         Project Name
@@ -804,24 +814,24 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                       TOTAL - {getLabel().toUpperCase()}
                     </th>
                   </tr>
-                  <tr className="bg-slate-50 text-slate-900 uppercase font-black border-b border-slate-100 select-none text-[15px]">
-                    <th colSpan={2} className="bg-[#ffff00] text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[15px] sticky top-[36px] z-20" style={getCellStyle(showUnits)}>
+                  <tr className="bg-slate-50 text-black uppercase font-black border-b border-slate-100 select-none text-[15px]">
+                    <th colSpan={2} className="bg-[#ffff00] text-black text-center font-black border-r-2 border-slate-300 py-1.5 text-[15px] sticky top-[36px] z-20" style={getCellStyle(showUnits)}>
                       Units
                     </th>
-                    <th colSpan={2} className="bg-[#8db4e2] text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[15px] sticky top-[36px] z-20" style={getCellStyle(showRate)}>
+                    <th colSpan={2} className="bg-[#8db4e2] text-black text-center font-black border-r-2 border-slate-300 py-1.5 text-[15px] sticky top-[36px] z-20" style={getCellStyle(showRate)}>
                       Rate
                     </th>
-                    <th colSpan={2} className="bg-[#c4d79b] text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[15px] sticky top-[36px] z-20" style={getCellStyle(showArea)}>
+                    <th colSpan={2} className="bg-[#c4d79b] text-black text-center font-black border-r-2 border-slate-300 py-1.5 text-[15px] sticky top-[36px] z-20" style={getCellStyle(showArea)}>
                       Area
                     </th>
-                    <th colSpan={2} className="bg-[#fabf8f] text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[15px] sticky top-[36px] z-20" style={getCellStyle(showValue)}>
+                    <th colSpan={2} className="bg-[#fabf8f] text-black text-center font-black border-r-2 border-slate-300 py-1.5 text-[15px] sticky top-[36px] z-20" style={getCellStyle(showValue)}>
                       Sales Value
                     </th>
-                    <th colSpan={2} className="bg-[#ccc1ff] text-slate-900 text-center font-black border-r-2 border-slate-300 py-1.5 text-[15px] sticky top-[36px] z-20" style={getCellStyle(showCollection)}>
+                    <th colSpan={2} className="bg-[#ccc1ff] text-black text-center font-black border-r-2 border-slate-300 py-1.5 text-[15px] sticky top-[36px] z-20" style={getCellStyle(showCollection)}>
                       Collection
                     </th>
                   </tr>
-                  <tr className="bg-slate-50 text-slate-900 uppercase tracking-wider font-black border-b border-slate-200 select-none text-[14px]">
+                  <tr className="bg-slate-50 text-black uppercase tracking-wider font-black border-b border-slate-200 select-none text-[14px]">
                     {(() => {
                       const totalMetrics = [
                         { key: 'unitsTarget', label: 'Target', minW: 'min-w-[70px]', sortKey: 'periodTotalUnitsTarget' },
@@ -867,10 +877,10 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                 // Summary columns view detailed layout
                 return (
                   <>
-                    <tr className="bg-slate-50 text-slate-900 uppercase font-black border-b border-slate-100 select-none text-[15px]">
+                    <tr className="bg-slate-50 text-black uppercase font-black border-b border-slate-100 select-none text-[15px]">
                       <th
                         rowSpan={3}
-                        className="bg-nyati-navy text-white px-3 py-3 min-w-[140px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-white/20 text-center text-[15px]"
+                        className="bg-nyati-navy text-white px-3 py-3 w-[260px] min-w-[260px] max-w-[260px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-white/20 text-center text-[15px]"
                       >
                         <div className="flex items-center justify-center h-full text-white font-black text-[15px]">
                           Project Name
@@ -883,7 +893,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                         TOTAL - {getLabel().toUpperCase()}
                       </th>
                     </tr>
-                    <tr className="bg-slate-50 text-slate-900 uppercase font-black border-b border-slate-100 select-none text-[15px]">
+                    <tr className="bg-slate-50 text-black uppercase font-black border-b border-slate-100 select-none text-[15px]">
                       <th colSpan={4} className={`${config.bgHeader} ${config.textHeader} text-center py-1.5 text-[15px] sticky top-[36px] z-20 border-r-2 border-slate-300`}>
                         {config.colName} - PERIODIC
                       </th>
@@ -903,16 +913,16 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                         <div className="flex items-center justify-center gap-0.5">% <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                       </th>
                       {/* Periodic Subheaders */}
-                      <th onClick={() => requestSort(`${salesTab}_periodTarget`)} className="bg-slate-50 text-slate-700 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[70px] border-r border-slate-100 sticky top-[64px] z-20">
+                      <th onClick={() => requestSort(`${salesTab}_periodTarget`)} className="bg-slate-50 text-black px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[70px] border-r border-slate-100 sticky top-[64px] z-20">
                         <div className="flex items-center justify-center gap-0.5">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                       </th>
-                      <th onClick={() => requestSort(`${salesTab}_periodAchieved`)} className="bg-slate-50 text-slate-700 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[70px] border-r border-slate-100 sticky top-[64px] z-20">
+                      <th onClick={() => requestSort(`${salesTab}_periodAchieved`)} className="bg-slate-50 text-black px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[70px] border-r border-slate-100 sticky top-[64px] z-20">
                         <div className="flex items-center justify-center gap-0.5">Achieved <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                       </th>
-                      <th onClick={() => requestSort(`${salesTab}_periodVariance`)} className="bg-slate-50 text-slate-700 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[75px] border-r border-slate-100 sticky top-[64px] z-20">
+                      <th onClick={() => requestSort(`${salesTab}_periodVariance`)} className="bg-slate-50 text-black px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[75px] border-r border-slate-100 sticky top-[64px] z-20">
                         <div className="flex items-center justify-center gap-0.5">Variance <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                       </th>
-                      <th onClick={() => requestSort(`${salesTab}_periodPercentage`)} className="bg-slate-50 text-slate-700 px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[65px] sticky top-[64px] z-20">
+                      <th onClick={() => requestSort(`${salesTab}_periodPercentage`)} className="bg-slate-50 text-black px-2 py-2.5 text-center cursor-pointer hover:bg-slate-100/50 hover:text-nyati-navy transition-colors min-w-[65px] sticky top-[64px] z-20">
                         <div className="flex items-center justify-center gap-0.5">% <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                       </th>
                     </tr>
@@ -925,7 +935,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                     <tr className="bg-nyati-navy text-white uppercase font-black border-b border-white/20 select-none text-[15px]">
                       <th
                         rowSpan={3}
-                        className="bg-nyati-navy text-white px-3 py-3 min-w-[140px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-white/20 text-center text-[15px]"
+                        className="bg-nyati-navy text-white px-3 py-3 w-[260px] min-w-[260px] max-w-[260px] sticky left-0 top-0 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-white/20 text-center text-[15px]"
                       >
                         <div className="flex items-center justify-center h-full text-white font-black text-[15px]">
                           Project Name
@@ -935,12 +945,12 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                         TOTAL - {getLabel().toUpperCase()}
                       </th>
                     </tr>
-                    <tr className="bg-slate-50 text-slate-900 uppercase font-black border-b border-slate-100 select-none text-[15px]">
+                    <tr className="bg-slate-50 text-black uppercase font-black border-b border-slate-100 select-none text-[15px]">
                       <th colSpan={4} className={`${config.bgHeader} ${config.textHeader} text-center py-1.5 text-[15px] sticky top-[36px] z-20 border-r-2 border-slate-300`}>
                         {config.colName}
                       </th>
                     </tr>
-                    <tr className="bg-slate-50 text-slate-900 uppercase tracking-wider font-black border-b border-slate-200 select-none text-[14px]">
+                    <tr className="bg-slate-50 text-black uppercase tracking-wider font-black border-b border-slate-200 select-none text-[14px]">
                       <th onClick={() => requestSort(`${salesTab}_periodTarget`)} className="bg-nyati-navy text-white px-2 py-2.5 text-center cursor-pointer hover:bg-nyati-navy/80 transition-colors min-w-[70px] border-r border-white/20 sticky top-[64px] z-20">
                         <div className="flex items-center justify-center gap-0.5">Target <ArrowUpDown className="w-3 h-3 opacity-60" /></div>
                       </th>
@@ -960,7 +970,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
             })()}
           </thead>
 
-          <tbody className="divide-y divide-slate-100 text-slate-600 font-semibold text-[15px]">
+          <tbody className="divide-y divide-slate-100 text-black font-semibold text-[15px]">
             {sortedProjects.length === 0 ? (
               <tr>
                 <td
@@ -986,13 +996,13 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                         transition={{ duration: 0.2 }}
                         className="hover:bg-sky-50/40 group transition-all duration-150 select-none text-[15px]"
                       >
-                        <td className="px-3 py-1.5 font-normal text-slate-700 min-w-[140px] text-[14px]">
+                        <td className="px-3 py-1.5 font-normal text-black w-[260px] min-w-[260px] max-w-[260px] text-[14px]">
                           <div className="flex flex-row items-center gap-2 justify-start text-left">
-                            <span className="text-slate-800 text-[14px] font-semibold whitespace-normal break-words">{p.name}</span>
+                            <span className="text-black text-[14px] font-semibold whitespace-normal break-words">{p.name}</span>
                             {renderTypeBadge(p.type)}
                           </div>
                         </td>
-                        <td className="px-2 py-1.5 text-center font-semibold text-slate-700 text-[15px]" style={getCellStyle(showUnits)}>
+                        <td className="px-2 py-1.5 text-center font-semibold text-black text-[15px]" style={getCellStyle(showUnits)}>
                           {p.budgetUnits.toLocaleString('en-IN')}
                         </td>
                         <td className="px-2 py-2 text-center font-bold border-r-2 border-slate-300 text-[15px]" style={getCellStyle(showUnits)}>
@@ -1000,7 +1010,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                             {p.soldToDate.toLocaleString('en-IN')}
                           </span>
                         </td>
-                        <td className="px-2 py-2 text-right font-semibold text-slate-700 text-[15px]" style={getCellStyle(showRate)}>
+                        <td className="px-2 py-2 text-right font-semibold text-black text-[15px]" style={getCellStyle(showRate)}>
                           {p.budgetRate > 0 ? `₹${Math.round(p.budgetRate).toLocaleString('en-IN')}/sf` : '0'}
                         </td>
                         <td className="px-2 py-2 text-center font-bold border-r-2 border-slate-300 text-[15px]" style={getCellStyle(showRate)}>
@@ -1008,7 +1018,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                             {p.actualRate > 0 ? `₹${Math.round(p.actualRate).toLocaleString('en-IN')}/sf` : '0'}
                           </span>
                         </td>
-                        <td className="px-2 py-2 text-right font-semibold text-slate-700 text-[15px]" style={getCellStyle(showArea)}>
+                        <td className="px-2 py-2 text-right font-semibold text-black text-[15px]" style={getCellStyle(showArea)}>
                           {Math.round(p.budgetArea).toLocaleString('en-IN')}
                         </td>
                         <td className="px-2 py-2 text-center font-bold border-r-2 border-slate-300 text-[15px]" style={getCellStyle(showArea)}>
@@ -1016,7 +1026,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                             {Math.round(p.actualArea).toLocaleString('en-IN')}
                           </span>
                         </td>
-                        <td className="px-2 py-1.5 text-right font-semibold text-slate-700 text-[15px]" style={getCellStyle(showValue)}>
+                        <td className="px-2 py-1.5 text-right font-semibold text-black text-[15px]" style={getCellStyle(showValue)}>
                           ₹{p.budgetValCr.toFixed(2)} Cr
                         </td>
                         <td className="px-2 py-1.5 text-center font-bold border-r-2 border-slate-300 text-[15px]" style={getCellStyle(showValue)}>
@@ -1024,7 +1034,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                             ₹{p.actualValCr.toFixed(2)} Cr
                           </span>
                         </td>
-                        <td className="px-2 py-1.5 text-right font-semibold text-slate-700 text-[15px]" style={getCellStyle(showCollection)}>
+                        <td className="px-2 py-1.5 text-right font-semibold text-black text-[15px]" style={getCellStyle(showCollection)}>
                           ₹{(p.budgetCollection || 0).toFixed(2)} Cr
                         </td>
                         <td className="px-2 py-1.5 text-center font-bold border-r-2 border-slate-300 text-[15px]" style={getCellStyle(showCollection)}>
@@ -1045,7 +1055,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                           const totalCollectionActual = getPeriodVal(p, selectedPeriod, 'collectionActual', 'number');
                           return (
                             <>
-                              <td className="px-2 py-2 text-center font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5 text-[15px]" style={getCellStyle(showUnits)}>
+                              <td className="px-2 py-2 text-center font-semibold text-black border-r border-slate-100 bg-slate-50/5 text-[15px]" style={getCellStyle(showUnits)}>
                                 {totalUnitsTarget.toLocaleString('en-IN')}
                               </td>
                               <td className="px-2 py-2 text-center font-bold border-r-2 border-slate-200 bg-slate-50/5 text-[15px]" style={getCellStyle(showUnits)}>
@@ -1053,7 +1063,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                                   {totalUnitsActual.toLocaleString('en-IN')}
                                 </span>
                               </td>
-                              <td className="px-2 py-2 text-right font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5 text-[15px]" style={getCellStyle(showRate)}>
+                              <td className="px-2 py-2 text-right font-semibold text-black border-r border-slate-100 bg-slate-50/5 text-[15px]" style={getCellStyle(showRate)}>
                                 {formatCellVal(totalRateTarget, 'rate')}
                               </td>
                               <td className="px-2 py-2 text-center font-bold border-r-2 border-slate-200 bg-slate-50/5 text-[15px]" style={getCellStyle(showRate)}>
@@ -1061,7 +1071,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                                   {formatCellVal(totalRateActual, 'rate')}
                                 </span>
                               </td>
-                              <td className="px-2 py-2 text-right font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5 text-[15px]" style={getCellStyle(showArea)}>
+                              <td className="px-2 py-2 text-right font-semibold text-black border-r border-slate-100 bg-slate-50/5 text-[15px]" style={getCellStyle(showArea)}>
                                 {Math.round(totalAreaTarget).toLocaleString('en-IN')}
                               </td>
                               <td className="px-2 py-2 text-center font-bold border-r-2 border-slate-200 bg-slate-50/5 text-[15px]" style={getCellStyle(showArea)}>
@@ -1069,7 +1079,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                                   {Math.round(totalAreaActual).toLocaleString('en-IN')}
                                 </span>
                               </td>
-                              <td className="px-2 py-1.5 text-right font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5 text-[15px]" style={getCellStyle(showValue)}>
+                              <td className="px-2 py-1.5 text-right font-semibold text-black border-r border-slate-100 bg-slate-50/5 text-[15px]" style={getCellStyle(showValue)}>
                                 ₹{(totalValueTarget / 10000000).toFixed(2)} Cr
                               </td>
                               <td className="px-2.5 py-1.5 text-center font-bold bg-slate-50/5 border-r-2 border-slate-200 text-[15px]" style={getCellStyle(showValue)}>
@@ -1077,7 +1087,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                                   ₹{(totalValueActual / 10000000).toFixed(2)} Cr
                                 </span>
                               </td>
-                              <td className="px-2 py-2 text-right font-semibold text-slate-700 border-r border-slate-100 bg-slate-50/5 text-[15px]" style={getCellStyle(showCollection)}>
+                              <td className="px-2 py-2 text-right font-semibold text-black border-r border-slate-100 bg-slate-50/5 text-[15px]" style={getCellStyle(showCollection)}>
                                 {formatCellVal(totalCollectionTarget, 'currency')}
                               </td>
                               <td className="px-2.5 py-1.5 text-center font-bold bg-slate-50/5 text-[15px]" style={getCellStyle(showCollection)}>
@@ -1114,15 +1124,15 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                           transition={{ duration: 0.2 }}
                           className="hover:bg-sky-50/40 group transition-all duration-150 select-none text-[15px]"
                         >
-                          <td className="px-3 py-1.5 font-normal text-slate-700 min-w-[140px] text-[14px]">
+                          <td className="px-3 py-1.5 font-normal text-black w-[260px] min-w-[260px] max-w-[260px] text-[14px]">
                             <div className="flex flex-row items-center gap-2 justify-start text-left">
-                              <span className="text-slate-800 text-[14px] font-semibold whitespace-normal break-words">{p.name}</span>
+                              <span className="text-black text-[14px] font-semibold whitespace-normal break-words">{p.name}</span>
                               {renderTypeBadge(p.type)}
                             </div>
                           </td>
 
                           {/* Cumulative Section */}
-                          <td className="px-2 py-1.5 text-center font-semibold text-slate-700 text-[15px]">
+                          <td className="px-2 py-1.5 text-center font-semibold text-black text-[15px]">
                             {config.format === 'currency' ? `₹${cumTarget.toFixed(2)} Cr` : cumTarget.toLocaleString('en-IN')}
                           </td>
                           <td className="px-2 py-2 text-center font-bold text-[15px]">
@@ -1133,12 +1143,14 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                           <td className={`px-2 py-1.5 text-center font-semibold text-[15px] ${cumVariance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                             {formatVarianceValCr(cumVariance, config.format)}
                           </td>
-                          <td className="px-2 py-1.5 text-center font-extrabold text-slate-700 text-[15px] border-r-2 border-slate-300">
-                            {cumPercent}%
+                          <td className="px-2 py-2 text-center font-bold text-[15px] border-r-2 border-slate-300">
+                            <span className={`px-2 py-0.5 rounded-lg text-[13px] ${getPercentColor(cumPercent)}`}>
+                              {cumPercent}%
+                            </span>
                           </td>
 
                           {/* Periodic Section */}
-                          <td className="px-2 py-1.5 text-center font-semibold text-slate-700 text-[15px] bg-slate-50/5">
+                          <td className="px-2 py-1.5 text-center font-semibold text-black text-[15px] bg-slate-50/5">
                             {formatCellVal(periodTarget, config.format)}
                           </td>
                           <td className="px-2 py-2 text-center font-bold bg-slate-50/5 text-[15px]">
@@ -1152,8 +1164,10 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                           <td className={`px-2 py-1.5 text-center font-semibold bg-slate-50/5 text-[15px] ${periodVariance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                             {formatVarianceVal(periodVariance, config.format)}
                           </td>
-                          <td className="px-2 py-1.5 text-center font-extrabold text-slate-700 bg-slate-50/5 text-[15px]">
-                            {periodPercent}%
+                          <td className="px-2 py-2 text-center font-bold bg-slate-50/5 text-[15px]">
+                            <span className={`px-2 py-0.5 rounded-lg text-[13px] ${getPercentColor(periodPercent)}`}>
+                              {periodPercent}%
+                            </span>
                           </td>
                         </motion.tr>
                       );
@@ -1168,10 +1182,10 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                         className="hover:bg-sky-50/40 group transition-all duration-150 select-none text-[15px] border-b border-slate-100"
                       >
                         <td
-                          className="px-3 py-1.5 font-normal text-slate-700 sticky left-0 bg-white group-hover:bg-sky-50 z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200 min-w-[140px] transition-colors text-[14px]"
+                          className="px-3 py-1.5 font-normal text-black sticky left-0 bg-white group-hover:bg-sky-50 z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200 w-[260px] min-w-[260px] max-w-[260px] transition-colors text-[14px]"
                         >
                           <div className="flex flex-row items-center gap-2 justify-start text-left">
-                            <span className="text-slate-800 text-[14px] font-semibold whitespace-normal break-words">{p.name}</span>
+                            <span className="text-black text-[14px] font-semibold whitespace-normal break-words">{p.name}</span>
                             {renderTypeBadge(p.type)}
                           </div>
                         </td>
@@ -1191,7 +1205,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                                 return (
                                   <td
                                     key={`total_${selectedPeriod}_${metric.key}`}
-                                    className={`px-2 py-2 text-center text-[15px] ${isActual ? '' : 'font-semibold text-slate-700'} ${isLastMetric ? 'border-r-2 border-slate-300 bg-slate-50/5' : isGroupEnd ? 'border-r-2 border-slate-300' : 'border-r border-slate-100'}`}
+                                    className={`px-2 py-2 text-center text-[15px] ${isActual ? '' : 'font-semibold text-black'} ${isLastMetric ? 'border-r-2 border-slate-300 bg-slate-50/5' : isGroupEnd ? 'border-r-2 border-slate-300' : 'border-r border-slate-100'}`}
                                     style={getCellStyle(isMetricVisible(metric.key))}
                                   >
                                     {isActual ? (
@@ -1229,16 +1243,16 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                           className="hover:bg-sky-50/40 group transition-all duration-150 select-none text-[15px] border-b border-slate-100"
                         >
                           <td
-                            className="px-3 py-1.5 font-normal text-slate-700 sticky left-0 bg-white group-hover:bg-sky-50 z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200 min-w-[140px] transition-colors text-[14px]"
+                            className="px-3 py-1.5 font-normal text-black sticky left-0 bg-white group-hover:bg-sky-50 z-10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200 w-[260px] min-w-[260px] max-w-[260px] transition-colors text-[14px]"
                           >
                             <div className="flex flex-row items-center gap-2 justify-start text-left">
-                              <span className="text-slate-800 text-[14px] font-semibold whitespace-normal break-words">{p.name}</span>
+                              <span className="text-black text-[14px] font-semibold whitespace-normal break-words">{p.name}</span>
                               {renderTypeBadge(p.type)}
                             </div>
                           </td>
 
                           {/* Periodic columns only */}
-                          <td className="px-2 py-1.5 text-center font-semibold text-slate-700 text-[15px] bg-slate-50/5">
+                          <td className="px-2 py-1.5 text-center font-semibold text-black text-[15px] bg-slate-50/5">
                             {formatCellVal(periodTarget, config.format)}
                           </td>
                           <td className="px-2 py-2 text-center font-bold bg-slate-50/5 text-[15px]">
@@ -1252,8 +1266,10 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                           <td className={`px-2 py-1.5 text-center font-semibold bg-slate-50/5 text-[15px] ${periodVariance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                             {formatVarianceVal(periodVariance, config.format)}
                           </td>
-                          <td className="px-2 py-1.5 text-center font-extrabold text-slate-700 bg-slate-50/5 text-[15px]">
-                            {periodPercent}%
+                          <td className="px-2 py-2 text-center font-bold bg-slate-50/5 text-[15px]">
+                             <span className={`px-2 py-0.5 rounded-lg text-[13px] ${getPercentColor(periodPercent)}`}>
+                               {periodPercent}%
+                             </span>
                           </td>
                         </tr>
                       );
@@ -1265,35 +1281,35 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                 {!showMonthlyColumns ? (
                   salesTab === 'all' ? (
                     <tr className="bg-slate-50 font-bold text-nyati-navy border-t-2 border-slate-200 text-[15px] sticky bottom-0 z-10 shadow-[0_-4px_6px_-2px_rgba(0,0,0,0.05)]">
-                      <td className="px-3 py-3 bg-slate-50 min-w-[200px] text-[15px]">GRAND TOTAL</td>
+                      <td className="px-3 py-3 bg-slate-50 w-[260px] min-w-[260px] max-w-[260px] text-[15px]">GRAND TOTAL</td>
                       <td className="px-2 py-3 text-center bg-slate-50 text-[15px]" style={getCellStyle(showUnits)}>
                         {totals.budgetUnits.toLocaleString('en-IN')}
                       </td>
                       <td className="px-2 py-3 text-center text-nyati-navy font-extrabold bg-slate-50 border-r-2 border-slate-300 text-[15px]" style={getCellStyle(showUnits)}>
                         {totals.soldToDate.toLocaleString('en-IN')}
                       </td>
-                      <td className="px-2 py-3 text-right text-slate-700 bg-slate-50 text-[15px]" style={getCellStyle(showRate)}>
+                      <td className="px-2 py-3 text-right text-black bg-slate-50 text-[15px]" style={getCellStyle(showRate)}>
                         {totals.budgetRate > 0 ? `₹${Math.round(totals.budgetRate).toLocaleString('en-IN')}/sf` : '0'}
                       </td>
                       <td className="px-2 py-3 text-right text-nyati-navy font-extrabold bg-slate-50 border-r-2 border-slate-300 text-[15px]" style={getCellStyle(showRate)}>
                         {totals.actualRate > 0 ? `₹${Math.round(totals.actualRate).toLocaleString('en-IN')}/sf` : '0'}
                       </td>
-                      <td className="px-2 py-3 text-right text-slate-700 bg-slate-50 text-[15px]" style={getCellStyle(showArea)}>
+                      <td className="px-2 py-3 text-right text-black bg-slate-50 text-[15px]" style={getCellStyle(showArea)}>
                         {Math.round(totals.budgetArea).toLocaleString('en-IN')}
                       </td>
-                      <td className="px-2 py-3 text-right text-slate-700 bg-slate-50 border-r-2 border-slate-300 text-[15px]" style={getCellStyle(showArea)}>
+                      <td className="px-2 py-3 text-right text-black bg-slate-50 border-r-2 border-slate-300 text-[15px]" style={getCellStyle(showArea)}>
                         {Math.round(totals.actualArea).toLocaleString('en-IN')}
                       </td>
-                      <td className="px-2 py-3 text-right text-slate-700 bg-slate-50 text-[15px]" style={getCellStyle(showValue)}>
+                      <td className="px-2 py-3 text-right text-black bg-slate-50 text-[15px]" style={getCellStyle(showValue)}>
                         ₹{totals.budgetValCr.toFixed(2)} Cr
                       </td>
-                      <td className="px-2 py-3 text-right text-slate-700 font-extrabold bg-slate-50 border-r-2 border-slate-300 text-[15px]" style={getCellStyle(showValue)}>
+                      <td className="px-2 py-3 text-right text-black font-extrabold bg-slate-50 border-r-2 border-slate-300 text-[15px]" style={getCellStyle(showValue)}>
                         ₹{totals.actualValCr.toFixed(2)} Cr
                       </td>
-                      <td className="px-2 py-3 text-right text-slate-700 bg-slate-50 text-[15px]" style={getCellStyle(showCollection)}>
+                      <td className="px-2 py-3 text-right text-black bg-slate-50 text-[15px]" style={getCellStyle(showCollection)}>
                         ₹{(totals.budgetCollection || 0).toFixed(2)} Cr
                       </td>
-                      <td className="px-2 py-3 text-right text-slate-700 font-extrabold bg-slate-50 border-r-2 border-slate-300 text-[15px]" style={getCellStyle(showCollection)}>
+                      <td className="px-2 py-3 text-right text-black font-extrabold bg-slate-50 border-r-2 border-slate-300 text-[15px]" style={getCellStyle(showCollection)}>
                         ₹{(totals.actualCollection || 0).toFixed(2)} Cr
                       </td>
                       {(() => {
@@ -1309,34 +1325,34 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                         const totalCollectionActual = getPeriodTotalVal(selectedPeriod, 'collectionActual', 'number');
                         return (
                           <>
-                            <td className="px-2 py-3 text-center text-slate-700 bg-slate-50 border-r border-slate-100 text-[15px]" style={getCellStyle(showUnits)}>
+                            <td className="px-2 py-3 text-center text-black bg-slate-50 border-r border-slate-100 text-[15px]" style={getCellStyle(showUnits)}>
                               {totalUnitsTarget.toLocaleString('en-IN')}
                             </td>
                             <td className="px-2 py-3 text-center text-nyati-navy font-extrabold bg-slate-50 border-r-2 border-slate-200 text-[15px]" style={getCellStyle(showUnits)}>
                               {totalUnitsActual.toLocaleString('en-IN')}
                             </td>
-                            <td className="px-2 py-3 text-right text-slate-700 bg-slate-50 border-r border-slate-100 text-[15px]" style={getCellStyle(showRate)}>
+                            <td className="px-2 py-3 text-right text-black bg-slate-50 border-r border-slate-100 text-[15px]" style={getCellStyle(showRate)}>
                               {formatCellVal(totalRateTarget, 'rate')}
                             </td>
                             <td className="px-2 py-3 text-right text-nyati-navy font-extrabold bg-slate-50 border-r-2 border-slate-200 text-[15px]" style={getCellStyle(showRate)}>
                               {formatCellVal(totalRateActual, 'rate')}
                             </td>
-                            <td className="px-2 py-3 text-right text-slate-700 bg-slate-50 border-r border-slate-100 text-[15px]" style={getCellStyle(showArea)}>
+                            <td className="px-2 py-3 text-right text-black bg-slate-50 border-r border-slate-100 text-[15px]" style={getCellStyle(showArea)}>
                               {Math.round(totalAreaTarget).toLocaleString('en-IN')}
                             </td>
-                            <td className="px-2 py-3 text-right text-slate-700 font-extrabold bg-slate-50 border-r-2 border-slate-200 text-[15px]" style={getCellStyle(showArea)}>
+                            <td className="px-2 py-3 text-right text-black font-extrabold bg-slate-50 border-r-2 border-slate-200 text-[15px]" style={getCellStyle(showArea)}>
                               {Math.round(totalAreaActual).toLocaleString('en-IN')}
                             </td>
-                            <td className="px-2 py-3 text-right text-slate-700 bg-slate-50 border-r border-slate-100 text-[15px]" style={getCellStyle(showValue)}>
+                            <td className="px-2 py-3 text-right text-black bg-slate-50 border-r border-slate-100 text-[15px]" style={getCellStyle(showValue)}>
                               ₹{(totalValueTarget / 10000000).toFixed(2)} Cr
                             </td>
-                            <td className="px-2.5 py-3 text-right text-slate-700 font-extrabold bg-slate-50 border-r-2 border-slate-200 text-[15px]" style={getCellStyle(showValue)}>
+                            <td className="px-2.5 py-3 text-right text-black font-extrabold bg-slate-50 border-r-2 border-slate-200 text-[15px]" style={getCellStyle(showValue)}>
                               ₹{(totalValueActual / 10000000).toFixed(2)} Cr
                             </td>
-                            <td className="px-2 py-3 text-right text-slate-700 bg-slate-50 border-r border-slate-100 text-[15px]" style={getCellStyle(showCollection)}>
+                            <td className="px-2 py-3 text-right text-black bg-slate-50 border-r border-slate-100 text-[15px]" style={getCellStyle(showCollection)}>
                               {formatCellVal(totalCollectionTarget, 'currency')}
                             </td>
-                            <td className="px-2.5 py-3 text-right text-slate-700 font-extrabold bg-slate-50 text-[15px]" style={getCellStyle(showCollection)}>
+                            <td className="px-2.5 py-3 text-right text-black font-extrabold bg-slate-50 text-[15px]" style={getCellStyle(showCollection)}>
                               {formatCellVal(totalCollectionActual, 'currency')}
                             </td>
                           </>
@@ -1359,7 +1375,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
 
                     return (
                       <tr className="bg-slate-50 font-bold text-nyati-navy border-t-2 border-slate-200 text-[15px] sticky bottom-0 z-10 shadow-[0_-4px_6px_-2px_rgba(0,0,0,0.05)]">
-                        <td className="px-3 py-3 bg-slate-50 min-w-[200px] text-[15px]">GRAND TOTAL</td>
+                        <td className="px-3 py-3 bg-slate-50 w-[260px] min-w-[260px] max-w-[260px] text-[15px]">GRAND TOTAL</td>
                         
                         {/* Cumulative Grand Totals */}
                         <td className="px-2 py-3 text-center bg-slate-50 text-[15px]">
@@ -1371,7 +1387,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                         <td className={`px-2 py-3 text-center font-bold bg-slate-50 text-[15px] ${cumVariance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                           {formatVarianceValCr(cumVariance, config.format)}
                         </td>
-                        <td className="px-2 py-3 text-center font-extrabold text-slate-700 bg-slate-50 border-r-2 border-slate-300 text-[15px]">
+                        <td className="px-2 py-3 text-center font-extrabold text-black bg-slate-50 border-r-2 border-slate-300 text-[15px]">
                           {cumPercent}%
                         </td>
 
@@ -1385,7 +1401,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                         <td className={`px-2 py-3 text-center font-bold bg-slate-50 text-[15px] ${periodVariance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                           {formatVarianceVal(periodVariance, config.format)}
                         </td>
-                        <td className="px-2 py-3 text-center font-extrabold text-slate-700 bg-slate-50 text-[15px]">
+                        <td className="px-2 py-3 text-center font-extrabold text-black bg-slate-50 text-[15px]">
                           {periodPercent}%
                         </td>
                       </tr>
@@ -1394,7 +1410,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                 ) : (
                   salesTab === 'all' ? (
                     <tr className="bg-slate-100 font-extrabold text-nyati-navy border-t-2 border-slate-200 text-[15px] sticky bottom-0 z-20 shadow-[0_-4px_6px_-2px_rgba(0,0,0,0.05)]">
-                      <td className="px-3 py-3 sticky left-0 bg-slate-100 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200 min-w-[200px] text-[15px]">
+                      <td className="px-3 py-3 sticky left-0 bg-slate-100 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200 w-[260px] min-w-[260px] max-w-[260px] text-[15px]">
                         GRAND TOTAL
                       </td>
                       {showMonthlyColumns && (() => {
@@ -1429,11 +1445,11 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
 
                     return (
                       <tr className="bg-slate-100 font-extrabold text-nyati-navy border-t-2 border-slate-200 text-[15px] sticky bottom-0 z-20 shadow-[0_-4px_6px_-2px_rgba(0,0,0,0.05)]">
-                        <td className="px-3 py-3 sticky left-0 bg-slate-100 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200 min-w-[200px] text-[15px]">
+                        <td className="px-3 py-3 sticky left-0 bg-slate-100 z-30 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)] border-r border-slate-200 w-[260px] min-w-[260px] max-w-[260px] text-[15px]">
                           GRAND TOTAL
                         </td>
                         
-                        <td className="px-2 py-3 text-center text-slate-700 text-[15px]">
+                        <td className="px-2 py-3 text-center text-black text-[15px]">
                           {formatCellVal(periodTarget, config.format)}
                         </td>
                         <td className="px-2 py-3 text-center text-nyati-navy font-extrabold text-[15px]">
@@ -1442,7 +1458,7 @@ export default function ProjectTable({ selectedPeriod = 'Q1', setSelectedPeriod 
                         <td className={`px-2 py-3 text-center font-bold text-[15px] ${periodVariance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                           {formatVarianceVal(periodVariance, config.format)}
                         </td>
-                        <td className="px-2 py-3 text-center font-extrabold text-slate-700 text-[15px]">
+                        <td className="px-2 py-3 text-center font-extrabold text-black text-[15px]">
                           {periodPercent}%
                         </td>
                       </tr>

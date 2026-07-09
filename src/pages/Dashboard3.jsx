@@ -1068,7 +1068,7 @@ export default function Dashboard3() {
                   <div className="overflow-y-auto flex-1 pr-1 py-1 min-h-0">
                     <table className="w-full text-left text-xs font-semibold">
                       <thead>
-                        <tr className="text-slate-700 uppercase tracking-wider font-extrabold border-b border-slate-100">
+                        <tr className="text-black uppercase tracking-wider font-extrabold border-b border-slate-100">
                           <th className="py-1">Field Metric</th>
                           <th className="py-1 text-right">FY Target</th>
                           <th className="py-1 text-right">Actual</th>
@@ -1076,10 +1076,10 @@ export default function Dashboard3() {
                           <th className="py-1 text-right">EFF %</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-50 text-slate-700">
+                      <tbody className="divide-y divide-slate-50 text-black">
                         {/* Saleable Area */}
                         <tr>
-                          <td className="py-1 text-slate-800">Saleable Area (sq.ft)</td>
+                          <td className="py-1 text-black">Saleable Area (sq.ft)</td>
                           <td className="py-1 text-right">
                             {displayProject ? `${areaTarget.toLocaleString('en-IN')} sf` : '-'}
                           </td>
@@ -1100,7 +1100,7 @@ export default function Dashboard3() {
 
                         {/* Signed Off Cost */}
                         <tr>
-                          <td className="py-1 text-slate-800">Signed Off Cost (₹ Cr)</td>
+                          <td className="py-1 text-black">Signed Off Cost (₹ Cr)</td>
                           <td className="py-1 text-right">
                             {displayProject ? `₹${costTarget.toFixed(2)} Cr` : '-'}
                           </td>
@@ -1121,7 +1121,7 @@ export default function Dashboard3() {
 
                         {/* Rate per SFT */}
                         <tr>
-                          <td className="py-1 text-slate-800">Rate (₹/sq.ft / Sign Cost)</td>
+                          <td className="py-1 text-black">Rate (₹/sq.ft / Sign Cost)</td>
                           <td className="py-1 text-right">
                             {displayProject ? `₹${rateTarget.toLocaleString('en-IN')}/sf` : '-'}
                           </td>
@@ -1142,7 +1142,7 @@ export default function Dashboard3() {
 
                         {/* Actual Expenses */}
                         <tr>
-                          <td className="py-1 text-slate-800">Actual Expenses (₹ Cr)</td>
+                          <td className="py-1 text-black">Actual Expenses (₹ Cr)</td>
                           <td className="py-1 text-right">
                             {displayProject ? `₹${expTarget.toFixed(2)} Cr` : '-'}
                           </td>

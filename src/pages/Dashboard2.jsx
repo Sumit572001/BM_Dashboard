@@ -568,7 +568,7 @@ export default function Dashboard2() {
           <h3 className="font-bold text-nyati-navy text-lg">Consolidated Project Outstanding (₹ Cr)</h3>
         </div>
         <div className="lg:overflow-x-visible overflow-x-auto">
-          <table className="w-full text-left text-[15px] text-slate-800 border-collapse min-w-[1360px]">
+          <table className="w-full text-left text-[15px] text-black border-collapse min-w-[1360px]">
             <thead className="sticky top-[85px] z-20 bg-nyati-navy">
               {/* Row 1 */}
               <tr className="bg-nyati-navy text-white uppercase tracking-wider font-extrabold text-[15px] border-b border-white">
@@ -706,7 +706,7 @@ export default function Dashboard2() {
             </h3>
             {/* Legend inline below title (table view only) */}
             {ageingView === 'table' ? (
-              <div className="flex flex-wrap items-center gap-3 mt-1 text-[11px] font-bold text-slate-700">
+              <div className="flex flex-wrap items-center gap-3 mt-1 text-[11px] font-bold text-black">
                 <span className="uppercase tracking-wider text-slate-500 font-extrabold">Legend:</span>
                 <div className="flex items-center gap-1">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#38A169]" />
@@ -747,7 +747,7 @@ export default function Dashboard2() {
                   className={`px-3 py-1.5 rounded-lg transition-all capitalize ${
                     ageingRegFilter === tab
                       ? 'bg-nyati-navy text-white shadow-sm font-bold'
-                      : 'text-slate-700 hover:text-slate-900 font-bold'
+                      : 'text-black hover:text-black/85 font-bold'
                   }`}
                 >
                   {tab === 'all' ? 'All' : tab === 'registered' ? 'Registered' : 'Unregistered'}
@@ -759,13 +759,13 @@ export default function Dashboard2() {
             <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold">
               <button
                 onClick={() => setAgeingView('graph')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${ageingView === 'graph' ? 'bg-white text-nyati-navy shadow-sm font-bold' : 'text-slate-700 hover:text-slate-900 font-bold'}`}
+                className={`px-3 py-1.5 rounded-lg transition-all ${ageingView === 'graph' ? 'bg-white text-nyati-navy shadow-sm font-bold' : 'text-black hover:text-black/85 font-bold'}`}
               >
                 Graph View
               </button>
               <button
                 onClick={() => setAgeingView('table')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${ageingView === 'table' ? 'bg-white text-nyati-navy shadow-sm font-bold' : 'text-slate-700 hover:text-slate-900 font-bold'}`}
+                className={`px-3 py-1.5 rounded-lg transition-all ${ageingView === 'table' ? 'bg-white text-nyati-navy shadow-sm font-bold' : 'text-black hover:text-black/85 font-bold'}`}
               >
                 Table View
               </button>
@@ -775,9 +775,9 @@ export default function Dashboard2() {
 
         {ageingView === 'table' ? (
           <div className="lg:overflow-x-visible overflow-x-auto">
-            <table className="w-full text-center text-[13px] text-slate-800">
+            <table className="w-full text-center text-[13px] text-black">
               <thead>
-                <tr className="sticky top-[85px] z-10 bg-slate-50 text-slate-900 uppercase tracking-wider font-extrabold border-b border-slate-100 text-left text-[13px] shadow-sm">
+                <tr className="sticky top-[85px] z-10 bg-slate-50 text-black uppercase tracking-wider font-extrabold border-b border-slate-100 text-left text-[13px] shadow-sm">
                   <th className="px-6 py-4 text-left">Project</th>
                   <th className="px-4 py-4 text-center">0–30 Days (₹ Cr)</th>
                   <th className="px-4 py-4 text-center">31–60 Days (₹ Cr)</th>
@@ -787,10 +787,10 @@ export default function Dashboard2() {
                   <th className="px-6 py-4 text-center">Total (₹ Cr)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50 font-bold text-slate-800">
+              <tbody className="divide-y divide-slate-50 font-bold text-black">
                 {ageingProjects.map((p) => (
                   <tr key={p.name} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-3.5 text-left font-semibold text-slate-800">{p.name}</td>
+                    <td className="px-6 py-3.5 text-left font-semibold text-black">{p.name}</td>
                     {['0-30', '31-60', '61-90', '91-120', 'gt120'].map((bucket) => {
                       const value = p.ageing[bucket];
                       return (
