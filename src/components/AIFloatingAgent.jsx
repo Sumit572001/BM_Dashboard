@@ -1,11 +1,77 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../context/DataContext';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Send, Settings, Bot, User, RefreshCw, AlertCircle, Key } from 'lucide-react';
 import { calculateGrandTotals } from '../utils/dataHelpers';
 
+const agentTools = [
+  {
+    functionDeclarations: [
+      {
+        name: 'updateFilters',
+        description: 'Updates the filters on the dashboard based on the user request. Use this tool when the user wants to filter by a specific project name, project type, or quarters.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            selectedType: {
+              type: 'STRING',
+              enum: ['All', 'R', 'L', 'C'],
+              description: "Filter by project type: 'All' for all, 'R' for Residential, 'L' for Luxe, or 'C' for Commercial."
+            },
+            selectedProjects: {
+              type: 'ARRAY',
+              items: { type: 'STRING' },
+              description: 'Array of specific project names to select.'
+            },
+            selectedQuarters: {
+              type: 'ARRAY',
+              items: { type: 'STRING' },
+              description: 'Array of quarters to select, e.g. ["Q1", "Q2"].'
+            }
+          }
+        }
+      },
+      {
+        name: 'setActiveProject',
+        description: 'Sets a single project as active. Call this when the user asks for details or breakdown of a specific project.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            projectName: {
+              type: 'STRING',
+              description: 'The exact name of the project.'
+            }
+          },
+          required: ['projectName']
+        }
+      },
+      {
+        name: 'navigateToPage',
+        description: 'Navigates the user to a different page/tab in the dashboard application.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            pageName: {
+              type: 'STRING',
+              enum: ['/', '/sales-collection', '/outstanding', '/construction-budget', '/portfolio'],
+              description: "The path of the page to navigate to: '/' for Overview, '/sales-collection' for Sales & Collection, '/outstanding' for Outstanding, '/construction-budget' for Construction Budget, or '/portfolio' for Project Portfolio/Details."
+            }
+          },
+          required: ['pageName']
+        }
+      },
+      {
+        name: 'resetAllFilters',
+        description: 'Resets all filters to their default values (all projects, all types, default quarter).'
+      }
+    ]
+  }
+];
+
 export default function AIFloatingAgent() {
-  const { filteredProjects, filters, portfolioKpiOverrides, constructionMonthly } = useData();
+  const { filteredProjects, filters, portfolioKpiOverrides, constructionMonthly, updateFilters, setActiveProjectName, resetData } = useData();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
@@ -100,16 +166,23 @@ export default function AIFloatingAgent() {
           name: p.name,
           type: p.type === 'L' ? 'Luxe' : p.type === 'C' ? 'Commercial' : 'Residential',
           targetUnits: p.budgetUnits,
-          actualUnits: p.soldToDate,
+          soldUnits: p.soldUnits || 0,
+          registeredUnits: p.registeredUnits || 0,
+          unregisteredUnits: p.unregisteredUnits || 0,
           targetValueCr: p.budgetValCr,
           actualValueCr: p.actualValCr,
-          targetCollectionCr: p.budgetCollection || 0,
-          actualCollectionCr: p.actualCollection || 0
+          dueAsPerMilestoneCr: p.dueMilestone || 0,
+          actualCollectionCr: p.actualCollection || 0,
+          outstandingCr: p.outstanding || 0,
+          registeredOSCr: p.registeredOS || 0,
+          unregisteredOSCr: p.unregisteredOS || 0
         }))
       };
 
       const systemInstruction = `You are Enzo, a professional AI Data Analyst Agent for the BM Sales and Collection Dashboard.
-Analyze the provided real-time dashboard data summary to answer questions precisely.
+You analyze the provided real-time dashboard data summary to answer questions precisely.
+You can also take actions to control the dashboard UI (filtering, selecting projects, resetting, navigating pages) using the tools provided.
+Always explain the action you took in your response.
 Keep answers concise, professional, and directly linked to dashboard figures.
 Format responses using markdown, bold text, and clean tables or bullets where helpful.
 If queried in Hindi or Hinglish, respond in Hindi/Hinglish but keep formatting neat and numerical values clear.
@@ -117,7 +190,7 @@ If queried in Hindi or Hinglish, respond in Hindi/Hinglish but keep formatting n
 Current Active Dashboard Data State:
 ${JSON.stringify(dashboardStateSummary, null, 2)}`;
 
-      const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
       const response = await fetch(apiEndpoint, {
         method: 'POST',
@@ -135,6 +208,7 @@ ${JSON.stringify(dashboardStateSummary, null, 2)}`;
               ]
             }
           ],
+          tools: agentTools,
           generationConfig: {
             temperature: 0.2,
             topP: 0.95
@@ -147,9 +221,99 @@ ${JSON.stringify(dashboardStateSummary, null, 2)}`;
         throw new Error(data.error.message || 'API request failed');
       }
 
-      const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated. Please try again.';
+      const part = data.candidates?.[0]?.content?.parts?.[0];
       
-      setMessages(prev => [...prev, { role: 'assistant', content: generatedText }]);
+      if (part?.functionCall) {
+        const { name, args } = part.functionCall;
+        let actionResult = { success: true, message: 'Action executed successfully.' };
+        
+        try {
+          if (name === 'updateFilters') {
+            const updatedFilters = {};
+            if (args.selectedType !== undefined) updatedFilters.selectedType = args.selectedType;
+            if (args.selectedProjects !== undefined) {
+              updatedFilters.selectedProjects = Array.isArray(args.selectedProjects)
+                ? args.selectedProjects
+                : [args.selectedProjects];
+            }
+            if (args.selectedQuarters !== undefined) {
+              updatedFilters.selectedQuarters = Array.isArray(args.selectedQuarters)
+                ? args.selectedQuarters
+                : [args.selectedQuarters];
+            }
+            
+            updateFilters(updatedFilters);
+            actionResult.message = `Dashboard filters updated successfully. Applied: ${JSON.stringify(updatedFilters)}`;
+          } else if (name === 'setActiveProject') {
+            setActiveProjectName(args.projectName);
+            actionResult.message = `Active project details set to "${args.projectName}".`;
+          } else if (name === 'navigateToPage') {
+            navigate(args.pageName);
+            actionResult.message = `Successfully navigated to page "${args.pageName}".`;
+          } else if (name === 'resetAllFilters') {
+            resetData();
+            actionResult.message = `All filters reset to defaults.`;
+          }
+        } catch (err) {
+          console.error('Error executing action:', err);
+          actionResult = { success: false, error: err.message };
+        }
+
+        // Call Gemini again with the tool's result to generate the conversational response
+        const secondResponse = await fetch(apiEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: 'user',
+                parts: [
+                  {
+                    text: `${systemInstruction}\n\nUser Question: ${userMessage}`
+                  }
+                ]
+              },
+              {
+                role: 'model',
+                parts: [part]
+              },
+              {
+                role: 'tool',
+                parts: [
+                  {
+                    functionResponse: {
+                      name: name,
+                      response: {
+                        content: actionResult
+                      }
+                    }
+                  }
+                ]
+              }
+            ],
+            tools: agentTools,
+            generationConfig: {
+              temperature: 0.2,
+              topP: 0.95
+            }
+          })
+        });
+
+        const secondData = await secondResponse.json();
+        if (secondData.error) {
+          throw new Error(secondData.error.message || 'Secondary API request failed');
+        }
+
+        const generatedText = secondData.candidates?.[0]?.content?.parts?.[0]?.text || 'I have completed the action successfully.';
+        setMessages(prev => [...prev, { role: 'assistant', content: generatedText }]);
+
+      } else {
+        const generatedText = part?.text || 'No response generated. Please try again.';
+        setMessages(prev => [...prev, { role: 'assistant', content: generatedText }]);
+      }
+
     } catch (err) {
       console.error('Gemini API Error:', err);
       setMessages(prev => [
