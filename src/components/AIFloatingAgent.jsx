@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Send, Settings, Bot, User, RefreshCw, AlertCircle, Key } from 'lucide-react';
+import { Sparkles, X, Send, Settings, Bot, User, RefreshCw, AlertCircle, Key, AlertTriangle } from 'lucide-react';
 import { calculateGrandTotals } from '../utils/dataHelpers';
 
 const agentTools = [
@@ -83,14 +83,19 @@ export default function AIFloatingAgent() {
   const [loading, setLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [apiKey, setApiKey] = useState('');
+  const [selectedModel, setSelectedModel] = useState('gemini-3.5-flash');
+  const [lastUserMessage, setLastUserMessage] = useState('');
   const [apiError, setApiError] = useState('');
   const messagesEndRef = useRef(null);
 
-  // Load API key from localStorage or Vite environment variables on mount
+  // Load API key and model from localStorage or Vite environment variables on mount
   useEffect(() => {
     const savedKey = localStorage.getItem('gemini_api_key') || '';
     const envKey = import.meta.env.VITE_GEMINI_API_KEY || '';
     setApiKey(savedKey || envKey);
+
+    const savedModel = localStorage.getItem('gemini_model') || 'gemini-3.5-flash';
+    setSelectedModel(savedModel);
   }, []);
 
   // Scroll to bottom of chat whenever messages list changes
@@ -98,9 +103,11 @@ export default function AIFloatingAgent() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isOpen]);
 
-  const saveApiKey = (key) => {
+  const saveSettings = (key, model) => {
     localStorage.setItem('gemini_api_key', key.trim());
+    localStorage.setItem('gemini_model', model);
     setApiKey(key.trim());
+    setSelectedModel(model);
     setShowSettings(false);
     setApiError('');
   };
@@ -114,23 +121,154 @@ export default function AIFloatingAgent() {
     ]);
   };
 
-  const handleSend = async (e) => {
-    e.preventDefault();
-    if (!input.trim()) return;
+  // Helper to parse Gemini error response messages
+  const parseError = (err) => {
+    const msg = err.message || '';
+    
+    // Check for quota/rate limit error
+    if (
+      msg.includes('Quota exceeded') || 
+      msg.includes('limit: 0') || 
+      msg.includes('429') || 
+      msg.includes('RESOURCE_EXHAUSTED')
+    ) {
+      return {
+        type: 'quota',
+        title: 'Quota Exceeded (Rate Limit)',
+        description: 'You have reached the Gemini API free tier limits. The model requests have been limited.',
+        suggestions: [
+          'Switch to Gemini 1.5 Flash (it has a separate, more generous free quota).',
+          'Wait a minute (usually rate limits reset within 60 seconds) and retry.',
+          'Verify your API key in settings or upgrade your plan in Google AI Studio.'
+        ]
+      };
+    }
+
+    // Check for authentication / API key invalid
+    if (
+      msg.includes('API key not valid') || 
+      msg.includes('key is invalid') || 
+      msg.includes('400') || 
+      msg.includes('403') || 
+      (apiKey && !apiKey.trim().startsWith('AIzaSy') && !apiKey.trim().startsWith('AQ.'))
+    ) {
+      return {
+        type: 'auth',
+        title: 'Invalid API Key',
+        description: 'The Google Gemini API key configured does not seem to be valid or active.',
+        suggestions: [
+          'Ensure your key starts with a standard Google key prefix (like "AIzaSy" or "AQ.").',
+          'Get a free API Key from Google AI Studio.',
+          'Open settings (gear icon) to check and save your API key again.'
+        ]
+      };
+    }
+
+    // Default general error
+    return {
+      type: 'general',
+      title: 'Connection / API Error',
+      description: msg || 'Unable to connect to the Gemini API. Please check your connection or API key.',
+      suggestions: [
+        'Verify your network connection.',
+        'Check your API Key and selected model in the settings drawer.'
+      ]
+    };
+  };
+
+  // Helper to query Gemini API using v1beta (v1beta supports the 'tools' parameter)
+  const callGeminiAPI = async (model, key, requestBody) => {
+    // Generate model aliases to try if the default model is not found in the region/account
+    const modelAttempts = [model];
+    if (model === 'gemini-3.5-flash') {
+      modelAttempts.push('gemini-flash-latest');
+    } else if (model === 'gemini-3.1-flash-lite') {
+      modelAttempts.push('gemini-flash-lite-latest');
+    } else if (model === 'gemini-3.1-pro-preview') {
+      modelAttempts.push('gemini-3-pro-preview');
+    }
+    
+    let lastError = null;
+    for (const attemptedModel of modelAttempts) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${attemptedModel}:generateContent?key=${key}`;
+      try {
+        console.log(`Querying Gemini API at endpoint: ${url}`);
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
+        
+        const data = await response.json();
+        if (data.error) {
+          const errMsg = data.error.message || '';
+          lastError = new Error(errMsg || 'API request failed');
+          
+          // If it is a quota limit or authentication issue, fail immediately (no use retrying other models)
+          const isQuotaOrAuth = 
+            errMsg.includes('Quota exceeded') || 
+            errMsg.includes('limit: 0') || 
+            errMsg.includes('API key not valid') || 
+            errMsg.includes('key is invalid') ||
+            data.error.code === 429 ||
+            data.error.code === 400 ||
+            data.error.code === 403;
+            
+          if (isQuotaOrAuth) {
+            throw lastError;
+          }
+          
+          // Continue loop to try fallback models
+          continue;
+        }
+        
+        return data;
+      } catch (err) {
+        lastError = err;
+        // Propagate quota/auth errors immediately
+        const errStr = err.message || '';
+        const isQuotaOrAuth = 
+          errStr.includes('Quota exceeded') || 
+          errStr.includes('limit: 0') || 
+          errStr.includes('API key') || 
+          errStr.includes('invalid');
+          
+        if (isQuotaOrAuth) {
+          throw err;
+        }
+      }
+    }
+    throw lastError || new Error('API Request failed');
+  };
+
+  const handleSend = async (e, textOverride, modelOverride) => {
+    if (e) e.preventDefault();
+    
+    const messageToSend = textOverride !== undefined ? textOverride : input;
+    if (!messageToSend.trim()) return;
 
     if (!apiKey) {
       setMessages(prev => [
         ...prev,
-        { role: 'user', content: input },
+        ...(!textOverride ? [{ role: 'user', content: messageToSend }] : []),
         { role: 'assistant', content: '⚠️ Please set your Gemini API key first by clicking the settings gear in the top header.' }
       ]);
       setInput('');
       return;
     }
 
-    const userMessage = input.trim();
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
-    setInput('');
+    const userMessage = messageToSend.trim();
+    setLastUserMessage(userMessage);
+    
+    setMessages(prev => {
+      // Filter out the last message if it was an error to prevent accumulation of error cards
+      const cleaned = prev.filter((m, i) => !(m.isError && i === prev.length - 1));
+      return [...cleaned, { role: 'user', content: userMessage }];
+    });
+    
+    if (textOverride === undefined) setInput('');
     setLoading(true);
     setApiError('');
 
@@ -190,35 +328,37 @@ If queried in Hindi or Hinglish, respond in Hindi/Hinglish but keep formatting n
 Current Active Dashboard Data State:
 ${JSON.stringify(dashboardStateSummary, null, 2)}`;
 
-      const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-      const response = await fetch(apiEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: 'user',
-              parts: [
-                {
-                  text: `${systemInstruction}\n\nUser Question: ${userMessage}`
-                }
-              ]
-            }
-          ],
-          tools: agentTools,
-          generationConfig: {
-            temperature: 0.2,
-            topP: 0.95
+      const modelToUse = modelOverride || selectedModel;
+      const firstRequestBody = {
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                text: `${systemInstruction}\n\nUser Question: ${userMessage}`
+              }
+            ]
           }
-        })
-      });
+        ],
+        tools: agentTools,
+        generationConfig: {
+          temperature: 0.2,
+          topP: 0.95
+        }
+      };
 
-      const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error.message || 'API request failed');
+      let data;
+      try {
+        data = await callGeminiAPI(modelToUse, apiKey, firstRequestBody);
+      } catch (toolsErr) {
+        // Some models (esp. lite/preview) don't support the tools field. Retry without tools.
+        if ((toolsErr.message || '').includes('Unknown name "tools"')) {
+          const fallbackBody = { ...firstRequestBody };
+          delete fallbackBody.tools;
+          data = await callGeminiAPI(modelToUse, apiKey, fallbackBody);
+        } else {
+          throw toolsErr;
+        }
       }
 
       const part = data.candidates?.[0]?.content?.parts?.[0];
@@ -260,51 +400,42 @@ ${JSON.stringify(dashboardStateSummary, null, 2)}`;
         }
 
         // Call Gemini again with the tool's result to generate the conversational response
-        const secondResponse = await fetch(apiEndpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: 'user',
-                parts: [
-                  {
-                    text: `${systemInstruction}\n\nUser Question: ${userMessage}`
-                  }
-                ]
-              },
-              {
-                role: 'model',
-                parts: [part]
-              },
-              {
-                role: 'tool',
-                parts: [
-                  {
-                    functionResponse: {
-                      name: name,
-                      response: {
-                        content: actionResult
-                      }
+        const secondRequestBody = {
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  text: `${systemInstruction}\n\nUser Question: ${userMessage}`
+                }
+              ]
+            },
+            {
+              role: 'model',
+              parts: [part]
+            },
+            {
+              role: 'user',
+              parts: [
+                {
+                  functionResponse: {
+                    name: name,
+                    response: {
+                      content: actionResult
                     }
                   }
-                ]
-              }
-            ],
-            tools: agentTools,
-            generationConfig: {
-              temperature: 0.2,
-              topP: 0.95
+                }
+              ]
             }
-          })
-        });
+          ],
+          tools: agentTools,
+          generationConfig: {
+            temperature: 0.2,
+            topP: 0.95
+          }
+        };
 
-        const secondData = await secondResponse.json();
-        if (secondData.error) {
-          throw new Error(secondData.error.message || 'Secondary API request failed');
-        }
+        const secondData = await callGeminiAPI(modelToUse, apiKey, secondRequestBody);
 
         const generatedText = secondData.candidates?.[0]?.content?.parts?.[0]?.text || 'I have completed the action successfully.';
         setMessages(prev => [...prev, { role: 'assistant', content: generatedText }]);
@@ -316,11 +447,14 @@ ${JSON.stringify(dashboardStateSummary, null, 2)}`;
 
     } catch (err) {
       console.error('Gemini API Error:', err);
+      const parsed = parseError(err);
       setMessages(prev => [
         ...prev,
         {
           role: 'assistant',
-          content: `❌ Error: ${err.message || 'Unable to connect to the Gemini API. Please check your network connection or API key.'}`
+          isError: true,
+          errorDetails: parsed,
+          content: err.message || 'Unable to connect to the Gemini API. Please check your network connection or API key.'
         }
       ]);
     } finally {
@@ -380,28 +514,63 @@ ${JSON.stringify(dashboardStateSummary, null, 2)}`;
 
             {/* API Settings Overlay */}
             {showSettings && (
-              <div className="p-5 border-b border-slate-100 bg-slate-50 flex flex-col gap-3">
-                <div className="flex items-center gap-2 text-slate-800">
-                  <Key className="w-4 h-4 text-nyati-navy" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Gemini API Key</span>
+              <div className="p-5 border-b border-slate-100 bg-slate-50 flex flex-col gap-3.5">
+                {/* API Key Section */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2 text-slate-800">
+                    <Key className="w-4 h-4 text-nyati-navy" />
+                    <span className="text-xs font-bold uppercase tracking-wider">Gemini API Key</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="password"
+                      placeholder="Enter AIzaSy..."
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      className={`flex-1 px-3 py-1.5 border rounded-xl text-xs bg-white focus:outline-none ${
+                        apiKey && !apiKey.trim().startsWith('AIzaSy') && !apiKey.trim().startsWith('AQ.')
+                          ? 'border-amber-400 focus:border-amber-500'
+                          : 'border-slate-200 focus:border-nyati-navy'
+                      }`}
+                    />
+                    <button
+                      onClick={() => saveSettings(apiKey, selectedModel)}
+                      className="px-3.5 py-1.5 bg-nyati-navy text-white text-xs font-bold rounded-xl hover:bg-nyati-navy/95 transition-colors cursor-pointer shadow-sm"
+                    >
+                      Save
+                    </button>
+                  </div>
+                  {apiKey && !apiKey.trim().startsWith('AIzaSy') && !apiKey.trim().startsWith('AQ.') && (
+                    <p className="text-[10px] text-amber-600 flex items-center gap-1 font-semibold">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      Key doesn't start with standard prefixes (like "AIzaSy" or "AQ.").
+                    </p>
+                  )}
                 </div>
-                <div className="flex gap-2">
-                  <input
-                    type="password"
-                    placeholder="Enter AIzaSy..."
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    className="flex-1 px-3 py-1.5 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:border-nyati-navy"
-                  />
-                  <button
-                    onClick={() => saveApiKey(apiKey)}
-                    className="px-3.5 py-1.5 bg-nyati-navy text-white text-xs font-bold rounded-xl hover:bg-nyati-navy/95 transition-colors cursor-pointer"
+
+                {/* Model Selection Section */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2 text-slate-800">
+                    <Bot className="w-4 h-4 text-nyati-navy" />
+                    <span className="text-xs font-bold uppercase tracking-wider">Select AI Model</span>
+                  </div>
+                  <select
+                    value={selectedModel}
+                    onChange={(e) => {
+                      const newModel = e.target.value;
+                      setSelectedModel(newModel);
+                      localStorage.setItem('gemini_model', newModel);
+                    }}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:border-nyati-navy"
                   >
-                    Save
-                  </button>
+                    <option value="gemini-3.5-flash">Gemini 3.5 Flash (Default)</option>
+                    <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite (Fast)</option>
+                    <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Analytical)</option>
+                  </select>
                 </div>
+
                 <p className="text-[10px] text-slate-400 leading-normal">
-                  Your key is securely saved locally in your browser's localStorage. You can get a free key from Google AI Studio.
+                  Your settings are securely saved locally. Get a free key from <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-nyati-orange hover:underline font-semibold">Google AI Studio</a>.
                 </p>
               </div>
             )}
@@ -410,6 +579,77 @@ ${JSON.stringify(dashboardStateSummary, null, 2)}`;
             <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50/50">
               {messages.map((msg, index) => {
                 const isAI = msg.role === 'assistant';
+                
+                // Render custom Error Card if message is an error
+                if (msg.isError) {
+                  const errorDetails = msg.errorDetails || {};
+                  return (
+                    <div
+                      key={index}
+                      className="flex gap-2.5 max-w-[90%] self-start"
+                    >
+                      <div className="w-8 h-8 rounded-xl shrink-0 flex items-center justify-center shadow-sm text-white bg-nyati-orange">
+                        <AlertCircle className="w-4.5 h-4.5 animate-pulse" />
+                      </div>
+                      <div className="p-4 rounded-2xl text-[13px] leading-relaxed shadow-md border border-rose-100 bg-rose-50/95 text-slate-800 flex flex-col gap-3">
+                        <div className="flex flex-col gap-1">
+                          <h5 className="font-bold text-rose-700 text-xs flex items-center gap-1.5">
+                            {errorDetails.title || 'Error Occurred'}
+                          </h5>
+                          <p className="text-slate-600 text-xs leading-normal">
+                            {errorDetails.description || msg.content}
+                          </p>
+                        </div>
+                        
+                        {errorDetails.suggestions && errorDetails.suggestions.length > 0 && (
+                          <div className="bg-white/60 p-2.5 rounded-xl border border-rose-200/40">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Suggestions:</span>
+                            <ul className="list-disc list-inside text-[11px] text-slate-600 space-y-1">
+                              {errorDetails.suggestions.map((sug, sIdx) => (
+                                <li key={sIdx}>{sug}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {errorDetails.type === 'quota' && selectedModel === 'gemini-2.0-flash' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedModel('gemini-1.5-flash');
+                                localStorage.setItem('gemini_model', 'gemini-1.5-flash');
+                                handleSend(null, lastUserMessage, 'gemini-1.5-flash');
+                              }}
+                              className="px-2.5 py-1.5 bg-nyati-navy hover:bg-nyati-navy/90 text-white text-[11px] font-bold rounded-lg transition-colors cursor-pointer"
+                            >
+                              Switch to 1.5 Flash & Retry
+                            </button>
+                          )}
+                          
+                          <button
+                            type="button"
+                            onClick={() => setShowSettings(true)}
+                            className="px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-[11px] font-bold rounded-lg transition-colors cursor-pointer"
+                          >
+                            Open Settings
+                          </button>
+
+                          {lastUserMessage && (
+                            <button
+                              type="button"
+                              onClick={() => handleSend(null, lastUserMessage)}
+                              className="px-2.5 py-1.5 bg-nyati-orange hover:bg-nyati-orange/90 text-white text-[11px] font-bold rounded-lg transition-colors cursor-pointer"
+                            >
+                              Retry Request
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <div
                     key={index}
