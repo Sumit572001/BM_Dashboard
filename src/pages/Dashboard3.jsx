@@ -98,6 +98,92 @@ const ProjectCard = ({ project, onViewDetail }) => {
   );
 };
 
+const GroupCard = ({ group, onViewGroup }) => {
+  const health = getProjectHealth(group);
+  
+  const salesActual = group.soldToDate || 0;
+  const salesBudget = group.budgetUnits || 0;
+  const salesPct = salesBudget > 0 ? Math.round((salesActual / salesBudget) * 100) : 0;
+  
+  const collActual = group.actualCollection || 0;
+  const collBudget = group.budgetCollection || 0;
+  const collPct = collBudget > 0 ? Math.round((collActual / collBudget) * 100) : 0;
+  
+  const valueAchieved = group.actualValCr || 0;
+  const numPhases = group.projects.length;
+
+  return (
+    <div className="relative group/card h-44">
+      {/* Visual stacks for Group Card */}
+      <div className="absolute inset-0 bg-slate-200/50 rounded-2xl translate-y-2 translate-x-2 scale-[0.96] border border-slate-300/30 -z-10 transition-all group-hover/card:translate-y-2.5 group-hover/card:translate-x-2.5 duration-300" />
+      <div className="absolute inset-0 bg-slate-100 rounded-2xl translate-y-1 translate-x-1 scale-[0.98] border border-slate-200/40 -z-10 transition-all group-hover/card:translate-y-1.5 group-hover/card:translate-x-1.5 duration-300" />
+
+      <motion.div
+        whileHover={{ y: -4 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+        className="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-premium hover:shadow-premium-hover flex flex-col justify-between h-full cursor-pointer relative z-10"
+        onClick={() => onViewGroup(group.name)}
+      >
+        <div>
+          <div className="flex justify-between items-center mb-1.5">
+            <div className="flex items-center gap-1.5 bg-nyati-navy/5 text-nyati-navy px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider">
+              <Layers className="w-3 h-3 text-nyati-navy" />
+              <span>{numPhases} PHASES</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className={`w-2 h-2 rounded-full ${health.color.split(' ')[0]}`} />
+              <span className={`text-[11px] font-bold ${health.color.split(' ')[1]}`}>
+                {health.label}
+              </span>
+            </div>
+          </div>
+
+          <h4 className="font-extrabold text-nyati-navy text-[16px] mb-2 truncate">{group.name}</h4>
+
+          <div className="grid grid-cols-2 gap-3 border-b border-slate-50 pb-2 mb-1.5">
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wide block">TOTAL SALES</span>
+              <div className="flex items-baseline gap-1">
+                <span className="text-sm font-black text-slate-800">{salesActual}/{salesBudget}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className={`w-1.5 h-1.5 rounded-full ${salesPct >= 80 ? 'bg-emerald-500' : salesPct >= 50 ? 'bg-amber-500' : 'bg-rose-500'}`} />
+                <span className="text-[11px] font-bold text-slate-700">{salesPct}%</span>
+              </div>
+            </div>
+
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wide block">COLLECTION</span>
+              <div className="flex items-baseline gap-1">
+                <span className="text-sm font-black text-slate-800">₹{collActual.toFixed(0)} Cr</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className={`w-1.5 h-1.5 rounded-full ${collPct >= 80 ? 'bg-emerald-500' : collPct >= 50 ? 'bg-amber-500' : 'bg-rose-500'}`} />
+                <span className="text-[11px] font-bold text-slate-700">{collPct}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center text-[12px] font-bold text-slate-700">
+          <span>Value achieved - ₹{valueAchieved.toFixed(0)} Cr</span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewGroup(group.name);
+            }}
+            className="text-nyati-orange hover:text-nyati-navy transition-colors flex items-center gap-1 cursor-pointer"
+          >
+            <span>View Phases</span>
+            <span>→</span>
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+
 const PROJECT_DATES = {
   'emerald': { start: '01-Jan-2024', engg: '31-May-2028', rera: '31-Aug-2028' },
   'equinox': { start: '01-Oct-2022', engg: '31-Jul-2026', rera: '31-Aug-2026' },
@@ -209,6 +295,7 @@ export default function Dashboard3() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [portfolioFilter, setPortfolioFilter] = useState('All');
+  const [expandedGroup, setExpandedGroup] = useState(null);
   const dropdownRef = useRef(null);
 
   // Auto-init selected project from context if present on load
@@ -290,6 +377,72 @@ export default function Dashboard3() {
     processedProjects.filter(p => p.type === 'C' && p.name.toLowerCase().includes(searchQuery.toLowerCase())),
     [processedProjects, searchQuery]
   );
+
+  // Helper to extract base name for grouping (e.g. "NYATI ERA I" -> "NYATI ERA")
+  const getProjectBaseName = (name) => {
+    return name.replace(/\s+(I|II|III|IV|V|VI|VII|VIII|IX|X|\d+)$/i, '').trim();
+  };
+
+  // Grouped projects mapping for easier lookup when expanded
+  const groupedProjectsMap = useMemo(() => {
+    const groups = {};
+    processedProjects.forEach(p => {
+      const baseName = getProjectBaseName(p.name);
+      if (!groups[baseName]) {
+        groups[baseName] = [];
+      }
+      groups[baseName].push(p);
+    });
+    return groups;
+  }, [processedProjects]);
+
+  // Group helper to convert array of projects to grouped cards where relevant
+  const getGroupedList = (projects, type) => {
+    const groups = {};
+    projects.forEach(p => {
+      const baseName = getProjectBaseName(p.name);
+      if (!groups[baseName]) {
+        groups[baseName] = [];
+      }
+      groups[baseName].push(p);
+    });
+
+    const displayList = [];
+    Object.entries(groups).forEach(([baseName, list]) => {
+      if (list.length === 1) {
+        displayList.push({
+          isGroup: false,
+          name: list[0].name,
+          project: list[0]
+        });
+      } else {
+        const totalUnits = list.reduce((sum, p) => sum + (p.totalUnits || 0), 0);
+        const soldToDate = list.reduce((sum, p) => sum + (p.soldToDate || 0), 0);
+        const budgetUnits = list.reduce((sum, p) => sum + (p.budgetUnits || 0), 0);
+        const actualCollection = list.reduce((sum, p) => sum + (p.actualCollection || 0), 0);
+        const budgetCollection = list.reduce((sum, p) => sum + (p.budgetCollection || 0), 0);
+        const actualValCr = list.reduce((sum, p) => sum + (p.actualValCr || 0), 0);
+
+        displayList.push({
+          isGroup: true,
+          name: baseName,
+          projects: list,
+          type,
+          totalUnits,
+          soldToDate,
+          budgetUnits,
+          actualCollection,
+          budgetCollection,
+          actualValCr
+        });
+      }
+    });
+    return displayList;
+  };
+
+  const residentialGroups = useMemo(() => getGroupedList(residentialProjects, 'R'), [residentialProjects]);
+  const luxuryGroups = useMemo(() => getGroupedList(luxuryProjects, 'L'), [luxuryProjects]);
+  const commercialGroups = useMemo(() => getGroupedList(commercialProjects, 'C'), [commercialProjects]);
 
   const resActiveCount = residentialProjects.length;
   const resCombinedTarget = useMemo(() => 
@@ -1297,7 +1450,7 @@ export default function Dashboard3() {
                     return (
                       <button
                         key={item.value}
-                        onClick={() => setPortfolioFilter(item.value)}
+                        onClick={() => { setPortfolioFilter(item.value); setExpandedGroup(null); }}
                         className={`px-3 py-1.5 rounded-lg font-semibold transition-all duration-200 cursor-pointer ${
                           isSelected
                             ? 'bg-white text-nyati-orange shadow-sm font-bold'
@@ -1326,7 +1479,30 @@ export default function Dashboard3() {
 
             {/* Portfolio Groups */}
             <div className="space-y-10">
-              {!showResidential && !showLuxury && !showCommercial ? (
+              {expandedGroup ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+                    <button
+                      onClick={() => setExpandedGroup(null)}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm w-fit border border-slate-200/50"
+                    >
+                      <span>← Back to Portfolio</span>
+                    </button>
+                    <div className="h-4 w-[1px] bg-slate-200" />
+                    <h3 className="text-2xl font-black text-nyati-navy">
+                      {expandedGroup} <span className="text-slate-400 font-medium">Phases</span>
+                    </h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    {(groupedProjectsMap[expandedGroup] || [])
+                      .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                      .map(p => (
+                        <ProjectCard key={p.name} project={p} onViewDetail={onViewDetail} />
+                      ))}
+                  </div>
+                </div>
+              ) : !showResidential && !showLuxury && !showCommercial ? (
                 <div className="flex flex-col items-center justify-center py-20 text-slate-400">
                   <Search className="w-12 h-12 mb-4 text-slate-300" />
                   <p className="font-bold text-sm">No projects match your search query or filter.</p>
@@ -1343,8 +1519,12 @@ export default function Dashboard3() {
                         </span>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {residentialProjects.map(p => (
-                          <ProjectCard key={p.name} project={p} onViewDetail={onViewDetail} />
+                        {residentialGroups.map(item => (
+                          item.isGroup ? (
+                            <GroupCard key={item.name} group={item} onViewGroup={setExpandedGroup} />
+                          ) : (
+                            <ProjectCard key={item.name} project={item.project} onViewDetail={onViewDetail} />
+                          )
                         ))}
                       </div>
                     </div>
@@ -1360,8 +1540,12 @@ export default function Dashboard3() {
                         </span>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {luxuryProjects.map(p => (
-                          <ProjectCard key={p.name} project={p} onViewDetail={onViewDetail} />
+                        {luxuryGroups.map(item => (
+                          item.isGroup ? (
+                            <GroupCard key={item.name} group={item} onViewGroup={setExpandedGroup} />
+                          ) : (
+                            <ProjectCard key={item.name} project={item.project} onViewDetail={onViewDetail} />
+                          )
                         ))}
                       </div>
                     </div>
@@ -1377,8 +1561,12 @@ export default function Dashboard3() {
                         </span>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {commercialProjects.map(p => (
-                          <ProjectCard key={p.name} project={p} onViewDetail={onViewDetail} />
+                        {commercialGroups.map(item => (
+                          item.isGroup ? (
+                            <GroupCard key={item.name} group={item} onViewGroup={setExpandedGroup} />
+                          ) : (
+                            <ProjectCard key={item.name} project={item.project} onViewDetail={onViewDetail} />
+                          )
                         ))}
                       </div>
                     </div>
